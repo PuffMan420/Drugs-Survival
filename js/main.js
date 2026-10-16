@@ -15,6 +15,8 @@ import {
 import {
   CAMERA_HEIGHT,
   CAMERA_TILT,
+  GROUND_H,
+  GROUND_W,
   PLAYER_SIZE,
   PLAYER_SPEED,
   TILE,
@@ -65,15 +67,15 @@ function clamp(value, min, max) {
 function lockPixelProjection(camera) {
   const apply = () => {
     // The center ray meets the ground farther out than the camera's height,
-    // because the camera is tilted. Size the frustum for that distance so
-    // east-west on the ground stays one world unit per pixel.
+    // because the camera is tilted. Frame the smaller ground rectangle there
+    // so the 12.5% closer view stays even across the 960×540 picture.
     const distance = CAMERA_HEIGHT / Math.cos(CAMERA_TILT);
     const scale = camera.near / distance;
     camera.projectionMatrix.makePerspective(
-      (-VIEW_W / 2) * scale,
-      (VIEW_W / 2) * scale,
-      (VIEW_H / 2) * scale,
-      (-VIEW_H / 2) * scale,
+      (-GROUND_W / 2) * scale,
+      (GROUND_W / 2) * scale,
+      (GROUND_H / 2) * scale,
+      (-GROUND_H / 2) * scale,
       camera.near,
       camera.far,
     );
@@ -205,13 +207,13 @@ async function start() {
     const snappedZ = Math.round(player.z);
     city.playerMesh.position.set(snappedX, half, snappedZ);
 
-    const camX = clamp(snappedX, VIEW_W / 2, city.mapW - VIEW_W / 2);
-    const camZ = clamp(snappedZ, VIEW_H / 2, city.mapH - VIEW_H / 2);
+    const camX = clamp(snappedX, GROUND_W / 2, city.mapW - GROUND_W / 2);
+    const camZ = clamp(snappedZ, GROUND_H / 2, city.mapH - GROUND_H / 2);
     camera.position.set(camX, CAMERA_HEIGHT, camZ + cameraSouth);
     camera.lookAt(camX, 0, camZ);
     updateChunks(city.chunks, camX, camZ);
     presenter.render(scene, camera);
-    minimap.draw(camX, camZ, player.x, player.z, TILE, VIEW_W / TILE, VIEW_H / TILE);
+    minimap.draw(camX, camZ, player.x, player.z, TILE, GROUND_W / TILE, GROUND_H / TILE);
 
     const instant = 1 / Math.max(dt, 1 / 240);
     fps = fps === 0 ? instant : fps + (instant - fps) * 0.1;

@@ -14,6 +14,7 @@ import {
 } from "three";
 import {
   CAMERA_HEIGHT,
+  CAMERA_TILT,
   PLAYER_SIZE,
   PLAYER_SPEED,
   TILE,
@@ -63,7 +64,11 @@ function clamp(value, min, max) {
 
 function lockPixelProjection(camera) {
   const apply = () => {
-    const scale = camera.near / CAMERA_HEIGHT;
+    // The center ray meets the ground farther out than the camera's height,
+    // because the camera is tilted. Size the frustum for that distance so
+    // east-west on the ground stays one world unit per pixel.
+    const distance = CAMERA_HEIGHT / Math.cos(CAMERA_TILT);
+    const scale = camera.near / distance;
     camera.projectionMatrix.makePerspective(
       (-VIEW_W / 2) * scale,
       (VIEW_W / 2) * scale,
@@ -157,8 +162,11 @@ async function start() {
   const city = buildCity(scene, map);
   const minimap = createMinimap(map);
   const camera = new PerspectiveCamera(15, VIEW_W / VIEW_H, NEAR, FAR);
-  camera.up.set(0, 0, -1);
+  const tiltUp = Math.sin(CAMERA_TILT);
+  const tiltNorth = Math.cos(CAMERA_TILT);
+  camera.up.set(0, tiltUp, -tiltNorth);
   lockPixelProjection(camera);
+  const cameraSouth = Math.round(CAMERA_HEIGHT * Math.tan(CAMERA_TILT));
   const presenter = createPresenter(renderer);
   const origin = tileCenter(map.spawn.x, map.spawn.z);
   const player = { x: origin.x, z: origin.z };
@@ -199,7 +207,7 @@ async function start() {
 
     const camX = clamp(snappedX, VIEW_W / 2, city.mapW - VIEW_W / 2);
     const camZ = clamp(snappedZ, VIEW_H / 2, city.mapH - VIEW_H / 2);
-    camera.position.set(camX, CAMERA_HEIGHT, camZ);
+    camera.position.set(camX, CAMERA_HEIGHT, camZ + cameraSouth);
     camera.lookAt(camX, 0, camZ);
     updateChunks(city.chunks, camX, camZ);
     presenter.render(scene, camera);

@@ -16,7 +16,7 @@ You stay on land, docks, and bridges. The water around the coast is the edge of 
 
 - Downtown, the same every time: 260 by 260 blocks, bent main roads, diagonal streets, alleys, plazas, small parks, a river, and a harbor with docks
 - High-rises, glass towers, and brick apartments with different footprints and heights, taller inland and lower along the water
-- Buildings lean a little, because the camera looks straight down in 3D
+- Buildings show a little of their south side, because the camera is tilted about 12 degrees toward the north, and they still lean in perspective
 - Crisp pixels: the picture is drawn at 960×540 and scaled up by whole numbers (exactly 2× on a 1080p screen)
 - A small map in the corner, and an FPS counter
 

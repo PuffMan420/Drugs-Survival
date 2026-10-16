@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GTA Meth Attack 3D</title>
+  <title>Drugs Survival</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23ffe14a'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="./css/style.css" />
   <script type="importmap">
@@ -17,6 +17,13 @@
 <body>
   <canvas id="view" width="960" height="540"></canvas>
   <p id="fps">FPS</p>
+  <p id="place">Downtown</p>
+  <canvas id="minimap" width="200" height="200"></canvas>
+  <p id="hint">M map · 1–6 districts</p>
+  <div id="map-overlay" hidden>
+    <canvas id="map-full" width="200" height="200"></canvas>
+    <p id="map-help">Whole city. Yellow dot is you, white box is the camera. Keys 1–6 jump to a district. M or Esc closes this.</p>
+  </div>
   <p id="boot-error" hidden></p>
   <script type="module">
     import("./js/main.js").catch((error) => {

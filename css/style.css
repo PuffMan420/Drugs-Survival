@@ -20,13 +20,11 @@ canvas {
   image-rendering: pixelated;
 }
 
-#fps {
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  z-index: 2;
+#fps,
+#place,
+#hint,
+#map-help {
   margin: 0;
-  padding: 4px 8px;
   color: #fff;
   background: #000;
   font: 16px/1.2 ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
@@ -34,10 +32,70 @@ canvas {
   user-select: none;
 }
 
+#fps {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  padding: 4px 8px;
+}
+
+#place {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+}
+
+#minimap {
+  position: fixed;
+  right: 12px;
+  bottom: 36px;
+  z-index: 2;
+  width: 200px;
+  height: 200px;
+  outline: 2px solid #fff;
+}
+
+#hint {
+  position: fixed;
+  right: 12px;
+  bottom: 8px;
+  z-index: 2;
+  padding: 2px 6px;
+  font-size: 14px;
+}
+
+#map-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.78);
+}
+
+#map-overlay[hidden] {
+  display: none;
+}
+
+#map-help {
+  max-width: 40rem;
+  padding: 6px 8px;
+  text-align: center;
+  background: transparent;
+}
+
 #boot-error {
   position: fixed;
   left: 50%;
   top: 50%;
+  z-index: 5;
   transform: translate(-50%, -50%);
   margin: 0;
   max-width: 36rem;

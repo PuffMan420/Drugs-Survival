@@ -8,7 +8,7 @@ import {
   Mesh,
   MeshBasicMaterial,
 } from "three";
-import { CHUNK, PLAYER_SIZE, TILE, VIEW_H, VIEW_W } from "./constants.js";
+import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
 import { createTextures } from "./textures.js";
 
 const flat = { toneMapped: false };
@@ -177,10 +177,10 @@ export function updateChunks(chunks, camX, camZ) {
   const margin = TILE * 2;
   // Roofs lean north into the frame from just south of it.
   const southMargin = TILE * 5;
-  const minX = camX - VIEW_W / 2 - margin;
-  const maxX = camX + VIEW_W / 2 + margin;
-  const minZ = camZ - VIEW_H / 2 - margin;
-  const maxZ = camZ + VIEW_H / 2 + margin + southMargin;
+  const minX = camX - GROUND_W / 2 - margin;
+  const maxX = camX + GROUND_W / 2 + margin;
+  const minZ = camZ - GROUND_H / 2 - margin;
+  const maxZ = camZ + GROUND_H / 2 + margin + southMargin;
   let shown = 0;
   for (const chunk of chunks) {
     const visible = chunk.maxX >= minX && chunk.minX <= maxX && chunk.maxZ >= minZ && chunk.minZ <= maxZ;

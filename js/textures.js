@@ -69,6 +69,18 @@ function asphalt(ctx, major) {
   ctx.fillRect(0, 0, 48, 48);
 }
 
+function diagonalRoad(ctx, major, slash) {
+  asphalt(ctx, major);
+  ctx.fillStyle = "#e2c14a";
+  for (let i = 0; i < 48; i += 1) {
+    const y = slash ? 47 - i : i;
+    ctx.fillRect(i, y, 1, 2);
+    if (!major) continue;
+    const y2 = slash ? y - 6 : y + 6;
+    if (y2 >= 0 && y2 < 47) ctx.fillRect(i, y2, 1, 2);
+  }
+}
+
 export function createTextures() {
   const ground = {
     "~": groundTile((ctx) => {
@@ -121,6 +133,26 @@ export function createTextures() {
       ctx.fillRect(23, 10, 2, 28);
     }),
     X: groundTile((ctx) => asphalt(ctx, false)),
+    A: groundTile((ctx) => diagonalRoad(ctx, true, true)),
+    E: groundTile((ctx) => diagonalRoad(ctx, true, false)),
+    a: groundTile((ctx) => diagonalRoad(ctx, false, true)),
+    e: groundTile((ctx) => diagonalRoad(ctx, false, false)),
+    n: groundTile((ctx) => {
+      ctx.fillStyle = "#2a2e34";
+      ctx.fillRect(0, 0, 48, 48);
+      ctx.fillStyle = "#3c424a";
+      ctx.fillRect(8, 8, 32, 32);
+    }),
+    q: groundTile((ctx) => {
+      ctx.fillStyle = "#d4cbb8";
+      ctx.fillRect(0, 0, 48, 48);
+      ctx.fillStyle = "#b7ad98";
+      ctx.fillRect(0, 0, 48, 2);
+      ctx.fillRect(0, 0, 2, 48);
+      ctx.fillStyle = "#e4dccb";
+      ctx.fillRect(8, 8, 14, 14);
+      ctx.fillRect(26, 26, 14, 14);
+    }),
     s: groundTile((ctx) => {
       ctx.fillStyle = "#b7b1a4";
       ctx.fillRect(0, 0, 48, 48);
@@ -161,7 +193,9 @@ export function createTextures() {
 
   const walls = {
     tower: wallTile("#c8c2b4", "#9a9488", "#9ec4d4"),
+    glass: wallTile("#6d838f", "#51616c", "#e7f4fb"),
     mid: wallTile("#7f8c99", "#5e6b76", "#b7d0dc"),
+    brick: wallTile("#8d5344", "#6a3a30", "#ead7b4"),
     house: wallTile("#c4a574", "#8d7048", "#d8e4ec"),
     shed: shedTile(),
   };

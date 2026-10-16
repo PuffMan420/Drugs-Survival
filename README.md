@@ -8,13 +8,14 @@ The live game is at https://drugs-survival.pages.dev/ . Merging to `main` publis
 
 **WASD** or the **arrow keys** move the yellow square. The camera follows.
 
-**M** opens a map of the whole city. **1** through **6** jump to downtown, the house neighborhoods, the warehouses, the park, and the harbor. **Esc** closes the map.
+**M** opens a map of the whole city. **1** through **6** jump to the skyline, the slanted avenue, the civic plaza, the harbor, the apartments, and the alleys. **Esc** closes the map.
 
 You stay on land, docks, and bridges. The water around the coast is the edge of the city.
 
 ## What you should see
 
-- A fixed city, the same every time: a street grid, wide main roads, sidewalks, a river and harbor, docks, parks, tall downtown blocks, small houses, and warehouses
+- Downtown, the same every time: 260 by 260 blocks, bent main roads, diagonal streets, alleys, plazas, small parks, a river, and a harbor with docks
+- High-rises, glass towers, and brick apartments with different footprints and heights, taller inland and lower along the water
 - Buildings lean a little, because the camera looks straight down in 3D
 - Crisp pixels: the picture is drawn at 960×540 and scaled up by whole numbers (exactly 2× on a 1080p screen)
 - A small map in the corner, and an FPS counter

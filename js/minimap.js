@@ -8,6 +8,12 @@ const GROUND = {
   h: "#34373d",
   v: "#34373d",
   X: "#34373d",
+  A: "#3e424a",
+  E: "#3e424a",
+  a: "#34373d",
+  e: "#34373d",
+  n: "#2a2e34",
+  q: "#d4cbb8",
   s: "#c8bfb0",
   g: "#3d6b45",
   p: "#c2b48a",
@@ -16,8 +22,10 @@ const GROUND = {
 };
 
 const STYLES = {
-  tower: [160, 140, 120],
-  mid: [120, 134, 146],
+  tower: [176, 164, 140],
+  glass: [150, 186, 204],
+  mid: [120, 140, 156],
+  brick: [168, 96, 78],
   house: [184, 146, 112],
   shed: [96, 90, 84],
 };
@@ -52,6 +60,10 @@ export function createMinimap(map) {
   const mini = document.getElementById("minimap");
   const full = document.getElementById("map-full");
   const overlay = document.getElementById("map-overlay");
+  mini.width = map.cols;
+  mini.height = map.rows;
+  full.width = map.cols;
+  full.height = map.rows;
   const miniCtx = mini.getContext("2d");
   const fullCtx = full.getContext("2d");
   miniCtx.imageSmoothingEnabled = false;
@@ -74,13 +86,20 @@ export function createMinimap(map) {
     full.style.height = `${map.rows * scale}px`;
   }
 
+  let lastFull = "";
+
   return {
     draw(camX, camZ, playerX, playerZ, tile, viewW, viewH) {
       draw(miniCtx, camX, camZ, playerX, playerZ, tile, viewW, viewH);
-      if (!overlay.hidden) draw(fullCtx, camX, camZ, playerX, playerZ, tile, viewW, viewH);
+      if (overlay.hidden) return;
+      const key = `${Math.round(camX)}:${Math.round(camZ)}:${Math.round(playerX)}:${Math.round(playerZ)}`;
+      if (key === lastFull) return;
+      lastFull = key;
+      draw(fullCtx, camX, camZ, playerX, playerZ, tile, viewW, viewH);
     },
     toggle() {
       overlay.hidden = !overlay.hidden;
+      lastFull = "";
       if (!overlay.hidden) fitOverlay();
       return !overlay.hidden;
     },

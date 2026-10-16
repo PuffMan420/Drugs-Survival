@@ -1,26 +1,31 @@
-# GTA Meth Attack 3D
+# Drugs Survival
 
-A GTA 2-style browser game. This first version is one city block you can walk around.
+A top-down city you can walk around in the browser.
 
-## Play
+The live game is at https://drugs-survival.pages.dev/ . Merging to `main` publishes it there.
 
-After this is merged, the game is published at:
+## How to play
 
-https://puffman420.github.io/GTA-meth-attack-3d/
+**WASD** or the **arrow keys** move the yellow square. The camera follows.
 
-Move with **WASD** or the **arrow keys**. The camera follows the yellow square.
+**M** opens a map of the whole city. **1** through **6** jump to the skyline, the slanted avenue, the civic plaza, the harbor, the apartments, and the alleys. **Esc** closes the map.
 
-The first time, GitHub has to be told to use the workflow. In the repo: **Settings → Pages → Build and deployment → Source: GitHub Actions**. After that, every merge to `main` publishes the site. The address above is the project site for this repository.
+You stay on land, docks, and bridges. The water around the coast is the edge of the city.
 
 ## What you should see
 
-- Roads, sidewalks, and box buildings with window and roof textures
+- Downtown, the same every time: 260 by 260 blocks, bent main roads, diagonal streets, alleys, plazas, small parks, a river, and a harbor with docks
+- High-rises, glass towers, and brick apartments with different footprints and heights, taller inland and lower along the water
 - Buildings lean a little, because the camera looks straight down in 3D
-- Crisp pixels: the game draws at 960×540 and scales up by whole numbers (exactly 2× on a 1080p screen), with black bars when the window is a different shape
-- An FPS counter in the corner
+- Crisp pixels: the picture is drawn at 960×540 and scaled up by whole numbers (exactly 2× on a 1080p screen)
+- A small map in the corner, and an FPS counter
 
-No cars or enemies yet.
+## The map file
 
-## How it is published
+The city lives in `data/city.json`. To draw it again after editing the plan in `tools/generate-map.mjs`:
 
-The site is plain files. There is no install or compile step. Three.js 0.180.0 is loaded from a pinned address, and `.github/workflows/pages.yml` uploads this folder to GitHub Pages.
+```bash
+node tools/generate-map.mjs
+```
+
+The plan in that script (where the river, parks, and districts sit) is the easy place to change the layout.

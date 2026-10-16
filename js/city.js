@@ -1,131 +1,200 @@
-import { PlaneGeometry, MeshBasicMaterial, Mesh, BoxGeometry, FrontSide, DoubleSide } from "three";
 import {
-  TILE,
-  COLS,
-  ROWS,
-  ROAD_COLS,
-  ROAD_ROWS,
-  BUILDINGS,
-  PLAYER_START_X,
-  PLAYER_START_Z,
-  PLAYER_SIZE,
-  isRoadCol,
-  isRoadRow,
-  tileKind,
-  validateBuildings,
-} from "./city-data.js";
-import { makeRoofTexture, makeWallTexture, pixelTexture } from "./textures.js";
+  BoxGeometry,
+  BufferAttribute,
+  BufferGeometry,
+  DoubleSide,
+  FrontSide,
+  Group,
+  Mesh,
+  MeshBasicMaterial,
+} from "three";
+import { CHUNK, PLAYER_SIZE, TILE, VIEW_H, VIEW_W } from "./constants.js";
+import { createTextures } from "./textures.js";
 
-const flat = { toneMapped: false, side: FrontSide };
+const flat = { toneMapped: false };
 
-function paintGround() {
-  const width = COLS * TILE;
-  const height = ROWS * TILE;
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  ctx.imageSmoothingEnabled = false;
+function hexRgb(hex) {
+  const value = Number.parseInt(hex.slice(1), 16);
+  return [((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255];
+}
 
-  for (let tz = 0; tz < ROWS; tz += 1) {
-    for (let tx = 0; tx < COLS; tx += 1) {
-      const x = tx * TILE;
-      const y = tz * TILE;
-      const kind = tileKind(tx, tz);
-      if (kind === "road") {
-        ctx.fillStyle = "#34363b";
-        ctx.fillRect(x, y, TILE, TILE);
-      } else if (kind === "sidewalk") {
-        ctx.fillStyle = "#c8c0b2";
-        ctx.fillRect(x, y, TILE, TILE);
-        ctx.fillStyle = "#ddd6c8";
-        ctx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
-        ctx.fillStyle = "#8a847a";
-        if (isRoadCol(tx - 1)) ctx.fillRect(x, y, 3, TILE);
-        if (isRoadCol(tx + 1)) ctx.fillRect(x + TILE - 3, y, 3, TILE);
-        if (isRoadRow(tz - 1)) ctx.fillRect(x, y, TILE, 3);
-        if (isRoadRow(tz + 1)) ctx.fillRect(x, y + TILE - 3, TILE, 3);
-      } else {
-        ctx.fillStyle = "#5a564f";
-        ctx.fillRect(x, y, TILE, TILE);
-        ctx.fillStyle = "#4a463f";
-        ctx.fillRect(x, y + TILE - 1, TILE, 1);
-        ctx.fillRect(x + TILE - 1, y, 1, TILE);
+function makeMaterial(texture, extra = {}) {
+  return new MeshBasicMaterial({ map: texture, side: FrontSide, ...flat, ...extra });
+}
+
+function createMaterials(textures) {
+  const ground = {};
+  for (const [key, texture] of Object.entries(textures.ground)) {
+    ground[key] = makeMaterial(texture, { side: DoubleSide });
+  }
+  const walls = {};
+  for (const [key, texture] of Object.entries(textures.walls)) {
+    walls[key] = makeMaterial(texture);
+  }
+  const roof = makeMaterial(textures.roof, { vertexColors: true });
+  return { ground, walls, roof };
+}
+
+function geometryFrom(buf, withColor) {
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new BufferAttribute(new Float32Array(buf.pos), 3));
+  geometry.setAttribute("uv", new BufferAttribute(new Float32Array(buf.uv), 2));
+  if (withColor) geometry.setAttribute("color", new BufferAttribute(new Float32Array(buf.col), 3));
+  geometry.setIndex(buf.idx);
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
+function addGroundQuad(buf, x0, z0, x1, z1) {
+  const y = 0;
+  const base = buf.pos.length / 3;
+  buf.pos.push(x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1);
+  buf.uv.push(0, 1, 1, 1, 1, 0, 0, 0);
+  buf.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+}
+
+function appendFace(buf, box, group, scaleU, scaleV, color) {
+  const index = box.index.array;
+  const pos = box.attributes.position.array;
+  const uv = box.attributes.uv.array;
+  for (let i = group.start; i < group.start + group.count; i += 1) {
+    const vi = index[i];
+    if (i % 3 === 0) buf.base = buf.pos.length / 3;
+    buf.pos.push(pos[vi * 3], pos[vi * 3 + 1], pos[vi * 3 + 2]);
+    buf.uv.push(uv[vi * 2] * scaleU, uv[vi * 2 + 1] * scaleV);
+    if (color) buf.col.push(color[0], color[1], color[2]);
+    if (i % 3 === 2) buf.idx.push(buf.base, buf.base + 1, buf.base + 2);
+  }
+}
+
+function buildChunk(map, cx, cz, materials) {
+  const x1 = Math.min(map.cols, cx + CHUNK);
+  const z1 = Math.min(map.rows, cz + CHUNK);
+  const groundBufs = new Map();
+  const wallBufs = new Map();
+  const roofBuf = { pos: [], uv: [], idx: [], col: [] };
+  let minX = cx * TILE;
+  let maxX = x1 * TILE;
+  let minZ = cz * TILE;
+  let maxZ = z1 * TILE;
+
+  for (let z = cz; z < z1; z += 1) {
+    const row = map.ground[z];
+    for (let x = cx; x < x1; x += 1) {
+      const cell = row[x];
+      const key = materials.ground[cell] ? cell : "l";
+      let buf = groundBufs.get(key);
+      if (!buf) {
+        buf = { pos: [], uv: [], idx: [] };
+        groundBufs.set(key, buf);
       }
+      addGroundQuad(buf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE);
     }
   }
 
-  ctx.fillStyle = "#e6c34a";
-  for (const start of ROAD_ROWS) {
-    const zLine = (start + 1) * TILE;
-    for (let tx = 0; tx < COLS; tx += 1) {
-      if (isRoadCol(tx)) continue;
-      ctx.fillRect(tx * TILE + 10, zLine - 1, 28, 2);
-    }
-  }
-  for (const start of ROAD_COLS) {
-    const xLine = (start + 1) * TILE;
-    for (let tz = 0; tz < ROWS; tz += 1) {
-      if (isRoadRow(tz)) continue;
-      ctx.fillRect(xLine - 1, tz * TILE + 10, 2, 28);
-    }
-  }
-
-  return pixelTexture(canvas);
-}
-
-function addGround(scene) {
-  const mapW = COLS * TILE;
-  const mapH = ROWS * TILE;
-  // PlaneGeometry's +Y edge is texture v=1. rotateX(-90°) sends that edge to -Z,
-  // which is world z = 0 when the plane is centered — canvas y-down matches +Z.
-  const geometry = new PlaneGeometry(mapW, mapH);
-  geometry.rotateX(-Math.PI / 2);
-  const material = new MeshBasicMaterial({
-    map: paintGround(),
-    toneMapped: false,
-    side: DoubleSide,
-  });
-  const mesh = new Mesh(geometry, material);
-  mesh.position.set(mapW / 2, 0, mapH / 2);
-  scene.add(mesh);
-}
-
-function addBuildings(scene) {
-  validateBuildings();
-  for (const building of BUILDINGS) {
+  for (const building of map.buildings) {
+    if (building.x < cx || building.x >= x1 || building.z < cz || building.z >= z1) continue;
     const width = building.w * TILE;
     const depth = building.d * TILE;
     const height = building.h * TILE;
-    const geometry = new BoxGeometry(width, height, depth);
-    // ±X faces are depth × height, ±Z faces are width × height, +Y is the roof.
-    const sideX = new MeshBasicMaterial({ map: makeWallTexture(building.d, building.h, building.wall), ...flat });
-    const sideZ = new MeshBasicMaterial({ map: makeWallTexture(building.w, building.h, building.wall), ...flat });
-    const roof = new MeshBasicMaterial({ map: makeRoofTexture(building.w, building.d, building.roof), ...flat });
-    const bottom = new MeshBasicMaterial({ color: 0x222222, ...flat });
-    const mesh = new Mesh(geometry, [sideX, sideX, roof, bottom, sideZ, sideZ]);
-    mesh.position.set((building.tx + building.w / 2) * TILE, height / 2, (building.tz + building.d / 2) * TILE);
-    scene.add(mesh);
+    const box = new BoxGeometry(width, height, depth);
+    box.translate((building.x + building.w / 2) * TILE, height / 2, (building.z + building.d / 2) * TILE);
+    const groups = box.groups;
+    const style = materials.walls[building.style] ? building.style : "house";
+    let walls = wallBufs.get(style);
+    if (!walls) {
+      walls = { pos: [], uv: [], idx: [] };
+      wallBufs.set(style, walls);
+    }
+    // Box face order: +X, -X, +Y, -Y, +Z, -Z.
+    appendFace(walls, box, groups[0], building.d, building.h);
+    appendFace(walls, box, groups[1], building.d, building.h);
+    appendFace(roofBuf, box, groups[2], building.w, building.d, hexRgb(building.roof));
+    appendFace(walls, box, groups[4], building.w, building.h);
+    appendFace(walls, box, groups[5], building.w, building.h);
+    box.dispose();
+    minX = Math.min(minX, building.x * TILE);
+    maxX = Math.max(maxX, (building.x + building.w) * TILE);
+    minZ = Math.min(minZ, building.z * TILE);
+    maxZ = Math.max(maxZ, (building.z + building.d) * TILE);
   }
+
+  const group = new Group();
+  for (const [key, buf] of groundBufs) {
+    if (buf.idx.length === 0) continue;
+    const mesh = new Mesh(geometryFrom(buf, false), materials.ground[key]);
+    mesh.frustumCulled = false;
+    mesh.matrixAutoUpdate = false;
+    group.add(mesh);
+  }
+  for (const [key, buf] of wallBufs) {
+    if (buf.idx.length === 0) continue;
+    const mesh = new Mesh(geometryFrom(buf, false), materials.walls[key]);
+    mesh.frustumCulled = false;
+    mesh.matrixAutoUpdate = false;
+    group.add(mesh);
+  }
+  if (roofBuf.idx.length > 0) {
+    const mesh = new Mesh(geometryFrom(roofBuf, true), materials.roof);
+    mesh.frustumCulled = false;
+    mesh.matrixAutoUpdate = false;
+    group.add(mesh);
+  }
+  group.updateMatrix();
+  return { group, minX, maxX, minZ, maxZ };
 }
 
-function addPlayer(scene) {
+function makePlayer() {
   const geometry = new BoxGeometry(PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE);
   const side = new MeshBasicMaterial({ color: 0xe0a000, ...flat });
   const top = new MeshBasicMaterial({ color: 0xffe14a, ...flat });
   const mesh = new Mesh(geometry, [side, side, top, side, side, side]);
-  mesh.position.set(PLAYER_START_X, PLAYER_SIZE / 2, PLAYER_START_Z);
-  scene.add(mesh);
+  mesh.position.y = PLAYER_SIZE / 2;
   return mesh;
 }
 
-export function buildCity(scene) {
-  addGround(scene);
-  addBuildings(scene);
-  const playerMesh = addPlayer(scene);
+export function buildCity(scene, map) {
+  const materials = createMaterials(createTextures());
+  const chunks = [];
+  for (let cz = 0; cz < map.rows; cz += CHUNK) {
+    for (let cx = 0; cx < map.cols; cx += CHUNK) {
+      const chunk = buildChunk(map, cx, cz, materials);
+      scene.add(chunk.group);
+      chunks.push(chunk);
+    }
+  }
+  const playerMesh = makePlayer();
+  scene.add(playerMesh);
   return {
+    chunks,
     playerMesh,
-    mapW: COLS * TILE,
-    mapH: ROWS * TILE,
+    mapW: map.cols * TILE,
+    mapH: map.rows * TILE,
   };
+}
+
+export function updateChunks(chunks, camX, camZ) {
+  const margin = TILE * 2;
+  const minX = camX - VIEW_W / 2 - margin;
+  const maxX = camX + VIEW_W / 2 + margin;
+  const minZ = camZ - VIEW_H / 2 - margin;
+  const maxZ = camZ + VIEW_H / 2 + margin;
+  let shown = 0;
+  for (const chunk of chunks) {
+    const visible = chunk.maxX >= minX && chunk.minX <= maxX && chunk.maxZ >= minZ && chunk.minZ <= maxZ;
+    chunk.group.visible = visible;
+    if (visible) shown += 1;
+  }
+  return shown;
+}
+
+export function tileAt(map, x, z) {
+  const tx = Math.floor(x / TILE);
+  const tz = Math.floor(z / TILE);
+  if (tz < 0 || tx < 0 || tz >= map.rows || tx >= map.cols) return "~";
+  return map.ground[tz][tx];
+}
+
+export function tileCenter(tileX, tileZ) {
+  return { x: (tileX + 0.5) * TILE, z: (tileZ + 0.5) * TILE };
 }

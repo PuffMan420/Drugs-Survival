@@ -15,6 +15,7 @@ You stay on roads, sidewalks, parks, plazas, docks, and bridges. Buildings and t
 ## What you should see
 
 - Downtown, the same every time: 260 by 260 blocks, the same bent avenues, diagonal streets, alleys, plazas, parks, river, and harbor, with the roads a little wider and a 4-lane ring road around the coast
+- Grey-green streets with a dashed yellow center line, white zebra crossings, turn arrows, and the word SLOW. Sidewalks use a speckled stone tile, lighter downtown and worn concrete by the harbor, with a dark curb against the road. Buildings cast a long soft shadow toward the southeast
 - High-rises, glass towers, and brick apartments with different footprints and heights, taller inland and lower along the water
 - Buildings show a little of their south side, because the camera is tilted about 12 degrees toward the north and sits about 12.5% closer, and they still lean in perspective
 - Crisp pixels: the picture is drawn at 960×540 and scaled up by whole numbers (exactly 2× on a 1080p screen)

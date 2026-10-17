@@ -1,7 +1,7 @@
 // Lane paths and curb parking for the fixed downtown. Cars stay on road tiles.
 
-const CENTER_H = new Set(["H", "h"]);
-const CENTER_V = new Set(["V", "v"]);
+const CENTER_H = new Set(["H", "h", "1", "2"]);
+const CENTER_V = new Set(["V", "v", "5", "6"]);
 const CENTER_A = new Set(["A", "a"]);
 const CENTER_E = new Set(["E", "e"]);
 const DIRS = [

@@ -23,6 +23,7 @@ import {
   VIEW_H,
   VIEW_W,
 } from "./constants.js";
+import { createTraffic } from "./cars.js";
 import { buildCity, tileAt, tileCenter, updateChunks } from "./city.js";
 import { createMinimap } from "./minimap.js";
 
@@ -162,6 +163,7 @@ async function start() {
 
   const scene = new Scene();
   const city = buildCity(scene, map);
+  const traffic = await createTraffic(scene, map);
   const minimap = createMinimap(map);
   const camera = new PerspectiveCamera(15, VIEW_W / VIEW_H, NEAR, FAR);
   const tiltUp = Math.sin(CAMERA_TILT);
@@ -197,8 +199,10 @@ async function start() {
       const length = Math.hypot(moveX, moveZ);
       const stepX = (moveX / length) * PLAYER_SPEED * dt;
       const stepZ = (moveZ / length) * PLAYER_SPEED * dt;
-      if (!blocked(map, player.x + stepX, player.z)) player.x += stepX;
-      if (!blocked(map, player.x, player.z + stepZ)) player.z += stepZ;
+      const nextX = player.x + stepX;
+      const nextZ = player.z + stepZ;
+      if (!blocked(map, nextX, player.z) && !traffic.blocks(nextX, player.z)) player.x = nextX;
+      if (!blocked(map, player.x, nextZ) && !traffic.blocks(player.x, nextZ)) player.z = nextZ;
     }
     player.x = clamp(player.x, half, city.mapW - half);
     player.z = clamp(player.z, half, city.mapH - half);
@@ -209,6 +213,7 @@ async function start() {
 
     const camX = clamp(snappedX, GROUND_W / 2, city.mapW - GROUND_W / 2);
     const camZ = clamp(snappedZ, GROUND_H / 2, city.mapH - GROUND_H / 2);
+    traffic.update(dt, camX, camZ);
     camera.position.set(camX, CAMERA_HEIGHT, camZ + cameraSouth);
     camera.lookAt(camX, 0, camZ);
     updateChunks(city.chunks, camX, camZ);

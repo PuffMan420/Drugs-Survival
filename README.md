@@ -14,7 +14,7 @@ You stay on roads, sidewalks, parks, plazas, docks, and bridges. Buildings and t
 
 ## What you should see
 
-- Downtown, the same every time: 260 by 260 blocks, straight avenues of a sensible width, a 4-lane ring road around the coast, alleys, plazas, parks, a river, and a harbor
+- Downtown, the same every time: 260 by 260 blocks, straight avenues of a sensible width, a 4-lane ring road around the coast, alleys, plazas, parks, a river, and a harbor. The sea edge is a straight quay with a hard corner where the shore turns. Empty squares inside a block are a park, a parking lot, or a backyard, and the sidewalk is one continuous curb around the block
 - Streets use hand-painted strips: olive paving in the inner city, concrete slabs on the ring, and worn concrete outside it. Most of a street is the plain strip. Oil, patch, and dirty bits are sprinkled along it, and an olive crosswalk sits on the piece of street next to an inner intersection. Alleys use that zone's sidewalk. Plazas use the hex paving. Roofs have a concrete ledge, air-conditioning boxes, and a vent. Each building casts one soft shadow to the southeast, long when the building is tall, following its outline across the street and the cars
 - High-rises, glass towers, and brick apartments with different footprints and heights, taller inland and lower along the water
 - Buildings show a little of their south side, because the camera is tilted about 12 degrees toward the north and sits about 12.5% closer, and they still lean in perspective

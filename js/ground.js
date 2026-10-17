@@ -27,7 +27,7 @@ const V_SEED = new Set(["V", "v", "5", "6", "8"]);
 const RING = new Set(["1", "2", "4", "5", "6", "8"]);
 const SHOULDER = new Set(["+", "X"]);
 const ROAD = new Set(["H", "h", "V", "v", "+", "X", "1", "2", "4", "5", "6", "8"]);
-const WALK = new Set(["s", "n", "p", "c"]);
+const WALK = new Set(["s", "n", "p", "c", "l"]);
 
 const NAMES = {
   olive: ["plain", "oil", "patch", "dirty", "crosswalk"],
@@ -504,6 +504,13 @@ export async function createGround(map) {
     const z0 = z * TILE;
     const x1 = x0 + TILE;
     const z1 = z0 + TILE;
+    if (cell === "l") {
+      const zone = zoneOf(x, z, ringDist[z][x] <= 2);
+      const key = asphaltKey(zone, 2);
+      const size = textures.get(key).image.width;
+      addQuad(buffersOf(buffers, key), x0, z0, x1, z1, x0 / size, z0 / size, x1 / size, z1 / size);
+      return;
+    }
     if (cell === "q") {
       const key = walkKey("hex", 2);
       const size = textures.get(key).image.width;

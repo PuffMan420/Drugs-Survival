@@ -37,6 +37,7 @@ function createMaterials(textures) {
   const road = makeMaterial(textures.road, { side: DoubleSide });
   const walk = makeMaterial(textures.walk, { side: DoubleSide });
   const curb = new MeshBasicMaterial({ vertexColors: true, side: DoubleSide, ...flat });
+  const tree = new MeshBasicMaterial({ vertexColors: true, side: FrontSide, ...flat });
   const shadow = new ShaderMaterial({
     transparent: true,
     depthWrite: false,
@@ -58,7 +59,7 @@ function createMaterials(textures) {
       }
     `,
   });
-  return { ground, walls, roof, road, walk, curb, shadow };
+  return { ground, walls, roof, road, walk, curb, shadow, tree };
 }
 
 function geometryFrom(buf, withColor) {
@@ -246,6 +247,50 @@ function appendFace(buf, box, group, scaleU, scaleV, color) {
   }
 }
 
+function mixHash(x, z) {
+  let h = Math.imul(x | 0, 374761393) ^ Math.imul(z | 0, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return h >>> 0;
+}
+
+function addColoredBox(buf, x0, y0, z0, x1, y1, z1, color) {
+  const faces = [
+    [x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1],
+    [x0, y0, z1, x0, y1, z1, x0, y1, z0, x0, y0, z0],
+    [x0, y1, z1, x1, y1, z1, x1, y1, z0, x0, y1, z0],
+    [x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1],
+    [x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1],
+    [x1, y0, z0, x0, y0, z0, x0, y1, z0, x1, y1, z0],
+  ];
+  for (const face of faces) {
+    const base = buf.pos.length / 3;
+    for (let i = 0; i < 12; i += 3) {
+      buf.pos.push(face[i], face[i + 1], face[i + 2]);
+      buf.uv.push(0, 0);
+      buf.col.push(color[0], color[1], color[2]);
+    }
+    buf.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  }
+}
+
+function addTree(buf, x, z) {
+  const h = mixHash(x, z);
+  const ox = ((h % 5) - 2) * 4;
+  const oz = (((h >>> 4) % 5) - 2) * 4;
+  const cx = x * TILE + TILE / 2 + ox;
+  const cz = z * TILE + TILE / 2 + oz;
+  const trunkH = 12 + (h % 3) * 2;
+  const canopy = 22 + (h % 3) * 4;
+  const greens = [
+    [0.16, 0.4, 0.22],
+    [0.22, 0.46, 0.26],
+    [0.13, 0.34, 0.18],
+  ];
+  addColoredBox(buf, cx - 3, 0, cz - 3, cx + 3, trunkH, cz + 3, [0.38, 0.24, 0.13]);
+  const gy = trunkH - 2;
+  addColoredBox(buf, cx - canopy / 2, gy, cz - canopy / 2, cx + canopy / 2, gy + canopy * 0.55, cz + canopy / 2, greens[h % 3]);
+}
+
 function buildChunk(map, cx, cz, materials, ground) {
   const x1 = Math.min(map.cols, cx + CHUNK);
   const z1 = Math.min(map.rows, cz + CHUNK);
@@ -254,6 +299,7 @@ function buildChunk(map, cx, cz, materials, ground) {
   const roofBuf = { pos: [], uv: [], idx: [], col: [] };
   const surfaceBufs = new Map();
   const shadowBuf = { pos: [], shade: [], idx: [] };
+  const treeBuf = { pos: [], uv: [], idx: [], col: [] };
   let minX = cx * TILE;
   let maxX = x1 * TILE;
   let minZ = cz * TILE;
@@ -267,11 +313,12 @@ function buildChunk(map, cx, cz, materials, ground) {
   for (let z = cz; z < z1; z += 1) {
     const row = map.ground[z];
     for (let x = cx; x < x1; x += 1) {
+      const cell = row[x];
+      if (cell === "g" && mixHash(x, z) % 5 === 0) addTree(treeBuf, x, z);
       if (ground.covers(x, z)) {
         ground.paint(surfaceBufs, x, z);
         continue;
       }
-      const cell = row[x];
       const key = materials.ground[cell] ? cell : "l";
       let buf = groundBufs.get(key);
       if (!buf) {
@@ -336,6 +383,12 @@ function buildChunk(map, cx, cz, materials, ground) {
   }
   if (roofBuf.idx.length > 0) {
     const mesh = new Mesh(geometryFrom(roofBuf, true), materials.roof);
+    mesh.frustumCulled = false;
+    mesh.matrixAutoUpdate = false;
+    group.add(mesh);
+  }
+  if (treeBuf.idx.length > 0) {
+    const mesh = new Mesh(geometryFrom(treeBuf, true), materials.tree);
     mesh.frustumCulled = false;
     mesh.matrixAutoUpdate = false;
     group.add(mesh);

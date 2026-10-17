@@ -7,6 +7,7 @@ import {
   Group,
   Mesh,
   MeshBasicMaterial,
+  ShaderMaterial,
 } from "three";
 import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
 import { classifyMarkings, ROAD_COLS, ROAD_ROWS, WALK_COLS, WALK_ROWS } from "./markings.js";
@@ -36,12 +37,26 @@ function createMaterials(textures) {
   const road = makeMaterial(textures.road, { side: DoubleSide });
   const walk = makeMaterial(textures.walk, { side: DoubleSide });
   const curb = new MeshBasicMaterial({ vertexColors: true, side: DoubleSide, ...flat });
-  const shadow = new MeshBasicMaterial({
-    map: textures.shadow,
+  const shadow = new ShaderMaterial({
     transparent: true,
     depthWrite: false,
+    depthTest: true,
+    toneMapped: false,
     side: DoubleSide,
-    ...flat,
+    vertexShader: `
+      attribute float shade;
+      varying float vShade;
+      void main() {
+        vShade = shade;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      varying float vShade;
+      void main() {
+        gl_FragColor = vec4(0.04, 0.05, 0.035, vShade);
+      }
+    `,
   });
   return { ground, walls, roof, road, walk, curb, shadow };
 }
@@ -88,14 +103,53 @@ function addQuad(buf, pts, color) {
 const CURB_TOP = [0.78, 0.74, 0.58];
 const CURB_SIDE = [0.32, 0.3, 0.22];
 
-function addShadowQuad(buf, x0, z0, x1, z1, east) {
-  const y = 1.5;
+// One sun, from the northwest. Shadows fall southeast and scale with height.
+const SUN_X = 0.4;
+const SUN_Z = 0.58;
+const SHADOW_Y = 10;
+const SHADOW_FEATHER = 46;
+const SHADOW_MAX = TILE * 4.4;
+
+function addShadowVert(buf, x, z, shade) {
+  buf.pos.push(x, SHADOW_Y, z);
+  buf.shade.push(shade);
+}
+
+function addShadowTri(buf, ax, az, aa, bx, bz, ba, cx, cz, ca) {
   const base = buf.pos.length / 3;
-  buf.pos.push(x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1);
-  // South strip: dark on the north edge. East strip: dark on the west edge.
-  if (east) buf.uv.push(0, 1, 0, 0, 1, 0, 1, 1);
-  else buf.uv.push(0, 1, 1, 1, 1, 0, 0, 0);
-  buf.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  addShadowVert(buf, ax, az, aa);
+  addShadowVert(buf, bx, bz, ba);
+  addShadowVert(buf, cx, cz, ca);
+  buf.idx.push(base, base + 1, base + 2);
+}
+
+function addBuildingShadow(buf, x0, z0, x1, z1, height) {
+  const cast = Math.min(Math.max(height, TILE * 0.8), SHADOW_MAX);
+  const sx = cast * SUN_X;
+  const sz = cast * SUN_Z;
+  const spanX = Math.max(1, x1 - x0);
+  const spanZ = Math.max(1, z1 - z0);
+  const insetX = Math.min(spanX * 0.25, 20);
+  const insetZ = Math.min(spanZ * 0.25, 20);
+  const f = SHADOW_FEATHER;
+  const dark = 0.5;
+  // Dark along the sunlit walls. Every outer vertex is clear, so the silhouette fades
+  // instead of cutting a hard diagonal stair.
+  const Q0 = [x0 + insetX, z1, dark];
+  const Q1 = [x1, z1, dark];
+  const Q2 = [x1, z0 + insetZ, dark];
+  const P0 = [x0 - f, z1, 0];
+  const P1 = [x0 - f * 0.35, z1 + sz + f, 0];
+  const P2 = [x1 + sx + f, z1 + sz + f, 0];
+  const P3 = [x1 + sx + f, z0 - f * 0.35, 0];
+  const P4 = [x1, z0 - f, 0];
+  addShadowTri(buf, ...P0, ...P1, ...Q0);
+  addShadowTri(buf, ...P1, ...P2, ...Q0);
+  addShadowTri(buf, ...P2, ...Q0, ...Q1);
+  addShadowTri(buf, ...P2, ...Q1, ...P3);
+  addShadowTri(buf, ...P3, ...Q1, ...Q2);
+  addShadowTri(buf, ...P3, ...Q2, ...P4);
+  return { sx: sx + f, sz: sz + f };
 }
 
 function addCurb(buf, x0, z0, x1, z1, outward) {
@@ -201,7 +255,7 @@ function buildChunk(map, cx, cz, materials, markings) {
   const roadBuf = { pos: [], uv: [], idx: [] };
   const walkBuf = { pos: [], uv: [], idx: [] };
   const curbBuf = { pos: [], uv: [], idx: [], col: [] };
-  const shadowBuf = { pos: [], uv: [], idx: [] };
+  const shadowBuf = { pos: [], shade: [], idx: [] };
   let minX = cx * TILE;
   let maxX = x1 * TILE;
   let minZ = cz * TILE;
@@ -272,17 +326,15 @@ function buildChunk(map, cx, cz, materials, markings) {
     appendFace(walls, box, groups[5], building.w, vScale);
     box.dispose();
     addRoofDetails(roofBuf, building);
-    const reach = TILE * Math.min(3.4, 1.7 + Math.max(building.w, building.d) * 0.16);
     const bx = building.x * TILE;
     const bz = building.z * TILE;
     const bw = building.w * TILE;
     const bd = building.d * TILE;
-    addShadowQuad(shadowBuf, bx, bz + bd - 4, bx + bw + reach, bz + bd + reach, false);
-    addShadowQuad(shadowBuf, bx + bw - 4, bz, bx + bw + reach, bz + bd, true);
+    const cast = addBuildingShadow(shadowBuf, bx, bz, bx + bw, bz + bd, height);
     minX = Math.min(minX, bx);
-    maxX = Math.max(maxX, bx + bw + reach);
+    maxX = Math.max(maxX, bx + bw + cast.sx + SHADOW_FEATHER);
     minZ = Math.min(minZ, bz);
-    maxZ = Math.max(maxZ, bz + bd + reach);
+    maxZ = Math.max(maxZ, bz + bd + cast.sz + SHADOW_FEATHER);
   }
 
   const group = new Group();
@@ -311,10 +363,15 @@ function buildChunk(map, cx, cz, materials, markings) {
     group.add(mesh);
   }
   if (shadowBuf.idx.length > 0) {
-    const mesh = new Mesh(geometryFrom(shadowBuf, false), materials.shadow);
+    const geometry = new BufferGeometry();
+    geometry.setAttribute("position", new BufferAttribute(new Float32Array(shadowBuf.pos), 3));
+    geometry.setAttribute("shade", new BufferAttribute(new Float32Array(shadowBuf.shade), 1));
+    geometry.setIndex(shadowBuf.idx);
+    geometry.computeBoundingSphere();
+    const mesh = new Mesh(geometry, materials.shadow);
     mesh.frustumCulled = false;
     mesh.matrixAutoUpdate = false;
-    mesh.renderOrder = 2;
+    mesh.renderOrder = 3;
     group.add(mesh);
   }
   group.updateMatrix();

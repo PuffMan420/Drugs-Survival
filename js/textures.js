@@ -528,26 +528,6 @@ function sidewalkAtlas(src) {
   return pixelTexture(canvas, false);
 }
 
-function shadowTexture() {
-  const size = 32;
-  const { canvas, ctx } = canvas2d(size, size);
-  const image = ctx.createImageData(size, size);
-  const alphas = [168, 118, 72, 32, 0];
-  for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      const t = y / (size - 1);
-      const band = Math.min(alphas.length - 1, Math.floor(t * alphas.length));
-      const i = (y * size + x) * 4;
-      image.data[i] = 16;
-      image.data[i + 1] = 20;
-      image.data[i + 2] = 14;
-      image.data[i + 3] = alphas[band];
-    }
-  }
-  ctx.putImageData(image, 0, 0);
-  return pixelTexture(canvas, false);
-}
-
 function plainGround() {
   return {
     "~": groundTile((ctx) => {
@@ -667,7 +647,6 @@ export async function createTextures() {
     roof: pixelTexture(canvas, true),
     road: roadAtlas(),
     walk: sidewalkAtlas(src),
-    shadow: shadowTexture(),
     stoneSource,
   };
 }

@@ -48,6 +48,18 @@ const MOVE = new Set([
   "ArrowRight",
 ]);
 
+const JUMPS = [
+  { name: "Northwest ring", x: 41, z: 40 },
+  { name: "North avenue", x: 130, z: 34 },
+  { name: "Northeast corner", x: 220, z: 28 },
+  { name: "West avenue", x: 40, z: 126 },
+  { name: "Midtown", x: 130, z: 126 },
+  { name: "East avenue", x: 220, z: 128 },
+  { name: "Southwest quay", x: 52, z: 200 },
+  { name: "South shore", x: 138, z: 196 },
+  { name: "Southeast ring", x: 214, z: 205 },
+];
+
 const session = {
   ready: false,
   map: null,
@@ -184,7 +196,7 @@ async function start() {
   const city = await buildCity(scene, map);
   const traffic = await createTraffic(scene, map);
   const glow = createGlow(scene, map);
-  const minimap = createMinimap(map);
+  const minimap = createMinimap(map, JUMPS);
   const camera = new PerspectiveCamera(15, RENDER_W / RENDER_H, NEAR, FAR);
   const tiltUp = Math.sin(CAMERA_TILT);
   const tiltNorth = Math.cos(CAMERA_TILT);
@@ -200,7 +212,7 @@ async function start() {
   session.map = map;
   session.player = player;
   session.minimap = minimap;
-  placeEl.textContent = map.views[0]?.name ?? "Downtown";
+  placeEl.textContent = "Downtown";
 
   let fps = 0;
   let last = performance.now();
@@ -215,25 +227,46 @@ async function start() {
     if (held.has("KeyS") || held.has("ArrowDown")) moveZ += 1;
     if (held.has("KeyA") || held.has("ArrowLeft")) moveX -= 1;
     if (held.has("KeyD") || held.has("ArrowRight")) moveX += 1;
+    const radius = half + 0.75;
+    const stuck = (x, z) => footBlocked(map, x, z, half);
+    const release = () => {
+      const freed = traffic.shove(player.x, player.z, radius, stuck);
+      player.x = freed.x;
+      player.z = freed.z;
+    };
     if (moveX !== 0 || moveZ !== 0) {
       const length = Math.hypot(moveX, moveZ);
       const stepX = (moveX / length) * PLAYER_SPEED * dt;
       const stepZ = (moveZ / length) * PLAYER_SPEED * dt;
-      const nextX = player.x + stepX;
-      const nextZ = player.z + stepZ;
-      if (!blocked(map, nextX, player.z) && !traffic.blocks(nextX, player.z)) player.x = nextX;
-      if (!blocked(map, player.x, nextZ) && !traffic.blocks(player.x, nextZ)) player.z = nextZ;
+      // Short slices so a fast step cannot hop through a narrow car.
+      const slices = Math.max(1, Math.ceil(Math.hypot(stepX, stepZ) / 8));
+      for (let slice = 0; slice < slices; slice += 1) {
+        const nextX = player.x + stepX / slices;
+        const nextZ = player.z + stepZ / slices;
+        if (!blocked(map, nextX, player.z)) player.x = nextX;
+        if (!blocked(map, player.x, nextZ)) player.z = nextZ;
+        release();
+      }
+    } else {
+      release();
     }
     player.x = clamp(player.x, half, city.mapW - half);
     player.z = clamp(player.z, half, city.mapH - half);
 
-    const snappedX = Math.round(player.x);
-    const snappedZ = Math.round(player.z);
-    city.playerMesh.position.set(snappedX, half, snappedZ);
-
-    const camX = clamp(snappedX, GROUND_W / 2, city.mapW - GROUND_W / 2);
-    const camZ = clamp(snappedZ, GROUND_H / 2, city.mapH - GROUND_H / 2);
+    let snappedX = Math.round(player.x);
+    let snappedZ = Math.round(player.z);
+    let camX = clamp(snappedX, GROUND_W / 2, city.mapW - GROUND_W / 2);
+    let camZ = clamp(snappedZ, GROUND_H / 2, city.mapH - GROUND_H / 2);
     traffic.update(dt, camX, camZ, player.x, player.z);
+    // A moving car can roll over the square after the step above.
+    release();
+    player.x = clamp(player.x, half, city.mapW - half);
+    player.z = clamp(player.z, half, city.mapH - half);
+    snappedX = Math.round(player.x);
+    snappedZ = Math.round(player.z);
+    city.playerMesh.position.set(snappedX, half, snappedZ);
+    camX = clamp(snappedX, GROUND_W / 2, city.mapW - GROUND_W / 2);
+    camZ = clamp(snappedZ, GROUND_H / 2, city.mapH - GROUND_H / 2);
     glow.update(camX, camZ, traffic.lights(camX, camZ));
     camera.position.set(camX, CAMERA_HEIGHT, camZ + cameraSouth);
     camera.lookAt(camX, 0, camZ);
@@ -252,13 +285,18 @@ async function start() {
 
 function jumpTo(index) {
   if (!session.ready) return;
-  const view = session.map.views[index];
+  const view = JUMPS[index];
   if (!view) return;
   const point = tileCenter(view.x, view.z);
   session.player.x = point.x;
   session.player.z = point.z;
   session.placeName = view.name;
   placeEl.textContent = view.name;
+}
+
+function footBlocked(map, x, z, limit) {
+  if (x < limit || z < limit || x > map.cols * TILE - limit || z > map.rows * TILE - limit) return true;
+  return blocked(map, x, z);
 }
 
 window.addEventListener("keydown", (event) => {
@@ -278,7 +316,7 @@ window.addEventListener("keydown", (event) => {
   }
   if (event.code.startsWith("Digit")) {
     const index = Number(event.code.slice(5)) - 1;
-    if (index >= 0 && index < 6) {
+    if (index >= 0 && index < JUMPS.length) {
       jumpTo(index);
       event.preventDefault();
     }

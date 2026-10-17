@@ -36,7 +36,7 @@ const STYLES = {
   shed: [96, 90, 84],
 };
 
-export function createMinimap(map) {
+export function createMinimap(map, jumps = []) {
   const source = document.createElement("canvas");
   source.width = map.cols;
   source.height = map.rows;
@@ -77,6 +77,20 @@ export function createMinimap(map) {
 
   function draw(context, camX, camZ, playerX, playerZ, tile, viewW, viewH) {
     context.drawImage(source, 0, 0);
+    context.font = "bold 12px sans-serif";
+    context.textAlign = "left";
+    context.textBaseline = "top";
+    for (let i = 0; i < jumps.length; i += 1) {
+      const jump = jumps[i];
+      context.fillStyle = "#082028";
+      context.fillRect(jump.x - 3, jump.z - 3, 8, 8);
+      context.fillStyle = "#7fd0ff";
+      context.fillRect(jump.x - 2, jump.z - 2, 6, 6);
+      context.fillStyle = "#082028";
+      context.fillText(String(i + 1), jump.x + 6, jump.z - 7);
+      context.fillStyle = "#fff6d0";
+      context.fillText(String(i + 1), jump.x + 5, jump.z - 8);
+    }
     const left = camX / tile - viewW / 2;
     const top = camZ / tile - viewH / 2;
     context.strokeStyle = "#ffffff";

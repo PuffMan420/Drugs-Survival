@@ -1,16 +1,17 @@
-// Turns the shoreline segments into straight runs, 45° diag tiles, and corner pieces.
+// Turns the waterfront segments into straight runs, 45° diag tiles, and corner pieces.
 // Art is 5 px per world unit. Straight coping repeats every 288 units. A diag tile is
 // 384 units on a side. Corner pieces are 192 units, with the bend at the centre.
 
 const DIAG_MAX = 2.4;
 
-// Image directions (x right, y down) of the two shoreline arms leaving the centre.
+// Image directions (x right, y down) of the two bank arms leaving the centre.
 // Away-directions of a 45° bend sit about 135° apart; a square bend sits at 90°.
 // arms leave the centre. land is the image direction (x right, y down) toward dry ground.
+// The 45° outer sheet has land on the clear side of both arms (up, and up-right).
 const ART = {
   outer90: { arms: [[-1, 0], [0, 1]], land: [[0, -1], [1, 0]] },
   inner90: { arms: [[-1, 0], [0, -1]], land: [[0, -1], [-1, 0]] },
-  outer: { arms: [[-1, 0], [Math.SQRT1_2, Math.SQRT1_2]], land: [[0, -1], [-Math.SQRT1_2, Math.SQRT1_2]] },
+  outer: { arms: [[-1, 0], [Math.SQRT1_2, Math.SQRT1_2]], land: [[0, -1], [Math.SQRT1_2, -Math.SQRT1_2]] },
   inner: { arms: [[-1, 0], [Math.SQRT1_2, -Math.SQRT1_2]], land: [[0, -1], [-Math.SQRT1_2, -Math.SQRT1_2]] },
 };
 
@@ -125,6 +126,7 @@ export function planQuayDraw(segments) {
   const neighbor = (seg, x, z) => (at.get(keyOf(x, z)) || []).find((other) => other !== seg);
 
   const corners = [];
+  const wallCorners = [];
   const suppressed = new Set();
 
   for (const seg of tagged) {
@@ -148,15 +150,22 @@ export function planQuayDraw(segments) {
   for (const [key, list] of at) {
     if (suppressed.has(key) || list.length !== 2) continue;
     const [a, b] = list;
-    if (!a.soft && !b.soft) continue;
     if (a.skip || b.skip) continue;
     const [x, z] = key.split(",").map(Number);
     const w1 = armAway(a, x, z);
     const w2 = armAway(b, x, z);
     const turn = angleBetween(w1, w2);
-    let placed = null;
     const n1 = [a.nx, a.nz];
     const n2 = [b.nx, b.nz];
+    // Pier tips are wood. The concrete corner sheets stay off them; the wall
+    // texture closes the gap instead. Every other bend can use a corner sheet.
+    if (a.dock && b.dock) {
+      if (turn > 70 && turn < 110) {
+        wallCorners.push({ x, z, nx: n1[0], nz: n1[1], mx: n2[0], mz: n2[1] });
+      }
+      continue;
+    }
+    let placed = null;
     if (turn > 70 && turn < 110) placed = orient(["outer90", "inner90"], w1, n1, w2, n2);
     else if (turn > 115 && turn < 155) placed = orient(["outer", "inner"], w1, n1, w2, n2);
     if (!placed) continue;
@@ -189,10 +198,11 @@ export function planQuayDraw(segments) {
       nx: seg.nx,
       nz: seg.nz,
       soft: seg.soft,
+      dock: seg.dock,
     };
     if (keepDiag) diags.push(drawn);
     else strips.push(drawn);
   }
 
-  return { strips, diags, corners };
+  return { strips, diags, corners, wallCorners };
 }

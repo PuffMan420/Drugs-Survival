@@ -161,7 +161,7 @@ async function start() {
   await new Promise((resolve) => requestAnimationFrame(resolve));
 
   const scene = new Scene();
-  const city = buildCity(scene, map);
+  const city = await buildCity(scene, map);
   const minimap = createMinimap(map);
   const camera = new PerspectiveCamera(15, VIEW_W / VIEW_H, NEAR, FAR);
   const tiltUp = Math.sin(CAMERA_TILT);

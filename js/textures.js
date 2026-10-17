@@ -69,6 +69,37 @@ function asphalt(ctx, major) {
   ctx.fillRect(0, 0, 48, 48);
 }
 
+function laneDashes(ctx, edge) {
+  asphalt(ctx, true);
+  ctx.fillStyle = "#f4f4f4";
+  for (let i = 2; i < 48; i += 12) {
+    if (edge === "s") ctx.fillRect(i, 43, 8, 3);
+    if (edge === "n") ctx.fillRect(i, 2, 8, 3);
+    if (edge === "e") ctx.fillRect(43, i, 3, 8);
+    if (edge === "w") ctx.fillRect(2, i, 3, 8);
+  }
+}
+
+function medianTile(ctx, horizontal) {
+  asphalt(ctx, true);
+  ctx.fillStyle = "#e2c14a";
+  if (horizontal) {
+    ctx.fillRect(0, 1, 48, 3);
+    ctx.fillRect(0, 44, 48, 3);
+    ctx.fillStyle = "#6a645c";
+    ctx.fillRect(0, 10, 48, 28);
+    ctx.fillStyle = "#3d6b45";
+    ctx.fillRect(0, 16, 48, 16);
+  } else {
+    ctx.fillRect(1, 0, 3, 48);
+    ctx.fillRect(44, 0, 3, 48);
+    ctx.fillStyle = "#6a645c";
+    ctx.fillRect(10, 0, 28, 48);
+    ctx.fillStyle = "#3d6b45";
+    ctx.fillRect(16, 0, 16, 48);
+  }
+}
+
 function diagonalRoad(ctx, major, slash) {
   asphalt(ctx, major);
   ctx.fillStyle = "#e2c14a";
@@ -109,6 +140,12 @@ export function createTextures() {
       ctx.fillRect(0, 45, 48, 3);
       ctx.fillRect(0, 22, 48, 2);
     }),
+    1: groundTile((ctx) => laneDashes(ctx, "s")),
+    2: groundTile((ctx) => laneDashes(ctx, "n")),
+    4: groundTile((ctx) => medianTile(ctx, true)),
+    5: groundTile((ctx) => laneDashes(ctx, "e")),
+    6: groundTile((ctx) => laneDashes(ctx, "w")),
+    8: groundTile((ctx) => medianTile(ctx, false)),
     H: groundTile((ctx) => {
       asphalt(ctx, true);
       ctx.fillStyle = "#e2c14a";

@@ -11,7 +11,7 @@ import {
 } from "three";
 import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
 import { createGround } from "./ground.js";
-import { appendQuay, createQuayMaterials, emptyQuayBuffers, quayPlan, WATER_Y } from "./quay.js";
+import { appendQuay, createQuayMaterials, emptyQuayBuffers, PIER_Y, quayPlan, WATER_Y } from "./quay.js";
 import { createTextures } from "./textures.js";
 
 const flat = { toneMapped: false };
@@ -325,7 +325,7 @@ function buildChunk(map, cx, cz, materials, ground, quay) {
         buf = { pos: [], uv: [], idx: [] };
         groundBufs.set(key, buf);
       }
-      const groundY = cell === "~" ? WATER_Y : 0;
+      const groundY = cell === "~" ? WATER_Y : cell === "d" ? PIER_Y : 0;
       addGroundQuad(buf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, 0, 0, 1, 1, groundY);
     }
   }

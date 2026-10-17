@@ -13,6 +13,7 @@ import { planQuayDraw } from "./quay-draw.js";
 
 export const WATER_Y = -58;
 const LIP = 10;
+export const PIER_Y = LIP;
 // Coping is rows 0-299 of the painted strip (60 units). Rows 180-299 are the
 // outer 24 units, used if a full coping swallows a narrow canal.
 const COPING_ROW = 0;
@@ -150,6 +151,17 @@ function pushQuad(buf, corners, uvs) {
   buf.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
 }
 
+function pushTri(buf, a, b, c, ua, ub, uc) {
+  const base = buf.pos.length / 3;
+  const verts = [a, b, c];
+  const uvs = [ua, ub, uc];
+  for (let i = 0; i < 3; i += 1) {
+    buf.pos.push(verts[i][0], verts[i][1], verts[i][2]);
+    buf.uv.push(uvs[i][0], uvs[i][1]);
+  }
+  buf.idx.push(base, base + 1, base + 2);
+}
+
 function piecesOf(segment) {
   const len = Math.hypot(segment.bx - segment.ax, segment.bz - segment.az);
   const count = Math.max(1, Math.ceil(len));
@@ -165,6 +177,7 @@ function piecesOf(segment) {
       nx: segment.nx,
       nz: segment.nz,
       soft: segment.soft,
+      dock: segment.dock,
       u0: t0 * len,
       u1: t1 * len,
     });
@@ -186,7 +199,7 @@ function appendStraight(draw, cx, cz, bufs) {
       const az = piece.az * TILE;
       const bx = piece.bx * TILE;
       const bz = piece.bz * TILE;
-      const top = piece.soft ? LIP : 0;
+      const top = piece.soft || piece.dock ? LIP : 0;
       const u0 = piece.u0 * TILE / REPEAT;
       const u1 = piece.u1 * TILE / REPEAT;
       const wx = -piece.nx * SLOPE;
@@ -240,6 +253,27 @@ function appendDiag(draw, cx, cz, bufs) {
   }
 }
 
+// Closes the water side of a wooden pier tip with the existing wall sheet.
+function appendWallCorners(draw, cx, cz, bufs) {
+  for (const corner of draw.wallCorners || []) {
+    if (!ownsTile(cx, cz, Math.floor(corner.x), Math.floor(corner.z))) continue;
+    const px = corner.x * TILE;
+    const pz = corner.z * TILE;
+    const w1x = px - corner.nx * SLOPE;
+    const w1z = pz - corner.nz * SLOPE;
+    const w2x = px - corner.mx * SLOPE;
+    const w2z = pz - corner.mz * SLOPE;
+    const ox = px - (corner.nx + corner.mx) * SLOPE;
+    const oz = pz - (corner.nz + corner.mz) * SLOPE;
+    const lip = [px, LIP, pz];
+    const a = [w1x, WATER_Y, w1z];
+    const b = [ox, WATER_Y, oz];
+    const c = [w2x, WATER_Y, w2z];
+    pushTri(bufs.wall, lip, a, b, [0.5, 0], [0.48, 1], [0.5, 1]);
+    pushTri(bufs.wall, lip, b, c, [0.5, 0], [0.5, 1], [0.52, 1]);
+  }
+}
+
 function appendCorners(draw, cx, cz, bufs) {
   const half = CORNER / 2;
   for (const corner of draw.corners) {
@@ -278,8 +312,8 @@ function spanPieces(a0, a1) {
   return pieces;
 }
 
-function appendBridges(cx, cz, bufs) {
-  for (const bridge of BRIDGES) {
+function appendBridges(bridges, cx, cz, bufs) {
+  for (const bridge of bridges) {
     const deck = bufs[`deck${bridge.style}`];
     const abut = bufs[`abut${bridge.style}`];
     if (bridge.axis === "x") {
@@ -361,7 +395,8 @@ export function appendQuay(plan, cx, cz, bufs, waterBuf) {
   appendStraight(plan.draw, cx, cz, bufs);
   appendDiag(plan.draw, cx, cz, bufs);
   appendCorners(plan.draw, cx, cz, bufs);
-  appendBridges(cx, cz, bufs);
+  appendWallCorners(plan.draw, cx, cz, bufs);
+  appendBridges(plan.bridges || BRIDGES, cx, cz, bufs);
   for (const cell of plan.water) {
     if (!ownsTile(cx, cz, cell.x, cell.z)) continue;
     const x0 = cell.x * TILE;

@@ -1,9 +1,9 @@
-// Shoreline for the concrete quay. Soft banks become long runs and diagonals.
-// Bridge mouths stay open, and the bank wall continues straight under the deck.
+// Waterfront outline for the concrete quay. Banks become straight runs and 45° runs
+// so the corner sheets can close every bend. Bridge decks cover the whole channel,
+// and the quay stops at each abutment.
 
 const ROAD = new Set(["H", "h", "V", "v", "+", "X", "1", "2", "4", "5", "6", "8", "A", "E", "a", "e"]);
 const SOFT = new Set(["s", "c", "g", "q", "l", "p"]);
-const EPS = 1.75;
 
 const DIRS = {
   w: { dx: -1, dz: 0, nx: 1, nz: 0 },
@@ -89,169 +89,288 @@ function linkChains(edges) {
   return chains;
 }
 
-function distToSeg(px, pz, ax, az, bx, bz) {
-  const dx = bx - ax;
-  const dz = bz - az;
-  const len2 = dx * dx + dz * dz;
-  if (len2 === 0) return Math.hypot(px - ax, pz - az);
-  let t = ((px - ax) * dx + (pz - az) * dz) / len2;
-  if (t < 0) t = 0;
-  if (t > 1) t = 1;
-  return Math.hypot(px - (ax + t * dx), pz - (az + t * dz));
+// A 45° stair sits 0.71 off the run. A square corner steps a full tile off it,
+// so the run must stop there and leave the bend to a corner sheet.
+const FIT_TOL = 0.8;
+
+const OCT = [
+  [1, 0], [1, 1], [0, 1], [-1, 1],
+  [-1, 0], [-1, -1], [0, -1], [1, -1],
+];
+
+function unitOct(oct) {
+  const len = Math.hypot(oct[0], oct[1]);
+  return [oct[0] / len, oct[1] / len];
 }
 
-function simplify(points, epsilon) {
-  if (points.length <= 2) return points.slice();
-  let far = 0;
-  let index = 0;
-  for (let i = 1; i < points.length - 1; i += 1) {
-    if (points[i].pin) continue;
-    const d = distToSeg(points[i].x, points[i].z, points[0].x, points[0].z, points[points.length - 1].x, points[points.length - 1].z);
-    if (d > far) {
-      far = d;
-      index = i;
-    }
-  }
-  const pinned = points.findIndex((point, i) => i > 0 && i < points.length - 1 && point.pin);
-  if (pinned > 0) {
-    return simplify(points.slice(0, pinned + 1), epsilon).slice(0, -1).concat(simplify(points.slice(pinned), epsilon));
-  }
-  if (far <= epsilon) return [points[0], points[points.length - 1]];
-  return simplify(points.slice(0, index + 1), epsilon).slice(0, -1).concat(simplify(points.slice(index), epsilon));
-}
+const OCT_UNIT = OCT.map(unitOct);
 
-function chamfer(points) {
-  if (points.length < 3) return points;
-  const out = [points[0]];
-  for (let i = 1; i < points.length - 1; i += 1) {
-    const prev = out[out.length - 1];
-    const point = points[i];
-    const next = points[i + 1];
-    const abx = point.x - prev.x;
-    const abz = point.z - prev.z;
-    const bcx = next.x - point.x;
-    const bcz = next.z - point.z;
-    const lab = Math.hypot(abx, abz);
-    const lbc = Math.hypot(bcx, bcz);
-    const dot = lab > 0 && lbc > 0 ? (abx * bcx + abz * bcz) / (lab * lbc) : 1;
-    const axis = (Math.abs(abx) < 0.01 || Math.abs(abz) < 0.01) && (Math.abs(bcx) < 0.01 || Math.abs(bcz) < 0.01);
-    if (point.pin || !point.soft || !prev.soft || !next.soft || !axis || dot > 0.2 || lab < 1.4 || lbc < 1.4) {
-      out.push(point);
-      continue;
-    }
-    const cut = Math.min(1.15, lab * 0.35, lbc * 0.35);
-    out.push({
-      x: point.x - (abx / lab) * cut,
-      z: point.z - (abz / lab) * cut,
-      soft: true,
-      pin: false,
-    });
-    out.push({
-      x: point.x + (bcx / lbc) * cut,
-      z: point.z + (bcz / lbc) * cut,
-      soft: true,
-      pin: false,
-    });
-  }
-  out.push(points[points.length - 1]);
-  return out;
-}
-
-function chainToSegments(chain) {
+function chainPoints(chain) {
   const points = [{
     x: chain[0].ax,
     z: chain[0].az,
-    pin: true,
     soft: chain[0].soft,
+    dock: chain[0].cell === "d",
+    nx: chain[0].nx,
+    nz: chain[0].nz,
   }];
-  for (let i = 0; i < chain.length; i += 1) {
-    const edge = chain[i];
-    const prev = chain[i - 1];
-    const next = chain[i + 1];
-    const changes = (prev && prev.soft !== edge.soft) || (next && next.soft !== edge.soft);
+  for (const edge of chain) {
     points.push({
       x: edge.bx,
       z: edge.bz,
-      pin: i === chain.length - 1 || !edge.soft || changes,
       soft: edge.soft,
+      dock: edge.cell === "d",
       nx: edge.nx,
       nz: edge.nz,
     });
   }
-  const simplified = chamfer(simplify(points, EPS));
+  return points;
+}
+
+function sameKind(a, b) {
+  return a.soft === b.soft && a.dock === b.dock;
+}
+
+// Follow the tile bank with only straight and 45° runs, staying within FIT_TOL.
+function octoPoints(points) {
+  if (points.length < 2) return points.slice();
+  const out = [points[0]];
+  let i = 0;
+  while (i < points.length - 1) {
+    const origin = out[out.length - 1];
+    let bestJ = i;
+    let bestDir = null;
+    let bestAlong = 0;
+    for (const [ux, uz] of OCT_UNIT) {
+      let j = i;
+      let along = 0;
+      while (j + 1 < points.length) {
+        const next = points[j + 1];
+        if (!sameKind(points[i + 1], next)) break;
+        const dx = next.x - origin.x;
+        const dz = next.z - origin.z;
+        const proj = dx * ux + dz * uz;
+        const off = Math.hypot(dx - ux * proj, dz - uz * proj);
+        if (proj < along - 0.05 || off > FIT_TOL) break;
+        j += 1;
+        along = proj;
+      }
+      if (j > bestJ || (j === bestJ && along > bestAlong + 0.01)) {
+        bestJ = j;
+        bestDir = [ux, uz];
+        bestAlong = along;
+      }
+    }
+    if (!bestDir || bestAlong < 0.2) {
+      const next = points[Math.min(i + 1, points.length - 1)];
+      out.push(next);
+      i = Math.min(i + 1, points.length - 1);
+      if (i >= points.length - 1) break;
+      continue;
+    }
+    out.push({
+      x: origin.x + bestDir[0] * bestAlong,
+      z: origin.z + bestDir[1] * bestAlong,
+      soft: points[i + 1].soft,
+      dock: points[i + 1].dock,
+      from: i,
+      to: bestJ,
+    });
+    i = bestJ;
+  }
+  return out;
+}
+
+function landNormal(ux, uz, nx, nz) {
+  const px = -uz;
+  const pz = ux;
+  return nx * px + nz * pz >= 0 ? [px, pz] : [-px, -pz];
+}
+
+function chainToSegments(chain) {
+  const points = chainPoints(chain);
+  const fitted = octoPoints(points);
   const segments = [];
-  for (let i = 0; i < simplified.length - 1; i += 1) {
-    const a = simplified[i];
-    const b = simplified[i + 1];
-    if (Math.hypot(b.x - a.x, b.z - a.z) < 0.02) continue;
-    // Land normal from the chain edges this chord replaces.
+  for (let i = 0; i < fitted.length - 1; i += 1) {
+    const a = fitted[i];
+    const b = fitted[i + 1];
+    const dx = b.x - a.x;
+    const dz = b.z - a.z;
+    const len = Math.hypot(dx, dz);
+    if (len < 0.2) continue;
+    const from = a.to ?? 0;
+    const to = b.to ?? (b.from != null ? b.from : points.length - 1);
     let nx = 0;
     let nz = 0;
-    let total = 0;
-    for (const edge of chain) {
-      const midX = (edge.ax + edge.bx) / 2;
-      const midZ = (edge.az + edge.bz) / 2;
-      if (distToSeg(midX, midZ, a.x, a.z, b.x, b.z) > EPS + 0.35) continue;
-      nx += edge.nx;
-      nz += edge.nz;
-      total += 1;
+    const start = Math.max(1, Math.min(from, to) + 1);
+    const end = Math.max(start, Math.max(from, to));
+    for (let p = start; p <= end && p < points.length; p += 1) {
+      nx += points[p].nx;
+      nz += points[p].nz;
     }
-    if (total === 0) {
-      nx = chain[0].nx;
-      nz = chain[0].nz;
+    if (nx === 0 && nz === 0) {
+      nx = points[Math.min(end, points.length - 1)].nx;
+      nz = points[Math.min(end, points.length - 1)].nz;
     }
-    const len = Math.hypot(nx, nz) || 1;
+    const [lnx, lnz] = landNormal(dx / len, dz / len, nx, nz);
     segments.push({
       ax: a.x,
       az: a.z,
       bx: b.x,
       bz: b.z,
-      nx: nx / len,
-      nz: nz / len,
-      soft: Boolean(a.soft && b.soft),
+      nx: lnx,
+      nz: lnz,
+      soft: Boolean(b.soft) && !b.dock,
+      dock: Boolean(b.dock),
     });
   }
-  return segments;
+  return mergeRuns(segments);
 }
 
-function walkGap(at, x, z, dx, dz, cols, rows) {
-  let i = 1;
-  while (i <= 4) {
-    const xx = x + dx * i;
-    const zz = z + dz * i;
-    if (xx < 0 || zz < 0 || xx >= cols || zz >= rows) return 0;
-    const cell = at(xx, zz);
-    if (cell === "~") return i;
-    if (!ROAD.has(cell)) return 0;
-    i += 1;
+function mergeRuns(segments) {
+  const out = [];
+  for (const seg of segments) {
+    const prev = out[out.length - 1];
+    if (!prev) {
+      out.push({ ...seg });
+      continue;
+    }
+    const joined = Math.hypot(prev.bx - seg.ax, prev.bz - seg.az) < 0.08;
+    const pdx = prev.bx - prev.ax;
+    const pdz = prev.bz - prev.az;
+    const sdx = seg.bx - seg.ax;
+    const sdz = seg.bz - seg.az;
+    const pl = Math.hypot(pdx, pdz) || 1;
+    const sl = Math.hypot(sdx, sdz) || 1;
+    const dot = (pdx / pl) * (sdx / sl) + (pdz / pl) * (sdz / sl);
+    const sameSide = prev.nx * seg.nx + prev.nz * seg.nz > 0.9;
+    if (joined && dot > 0.98 && sameSide && prev.soft === seg.soft && prev.dock === seg.dock) {
+      prev.bx = seg.bx;
+      prev.bz = seg.bz;
+      continue;
+    }
+    out.push({ ...seg });
   }
-  return 0;
+  return out;
 }
 
-function findDeck(at, cols, rows) {
-  const horizontal = [];
-  const vertical = [];
-  for (let z = 0; z < rows; z += 1) {
-    for (let x = 0; x < cols; x += 1) {
+
+
+const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+// The three painted bridges. The span is measured from the channel; these seeds
+// only pick which crossing gets which deck.
+const BRIDGE_SEEDS = [
+  { style: "Stone", axis: "x", x: 62, z: 78 },
+  { style: "Steel", axis: "x", x: 76, z: 128 },
+  { style: "Plain", axis: "z", x: 80, z: 175 },
+];
+
+function cellAt(ground, cols, rows, x, z) {
+  if (x < 0 || z < 0 || x >= cols || z >= rows) return "~";
+  return ground[z][x];
+}
+
+function writeCell(ground, x, z, code) {
+  const row = ground[z];
+  ground[z] = row.slice(0, x) + code + row.slice(x + 1);
+}
+
+// The pier whose end sits in the steel bridge channel is cleared so the deck
+// can cross open water. Other piers stay.
+function removeSteelPier(map) {
+  const { cols, rows, ground } = map;
+  const at = (x, z) => cellAt(ground, cols, rows, x, z);
+  const seed = BRIDGE_SEEDS[1];
+  const docks = [];
+  for (let z = seed.z - 3; z <= seed.z + 3; z += 1) {
+    for (let x = seed.x - 16; x <= seed.x + 16; x += 1) {
       if (!ROAD.has(at(x, z))) continue;
-      const north = walkGap(at, x, z, 0, -1, cols, rows);
-      const south = walkGap(at, x, z, 0, 1, cols, rows);
-      const west = walkGap(at, x, z, -1, 0, cols, rows);
-      const east = walkGap(at, x, z, 1, 0, cols, rows);
-      if (north && south) horizontal.push({ x, z });
-      else if (west && east) vertical.push({ x, z });
+      for (const [dx, dz] of N4) {
+        if (at(x + dx, z + dz) === "d") docks.push([x + dx, z + dz]);
+      }
     }
   }
-  return { horizontal, vertical };
+  const seen = new Set();
+  const queue = docks.slice();
+  const cleared = [];
+  while (queue.length > 0) {
+    const [x, z] = queue.pop();
+    const id = `${x},${z}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    if (at(x, z) !== "d") continue;
+    cleared.push([x, z]);
+    for (const [dx, dz] of N4) queue.push([x + dx, z + dz]);
+  }
+  for (const [x, z] of cleared) writeCell(ground, x, z, "~");
+  return cleared.length;
+}
+
+function measureBridge(at, cols, rows, seed) {
+  if (seed.axis === "x") {
+    let z0 = seed.z;
+    while (z0 > 0 && ROAD.has(at(seed.x, z0 - 1))) z0 -= 1;
+    let z1 = seed.z + 1;
+    while (z1 < rows && ROAD.has(at(seed.x, z1))) z1 += 1;
+    const wet = (x) => {
+      if (x < 0 || x >= cols) return false;
+      for (let z = z0; z < z1; z += 1) {
+        if (!ROAD.has(at(x, z))) return false;
+      }
+      return at(x, z0 - 1) === "~" || at(x, z1) === "~";
+    };
+    let x0 = seed.x;
+    while (wet(x0 - 1)) x0 -= 1;
+    let x1 = seed.x;
+    while (wet(x1)) x1 += 1;
+    return { style: seed.style, axis: seed.axis, x0, x1, z0, z1 };
+  }
+  let x0 = seed.x;
+  while (x0 > 0 && ROAD.has(at(x0 - 1, seed.z))) x0 -= 1;
+  let x1 = seed.x + 1;
+  while (x1 < cols && ROAD.has(at(x1, seed.z))) x1 += 1;
+  const wet = (z) => {
+    if (z < 0 || z >= rows) return false;
+    for (let x = x0; x < x1; x += 1) {
+      if (!ROAD.has(at(x, z))) return false;
+    }
+    return at(x0 - 1, z) === "~" || at(x1, z) === "~";
+  };
+  let z0 = seed.z;
+  while (wet(z0 - 1)) z0 -= 1;
+  let z1 = seed.z;
+  while (wet(z1)) z1 += 1;
+  return { style: seed.style, axis: seed.axis, x0, x1, z0, z1 };
+}
+
+function bridgeCoversEdge(bridge, x, z, dir) {
+  if (bridge.axis === "x") {
+    if (dir !== "n" && dir !== "s") return false;
+    return x >= bridge.x0 && x < bridge.x1 && z >= bridge.z0 && z < bridge.z1;
+  }
+  if (dir !== "e" && dir !== "w") return false;
+  return x >= bridge.x0 && x < bridge.x1 && z >= bridge.z0 && z < bridge.z1;
+}
+
+function mouthWalls(bridge) {
+  if (bridge.axis === "x") {
+    return [
+      { ax: bridge.x0, az: bridge.z0, bx: bridge.x0, bz: bridge.z1, nx: -1, nz: 0, soft: false, dock: false },
+      { ax: bridge.x1, az: bridge.z1, bx: bridge.x1, bz: bridge.z0, nx: 1, nz: 0, soft: false, dock: false },
+    ];
+  }
+  return [
+    { ax: bridge.x0, az: bridge.z0, bx: bridge.x1, bz: bridge.z0, nx: 0, nz: -1, soft: false, dock: false },
+    { ax: bridge.x1, az: bridge.z1, bx: bridge.x0, bz: bridge.z1, nx: 0, nz: 1, soft: false, dock: false },
+  ];
 }
 
 export function buildQuayPlan(map) {
+  const cleared = removeSteelPier(map);
   const { cols, rows, ground } = map;
-  const at = (x, z) => {
-    if (z < 0 || x < 0 || z >= rows || x >= cols) return "~";
-    return ground[z][x];
-  };
-  const { horizontal, vertical } = findDeck(at, cols, rows);
+  const at = (x, z) => cellAt(ground, cols, rows, x, z);
+  const bridges = BRIDGE_SEEDS.map((seed) => measureBridge(at, cols, rows, seed));
   const edges = [];
   for (let z = 0; z < rows; z += 1) {
     for (let x = 0; x < cols; x += 1) {
@@ -260,11 +379,8 @@ export function buildQuayPlan(map) {
       for (const dir of Object.keys(DIRS)) {
         const step = DIRS[dir];
         if (at(x + step.dx, z + step.dz) !== "~") continue;
-        const alongBridge = ROAD.has(cell) && (
-          ((dir === "n" || dir === "s") && horizontal.some((item) => Math.abs(item.z - z) <= 1 && Math.abs(item.x - x) <= 3))
-          || ((dir === "w" || dir === "e") && vertical.some((item) => Math.abs(item.x - x) <= 1 && Math.abs(item.z - z) <= 3))
-        );
-        if (alongBridge) continue;
+        const onDeck = ROAD.has(cell) && bridges.some((bridge) => bridgeCoversEdge(bridge, x, z, dir));
+        if (onDeck) continue;
         edges.push(makeEdge(x, z, dir, cell));
       }
     }
@@ -272,91 +388,27 @@ export function buildQuayPlan(map) {
   const chains = linkChains(edges);
   const segments = [];
   for (const chain of chains) segments.push(...chainToSegments(chain));
-
   const under = [];
-  const pointsOf = (zLine, xMin, xMax) => {
-    const found = [];
-    for (const segment of segments) {
-      for (const point of [[segment.ax, segment.az], [segment.bx, segment.bz]]) {
-        if (Math.abs(point[1] - zLine) < 0.08 && point[0] >= xMin && point[0] <= xMax) found.push(point);
-      }
+  const water = [];
+  for (const bridge of bridges) {
+    under.push(...mouthWalls(bridge));
+    for (let z = bridge.z0; z < bridge.z1; z += 1) {
+      for (let x = bridge.x0; x < bridge.x1; x += 1) water.push({ x, z });
     }
-    return found;
-  };
-  const joinBanks = (north, south, landX) => {
-    if (north.length === 0 || south.length === 0) return;
-    north.sort((a, b) => a[0] - b[0]);
-    south.sort((a, b) => a[0] - b[0]);
-    const a = landX < 0 ? north[0] : north[north.length - 1];
-    const b = landX < 0 ? south[0] : south[south.length - 1];
-    if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.05) return;
-    under.push({ ax: a[0], az: a[1], bx: b[0], bz: b[1], nx: landX, nz: 0, soft: false });
-  };
-  const byRow = new Map();
-  for (const cell of horizontal) {
-    if (!byRow.has(cell.z)) byRow.set(cell.z, []);
-    byRow.get(cell.z).push(cell.x);
   }
-  const rowKeys = [...byRow.keys()].sort((a, b) => a - b);
-  let r = 0;
-  while (r < rowKeys.length) {
-    let s = r;
-    while (s + 1 < rowKeys.length && rowKeys[s + 1] <= rowKeys[s] + 1) s += 1;
-    const rowsIn = rowKeys.slice(r, s + 1);
-    const xs = rowsIn.flatMap((z) => byRow.get(z));
-    const x0 = Math.min(...xs);
-    const x1 = Math.max(...xs);
-    const zTop = rowsIn[0];
-    const zBot = rowsIn[rowsIn.length - 1] + 1;
-    joinBanks(pointsOf(zTop, x0 - 4, x0 + 1), pointsOf(zBot, x0 - 4, x0 + 1), -1);
-    joinBanks(pointsOf(zTop, x1, x1 + 5), pointsOf(zBot, x1, x1 + 5), 1);
-    for (const z of rowsIn) {
-      for (const x of byRow.get(z)) under.push({ water: true, x, z });
+  const roads = new Set();
+  for (let z = 0; z < rows; z += 1) {
+    const row = ground[z];
+    for (let x = 0; x < cols; x += 1) {
+      if (ROAD.has(row[x])) roads.add(x + z * 1024);
     }
-    r = s + 1;
   }
-  const byCol = new Map();
-  for (const cell of vertical) {
-    if (!byCol.has(cell.x)) byCol.set(cell.x, []);
-    byCol.get(cell.x).push(cell.z);
-  }
-  const colKeys = [...byCol.keys()].sort((a, b) => a - b);
-  let c = 0;
-  while (c < colKeys.length) {
-    let s = c;
-    while (s + 1 < colKeys.length && colKeys[s + 1] <= colKeys[s] + 1) s += 1;
-    const colsIn = colKeys.slice(c, s + 1);
-    const zs = colsIn.flatMap((x) => byCol.get(x));
-    const z0 = Math.min(...zs);
-    const z1 = Math.max(...zs);
-    const xWest = colsIn[0];
-    const xEast = colsIn[colsIn.length - 1] + 1;
-    const onX = (xLine, zMin, zMax) => {
-      const found = [];
-      for (const segment of segments) {
-        for (const point of [[segment.ax, segment.az], [segment.bx, segment.bz]]) {
-          if (Math.abs(point[0] - xLine) < 0.08 && point[1] >= zMin && point[1] <= zMax) found.push(point);
-        }
-      }
-      return found;
-    };
-    const northPts = onX(xWest, z0 - 4, z0 + 1).concat(onX(xEast, z0 - 4, z0 + 1));
-    const southPts = onX(xWest, z1, z1 + 5).concat(onX(xEast, z1, z1 + 5));
-    if (northPts.length && southPts.length) {
-      northPts.sort((a, b) => a[1] - b[1]);
-      southPts.sort((a, b) => a[1] - b[1]);
-      under.push({ ax: northPts[0][0], az: northPts[0][1], bx: southPts[0][0], bz: southPts[0][1], nx: 0, nz: -1, soft: false });
-      under.push({ ax: southPts[southPts.length - 1][0], az: southPts[southPts.length - 1][1], bx: northPts[northPts.length - 1][0], bz: northPts[northPts.length - 1][1], nx: 0, nz: 1, soft: false });
-    }
-    for (const x of colsIn) {
-      for (const z of byCol.get(x)) under.push({ water: true, x, z });
-    }
-    c = s + 1;
-  }
-
   return {
-    segments: segments.concat(under.filter((item) => !item.water)),
-    water: under.filter((item) => item.water),
+    segments: segments.concat(under),
+    water,
     edges: edges.length,
+    bridges,
+    clearedPiers: cleared,
+    roads,
   };
 }

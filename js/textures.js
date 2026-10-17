@@ -1,13 +1,15 @@
 import {
   CanvasTexture,
-  NearestFilter,
   ClampToEdgeWrapping,
+  NearestFilter,
   RepeatWrapping,
   SRGBColorSpace,
+  Texture,
 } from "three";
 import { PAT, ROAD_COLS, ROAD_ROWS, WALK_COLS, WALK_ROWS } from "./markings.js";
 
 const STONE_URL = new URL("../assets/tiles/sidewalk_stone.png", import.meta.url);
+const PIER_URL = new URL("../assets/textures/quay/pier_deck.png", import.meta.url);
 
 function canvas2d(width = 48, height = width) {
   const canvas = document.createElement("canvas");
@@ -26,6 +28,20 @@ function pixelTexture(canvas, repeat) {
   texture.wrapS = repeat ? RepeatWrapping : ClampToEdgeWrapping;
   texture.wrapT = repeat ? RepeatWrapping : ClampToEdgeWrapping;
   texture.colorSpace = SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function pierDeckTexture(image) {
+  const texture = new Texture(image);
+  texture.flipY = false;
+  texture.colorSpace = SRGBColorSpace;
+  texture.magFilter = NearestFilter;
+  texture.minFilter = NearestFilter;
+  texture.generateMipmaps = false;
+  // 240 px is one tile along the pier and repeats. 720 px is the full width.
+  texture.wrapS = RepeatWrapping;
+  texture.wrapT = ClampToEdgeWrapping;
   texture.needsUpdate = true;
   return texture;
 }
@@ -560,15 +576,6 @@ function plainGround() {
       ctx.fillStyle = "#145860";
       ctx.fillRect(14, 22, 10, 2);
     }),
-    d: groundTile((ctx) => {
-      ctx.fillStyle = "#7a5a32";
-      ctx.fillRect(0, 0, 48, 48);
-      ctx.fillStyle = "#5c4124";
-      for (let y = 0; y < 48; y += 8) ctx.fillRect(0, y, 48, 2);
-      ctx.fillStyle = "#3a2a16";
-      ctx.fillRect(8, 0, 2, 48);
-      ctx.fillRect(32, 0, 2, 48);
-    }),
     c: groundTile((ctx) => {
       ctx.fillStyle = "#8d9094";
       ctx.fillRect(0, 0, 48, 48);
@@ -641,6 +648,7 @@ export async function createTextures() {
   }
 
   const ground = plainGround();
+  ground.d = pierDeckTexture(await loadImage(PIER_URL));
   ground.b = ground.l;
   ground.A = groundTile((ctx) => stopBar(ctx, "e"));
   ground.E = groundTile((ctx) => stopBar(ctx, "w"));

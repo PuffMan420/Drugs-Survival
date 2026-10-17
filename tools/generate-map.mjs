@@ -6,6 +6,8 @@
 //
 // The plan is original. It borrows the feel of a GTA 2 downtown — bent streets,
 // diagonals, alleys, plazas, a coast — and is not a trace of that map.
+// Roads are a little wider than the first pass, dead ends get joined, and a
+// 4-lane ring follows the coast.
 
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -17,8 +19,8 @@ const ROWS = 260;
 // Bent avenues. Each leg is either straight or exactly 45 degrees so the
 // yellow lines meet. Spacing and direction change on purpose.
 const AVENUES = [
-  { width: 4, pts: [[18, 46], [96, 46], [146, 96], [200, 96], [236, 60]] },
-  { width: 4, pts: [[36, 22], [36, 78], [78, 120], [78, 168], [44, 202], [44, 242]] },
+  { width: 3, pts: [[18, 46], [96, 46], [146, 96], [200, 96], [236, 60]] },
+  { width: 3, pts: [[36, 22], [36, 78], [78, 120], [78, 168], [44, 202], [44, 242]] },
   { width: 3, pts: [[168, 20], [168, 64], [128, 104], [188, 164], [188, 210], [150, 248]] },
   { width: 3, pts: [[230, 28], [176, 28], [136, 68], [196, 128], [240, 128]] },
   { width: 3, pts: [[20, 128], [70, 128], [118, 176], [178, 176], [214, 140], [248, 140]] },
@@ -28,12 +30,12 @@ const AVENUES = [
 
 // 45-degree avenues. dx/dz are each -1 or 1.
 const DIAGONALS = [
-  { x: 42, z: 196, len: 108, dx: 1, dz: -1, width: 3, major: true },
-  { x: 214, z: 184, len: 86, dx: -1, dz: -1, width: 3, major: true },
-  { x: 154, z: 34, len: 46, dx: -1, dz: 1, width: 2, major: false },
-  { x: 58, z: 52, len: 40, dx: 1, dz: 1, width: 2, major: false },
-  { x: 168, z: 96, len: 44, dx: 1, dz: 1, width: 2, major: false },
-  { x: 96, z: 156, len: 32, dx: 1, dz: -1, width: 2, major: false },
+  { x: 42, z: 196, len: 108, dx: 1, dz: -1, width: 5, major: true },
+  { x: 214, z: 184, len: 86, dx: -1, dz: -1, width: 5, major: true },
+  { x: 154, z: 34, len: 46, dx: -1, dz: 1, width: 3, major: false },
+  { x: 58, z: 52, len: 40, dx: 1, dz: 1, width: 3, major: false },
+  { x: 168, z: 96, len: 44, dx: 1, dz: 1, width: 3, major: false },
+  { x: 96, z: 156, len: 32, dx: 1, dz: -1, width: 3, major: false },
 ];
 
 const RIVER = [
@@ -74,8 +76,8 @@ const ROOFS = {
   shed: ["#4a4e50", "#6a4030", "#3e4450", "#5a5348"],
 };
 
-const MAJOR = new Set(["H", "V", "+", "A", "E"]);
-const ROAD = new Set(["H", "V", "+", "h", "v", "X", "A", "E", "a", "e", "n"]);
+const MAJOR = new Set(["H", "V", "+", "A", "E", "1", "2", "4", "5", "6", "8"]);
+const ROAD = new Set(["H", "V", "+", "h", "v", "X", "A", "E", "a", "e", "n", "1", "2", "4", "5", "6", "8"]);
 
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
@@ -221,7 +223,14 @@ function rasterSegment(x0, z0, x1, z1) {
 function strokePolyline(pts, width, major, bridgeLimit = 11) {
   const line = [];
   for (let i = 0; i < pts.length - 1; i += 1) {
-    line.push(...rasterSegment(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]));
+    const [x0, z0] = pts[i];
+    const [x1, z1] = pts[i + 1];
+    if (x0 !== x1 && z0 !== z1) {
+      line.push(...rasterSegment(x0, z0, x1, z0));
+      line.push(...rasterSegment(x1, z0, x1, z1));
+    } else {
+      line.push(...rasterSegment(x0, z0, x1, z1));
+    }
   }
   if (line.length === 0) return;
   const water = line.map((cell) => inBounds(cell.x, cell.z) && grid[cell.z][cell.x] === "~");
@@ -265,6 +274,16 @@ function strokePolyline(pts, width, major, bridgeLimit = 11) {
   for (let k = 0; k < line.length; k += 1) {
     const cell = line[k];
     paintCell(cell.x, cell.z, stepCode(cell.sx, cell.sz, major), force[k]);
+    // A diagonal step only touches the next tile at a corner. Fill the elbow
+    // so the road shares an edge and you can actually walk along it.
+    if (cell.sx === 0 || cell.sz === 0) continue;
+    const px = -cell.sz;
+    const pz = cell.sx;
+    const elbow = major ? "+" : "X";
+    for (let o = 0; o < width; o += 1) {
+      const off = start + o;
+      paintCell(cell.x - cell.sx + px * off, cell.z + pz * off, elbow, force[k]);
+    }
   }
 }
 
@@ -273,10 +292,14 @@ function paintAvenues() {
 }
 
 function paintDiagonals() {
+  // Stair-step diagonals read as a wide asphalt blob. Run the same span as
+  // two straight streets that meet at a corner.
   for (const diag of DIAGONALS) {
+    const x2 = diag.x + diag.dx * diag.len;
+    const z2 = diag.z + diag.dz * diag.len;
     strokePolyline(
-      [[diag.x, diag.z], [diag.x + diag.dx * diag.len, diag.z + diag.dz * diag.len]],
-      diag.width,
+      [[diag.x, diag.z], [x2, diag.z], [x2, z2]],
+      3,
       diag.major,
     );
   }
@@ -498,26 +521,22 @@ function carveLot(cells, mode) {
   if (mode === "split" && long < 20) return;
   if (mode === "street" && long < 15) return;
   if (mode === "alley" && (long < 12 || cells.length < 80 || id % 3 === 0)) return;
-  if (mode === "street" && id % 3 === 0) {
-    paintDiagonalAcross(cells);
-    return;
-  }
   const vertical = mode === "street" ? id % 2 === 0 : box.w >= box.h;
   const span = vertical ? box.w : box.h;
   const min = vertical ? box.minX : box.minZ;
-  const width = mode === "alley" ? 1 : 2;
+  const width = mode === "alley" ? 1 : 3;
   const lo = min + 5;
   const hi = min + span - 6 - width;
   if (hi <= lo) return;
   const at = lo + (id % (hi - lo));
-  const frac = mode === "split" || id % 4 === 0 ? 1 : 0.55 + (id % 4) * 0.1;
-  paintCut(cells, at, vertical, width, frac, mode === "alley");
+  // The cut runs the whole block, so the street meets a road at both ends.
+  paintCut(cells, at, vertical, width, 1, mode === "alley");
   if (mode === "split" && box.w >= 24 && box.h >= 24 && id % 2 === 0) {
     const span2 = vertical ? box.h : box.w;
     const min2 = vertical ? box.minZ : box.minX;
     const lo2 = min2 + 5;
     const hi2 = min2 + span2 - 8;
-    if (hi2 > lo2) paintCut(cells, lo2 + ((id >>> 8) % (hi2 - lo2)), !vertical, 2, 1, false);
+    if (hi2 > lo2) paintCut(cells, lo2 + ((id >>> 8) % (hi2 - lo2)), !vertical, 3, 1, false);
   }
 }
 
@@ -610,18 +629,6 @@ function placeParksAndPlazas() {
         }
         addBuilding(mx, mz, 3, 3, 10, "tower", "#5c656c");
       }
-    } else if (lot.length > 90) {
-      let pond = true;
-      for (let dz = 0; dz < 2 && pond; dz += 1) {
-        for (let dx = 0; dx < 2; dx += 1) {
-          if (!inBounds(cx + dx, cz + dz) || grid[cz + dz][cx + dx] !== "q") pond = false;
-        }
-      }
-      if (pond) {
-        for (let dz = 0; dz < 2; dz += 1) {
-          for (let dx = 0; dx < 2; dx += 1) grid[cz + dz][cx + dx] = "~";
-        }
-      }
     }
   }
 }
@@ -685,24 +692,22 @@ function placePiers() {
   for (let z = 1; z < ROWS - 1; z += 1) {
     for (let x = 1; x < COLS - 1; x += 1) {
       if (grid[z][x] === "~" || grid[z][x] === "d") continue;
-      if (hash(x, z) % 17 !== 0) continue;
+      if (x % 16 !== 0 && z % 16 !== 0) continue;
       let dir = null;
       for (const [dx, dz] of N4) {
         if (grid[z + dz][x + dx] === "~") dir = [dx, dz];
       }
       if (!dir) continue;
       let crowded = false;
-      for (let dz = -8; dz <= 8 && !crowded; dz += 1) {
-        for (let dx = -8; dx <= 8; dx += 1) {
+      for (let dz = -14; dz <= 14 && !crowded; dz += 1) {
+        for (let dx = -14; dx <= 14; dx += 1) {
           const nx = x + dx;
           const nz = z + dz;
           if (inBounds(nx, nz) && taken[nz][nx]) crowded = true;
         }
       }
       if (crowded) continue;
-      const length = 6 + (hash(x + 4, z) % 8);
-      const width = 2 + (hash(z, x) % 3);
-      tryPier(x + dir[0], z + dir[1], dir[0], dir[1], length, width);
+      tryPier(x + dir[0], z + dir[1], dir[0], dir[1], 8, 3);
       taken[z][x] = 1;
     }
   }
@@ -905,10 +910,6 @@ function packBuildings(waterDist) {
       if (x > 0 && grid[z][x - 1] === "l") continue;
       if (z > 0 && grid[z - 1][x] === "l") continue;
       const h = hash(x, z);
-      if (h % 29 === 0 && canPlace(x, z, 2, 2)) {
-        mark(x, z, 2, 2, "q");
-        continue;
-      }
       const baseH = heightAt(x, z, waterDist);
       const parts = shapeFor(h);
       let placed = false;
@@ -1067,13 +1068,295 @@ function pickViews() {
   return named.map(([name, point]) => ({ name, x: point[0], z: point[1] }));
 }
 
+const RING_INSET = 16;
+const RING_BRIDGE = 28;
+const H_LANE = ["1", "+", "4", "+", "2"];
+const V_LANE = ["5", "+", "8", "+", "6"];
+
+function landward(x, z, dx, dz) {
+  for (let i = 0; i <= 100; i += 1) {
+    const xx = x + dx * i;
+    const zz = z + dz * i;
+    if (!inBounds(xx, zz)) return null;
+    if (grid[zz][xx] !== "~") return [xx, zz];
+  }
+  return null;
+}
+
+function paintRingCell(x, z, code, bridge) {
+  if (!inBounds(x, z)) return;
+  const cur = grid[z][x];
+  if (cur === "d") return;
+  if (cur === "~" && !bridge) return;
+  if (ROAD.has(cur)) {
+    if (cur !== code) grid[z][x] = "+";
+    return;
+  }
+  grid[z][x] = code;
+}
+
+function stampRing(x, z, horizontal, bridge) {
+  const codes = horizontal ? H_LANE : V_LANE;
+  for (let i = 0; i < 5; i += 1) {
+    const xx = horizontal ? x : x - 2 + i;
+    const zz = horizontal ? z - 2 + i : z;
+    paintRingCell(xx, zz, codes[i], bridge);
+  }
+}
+
+function paintSegment(x0, z0, x1, z1, bridge) {
+  const dx = Math.sign(x1 - x0);
+  const dz = Math.sign(z1 - z0);
+  let x = x0;
+  let z = z0;
+  while (true) {
+    stampRing(x, z, dz === 0, bridge);
+    if (x === x1 && z === z1) break;
+    x += dx;
+    z += dz;
+  }
+}
+
+function ringSide(axis, fixed, from, to, inlandDx, inlandDz) {
+  const step = to >= from ? 1 : -1;
+  const sign = inlandDx + inlandDz;
+  const points = [];
+  for (let t = from; step > 0 ? t <= to : t >= to; t += step) {
+    const x = axis === "h" ? t : fixed;
+    const z = axis === "h" ? fixed : t;
+    points.push({ x, z, water: inBounds(x, z) && grid[z][x] === "~", pulled: false, bridge: false });
+  }
+  let i = 0;
+  while (i < points.length) {
+    if (!points[i].water) {
+      i += 1;
+      continue;
+    }
+    let j = i;
+    while (j < points.length && points[j].water) j += 1;
+    const bounded = i > 0 && j < points.length;
+    if (bounded && j - i <= RING_BRIDGE) {
+      for (let k = i; k < j; k += 1) points[k].bridge = true;
+    } else {
+      for (let k = i; k < j; k += 1) {
+        const hit = landward(points[k].x, points[k].z, inlandDx, inlandDz);
+        if (!hit) continue;
+        points[k].x = hit[0] + inlandDx * 3;
+        points[k].z = hit[1] + inlandDz * 3;
+        points[k].water = false;
+        points[k].pulled = true;
+      }
+    }
+    i = j;
+  }
+  const cross = points.map((point) => (axis === "h" ? point.z : point.x));
+  for (let k = 0; k < points.length; k += 1) {
+    if (!points[k].pulled) continue;
+    let value = cross[k];
+    const a = Math.max(0, k - 7);
+    const b = Math.min(points.length, k + 8);
+    for (let t = a; t < b; t += 1) {
+      if (!points[t].pulled) continue;
+      value = sign > 0 ? Math.max(value, cross[t]) : Math.min(value, cross[t]);
+    }
+    if (axis === "h") points[k].z = value;
+    else points[k].x = value;
+  }
+  return points;
+}
+
+function paintRing() {
+  const left = RING_INSET;
+  const right = COLS - 1 - RING_INSET;
+  const bottom = ROWS - 1 - RING_INSET;
+  const sides = [
+    ringSide("h", left, left, right, 0, 1),
+    ringSide("v", right, left + 1, bottom, -1, 0),
+    ringSide("h", bottom, right - 1, left, 0, -1),
+    ringSide("v", left, bottom - 1, left + 1, 1, 0),
+  ];
+  const points = sides.flat();
+  if (points.length === 0) return;
+  points.push(points[0]);
+  for (let i = 1; i < points.length; i += 1) {
+    const a = points[i - 1];
+    const b = points[i];
+    const bridge = a.bridge && b.bridge;
+    if (a.x !== b.x) paintSegment(a.x, a.z, b.x, a.z, bridge);
+    if (a.z !== b.z) paintSegment(b.x, a.z, b.x, b.z, bridge);
+  }
+}
+
+function roadLabels() {
+  const id = Array.from({ length: ROWS }, () => new Int32Array(COLS));
+  const size = [0];
+  let count = 0;
+  for (let z = 0; z < ROWS; z += 1) {
+    for (let x = 0; x < COLS; x += 1) {
+      if (id[z][x] || !ROAD.has(grid[z][x])) continue;
+      count += 1;
+      const queue = [[x, z]];
+      id[z][x] = count;
+      let n = 0;
+      for (let i = 0; i < queue.length; i += 1) {
+        const [cx, cz] = queue[i];
+        n += 1;
+        for (const [dx, dz] of N4) {
+          const nx = cx + dx;
+          const nz = cz + dz;
+          if (!inBounds(nx, nz) || id[nz][nx] || !ROAD.has(grid[nz][nx])) continue;
+          id[nz][nx] = count;
+          queue.push([nx, nz]);
+        }
+      }
+      size[count] = n;
+    }
+  }
+  let largest = 1;
+  for (let i = 1; i < size.length; i += 1) if (size[i] > size[largest]) largest = i;
+  return { id, count, largest, size };
+}
+
+function trimWideAsphalt() {
+  const spine = new Set(["H", "V", "h", "v", "1", "2", "4", "5", "6", "8"]);
+  const shoulder = new Set(["+", "X"]);
+  const drop = [];
+  const besideSpine = (x, z) => {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      for (let dx = -1; dx <= 1; dx += 1) {
+        const nx = x + dx;
+        const nz = z + dz;
+        if (inBounds(nx, nz) && spine.has(grid[nz][nx])) return true;
+      }
+    }
+    return false;
+  };
+  for (let z = 0; z < ROWS; z += 1) {
+    for (let x = 0; x < COLS; x += 1) {
+      if (!shoulder.has(grid[z][x]) || besideSpine(x, z)) continue;
+      drop.push([x, z]);
+    }
+  }
+  for (const [x, z] of drop) grid[z][x] = "l";
+}
+
+function tidyWater() {
+  for (let pass = 0; pass < 8; pass += 1) {
+    const peel = [];
+    for (let z = 1; z < ROWS - 1; z += 1) {
+      for (let x = 1; x < COLS - 1; x += 1) {
+        if (grid[z][x] !== "~") continue;
+        let waterN = 0;
+        let landN = 0;
+        for (const [dx, dz] of N4) {
+          const cell = grid[z + dz][x + dx];
+          if (cell === "~" || cell === "d") waterN += 1;
+          else landN += 1;
+        }
+        if (waterN <= 1 && landN >= 3) peel.push([x, z]);
+      }
+    }
+    if (peel.length === 0) break;
+    for (const [x, z] of peel) grid[z][x] = "l";
+  }
+  const seen = Array.from({ length: ROWS }, () => new Uint8Array(COLS));
+  for (let z = 0; z < ROWS; z += 1) {
+    for (let x = 0; x < COLS; x += 1) {
+      if (seen[z][x] || grid[z][x] !== "~") continue;
+      const queue = [[x, z]];
+      seen[z][x] = 1;
+      const cells = [];
+      let edge = false;
+      for (let i = 0; i < queue.length; i += 1) {
+        const [cx, cz] = queue[i];
+        cells.push([cx, cz]);
+        if (cx === 0 || cz === 0 || cx === COLS - 1 || cz === ROWS - 1) edge = true;
+        for (const [dx, dz] of N4) {
+          const nx = cx + dx;
+          const nz = cz + dz;
+          if (!inBounds(nx, nz) || seen[nz][nx] || grid[nz][nx] !== "~") continue;
+          seen[nz][nx] = 1;
+          queue.push([nx, nz]);
+        }
+      }
+      if (!edge && cells.length < 48) {
+        for (const [cx, cz] of cells) grid[cz][cx] = "l";
+      }
+    }
+  }
+}
+
+function connectLooseRoads() {
+  for (let pass = 0; pass < 400; pass += 1) {
+    const labels = roadLabels();
+    if (labels.count <= 1) return;
+    const dist = Array.from({ length: ROWS }, () => new Int16Array(COLS).fill(-1));
+    const prev = Array.from({ length: ROWS }, () => new Int16Array(COLS * 2).fill(-1));
+    const queue = [];
+    for (let z = 0; z < ROWS; z += 1) {
+      for (let x = 0; x < COLS; x += 1) {
+        if (labels.id[z][x] !== labels.largest) continue;
+        dist[z][x] = 0;
+        queue.push(x, z);
+      }
+    }
+    let hit = null;
+    for (let i = 0; i < queue.length && !hit; i += 2) {
+      const x = queue[i];
+      const z = queue[i + 1];
+      if (dist[z][x] > 30) continue;
+      for (const [dx, dz] of N4) {
+        const nx = x + dx;
+        const nz = z + dz;
+        if (!inBounds(nx, nz) || dist[nz][nx] !== -1) continue;
+        const there = labels.id[nz][nx];
+        if (there && there !== labels.largest) {
+          hit = [nx, nz, x, z];
+          break;
+        }
+        if (there || grid[nz][nx] === "d" || grid[nz][nx] === "~") continue;
+        dist[nz][nx] = dist[z][x] + 1;
+        prev[nz][nx * 2] = x;
+        prev[nz][nx * 2 + 1] = z;
+        queue.push(nx, nz);
+      }
+    }
+    if (!hit) {
+      const labelsNow = labels;
+      for (let z = 0; z < ROWS; z += 1) {
+        for (let x = 0; x < COLS; x += 1) {
+          const id = labelsNow.id[z][x];
+          if (!id || id === labelsNow.largest || labelsNow.size[id] > 8) continue;
+          grid[z][x] = "l";
+        }
+      }
+      return;
+    }
+    let x = hit[2];
+    let z = hit[3];
+    while (dist[z][x] > 0) {
+      const px = prev[z][x * 2];
+      const pz = prev[z][x * 2 + 1];
+      if (!ROAD.has(grid[z][x]) && grid[z][x] !== "d" && grid[z][x] !== "~") {
+        paintCell(x, z, px !== x ? "h" : "v", false);
+      }
+      x = px;
+      z = pz;
+    }
+  }
+}
+
 paintLand();
 paintAvenues();
 paintDiagonals();
 waterfrontRoad();
 connectIsland();
 harborBridge();
+paintRing();
 carvePasses();
+connectLooseRoads();
+trimWideAsphalt();
+tidyWater();
 placeParksAndPlazas();
 finishGround();
 placePiers();

@@ -19,11 +19,13 @@ import {
   GROUND_W,
   PLAYER_SIZE,
   PLAYER_SPEED,
+  RENDER_H,
+  RENDER_W,
   TILE,
-  VIEW_H,
-  VIEW_W,
 } from "./constants.js";
+import { createTraffic } from "./cars.js";
 import { buildCity, tileAt, tileCenter, updateChunks } from "./city.js";
+import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
 
 const NEAR = 10;
@@ -68,7 +70,7 @@ function lockPixelProjection(camera) {
   const apply = () => {
     // The center ray meets the ground farther out than the camera's height,
     // because the camera is tilted. Frame the smaller ground rectangle there
-    // so the 12.5% closer view stays even across the 960×540 picture.
+    // so the 12.5% closer view stays even across the picture.
     const distance = CAMERA_HEIGHT / Math.cos(CAMERA_TILT);
     const scale = camera.near / distance;
     camera.projectionMatrix.makePerspective(
@@ -85,16 +87,23 @@ function lockPixelProjection(camera) {
   apply();
 }
 
-function integerScale() {
-  const fitX = Math.floor(window.innerWidth / VIEW_W);
-  const fitY = Math.floor(window.innerHeight / VIEW_H);
-  const scale = Math.max(1, Math.min(fitX, fitY));
-  canvas.style.width = `${VIEW_W * scale}px`;
-  canvas.style.height = `${VIEW_H * scale}px`;
+function fitDisplay(renderer) {
+  // Fill the window with the same 16:9 frame. The scene itself stays at one
+  // pixel per world unit; this only nearest-scales that picture.
+  const unit = Math.min(window.innerWidth / 16, window.innerHeight / 9);
+  const width = Math.max(1, Math.floor(unit) * 16);
+  const height = Math.max(1, Math.floor(unit) * 9);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  renderer.setPixelRatio(1);
+  renderer.setSize(RENDER_W, RENDER_H, false);
 }
 
 function createPresenter(renderer) {
-  const target = new WebGLRenderTarget(VIEW_W, VIEW_H, {
+  // The canvas context has no depth buffer. The city is drawn into this
+  // target, which does, so roofs cover the floors inside the buildings.
+  // The target is then nearest-copied onto the screen.
+  const target = new WebGLRenderTarget(RENDER_W, RENDER_H, {
     minFilter: NearestFilter,
     magFilter: NearestFilter,
     generateMipmaps: false,
@@ -127,7 +136,20 @@ function createPresenter(renderer) {
 }
 
 function blocked(map, x, z) {
-  return tileAt(map, x, z) === "~";
+  // The square's corners have to stay off water and off building footprints.
+  // Roads, sidewalks, parks, docks, and plazas stay open.
+  const reach = PLAYER_SIZE / 2 - 0.01;
+  const samples = [
+    [x - reach, z - reach],
+    [x + reach, z - reach],
+    [x - reach, z + reach],
+    [x + reach, z + reach],
+  ];
+  for (const [sx, sz] of samples) {
+    const tile = tileAt(map, sx, sz);
+    if (tile === "~" || tile === "b") return true;
+  }
+  return false;
 }
 
 async function start() {
@@ -144,13 +166,11 @@ async function start() {
     return;
   }
 
-  renderer.setPixelRatio(1);
-  renderer.setSize(VIEW_W, VIEW_H, false);
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = NoToneMapping;
   renderer.setClearColor(0x102028, 1);
-  integerScale();
-  window.addEventListener("resize", integerScale);
+  fitDisplay(renderer);
+  window.addEventListener("resize", () => fitDisplay(renderer));
 
   fpsEl.textContent = "Loading map…";
   const map = await fetch("./data/city.json").then((response) => {
@@ -161,9 +181,11 @@ async function start() {
   await new Promise((resolve) => requestAnimationFrame(resolve));
 
   const scene = new Scene();
-  const city = buildCity(scene, map);
+  const city = await buildCity(scene, map);
+  const traffic = await createTraffic(scene, map);
+  const glow = createGlow(scene, map);
   const minimap = createMinimap(map);
-  const camera = new PerspectiveCamera(15, VIEW_W / VIEW_H, NEAR, FAR);
+  const camera = new PerspectiveCamera(15, RENDER_W / RENDER_H, NEAR, FAR);
   const tiltUp = Math.sin(CAMERA_TILT);
   const tiltNorth = Math.cos(CAMERA_TILT);
   camera.up.set(0, tiltUp, -tiltNorth);
@@ -197,8 +219,10 @@ async function start() {
       const length = Math.hypot(moveX, moveZ);
       const stepX = (moveX / length) * PLAYER_SPEED * dt;
       const stepZ = (moveZ / length) * PLAYER_SPEED * dt;
-      if (!blocked(map, player.x + stepX, player.z)) player.x += stepX;
-      if (!blocked(map, player.x, player.z + stepZ)) player.z += stepZ;
+      const nextX = player.x + stepX;
+      const nextZ = player.z + stepZ;
+      if (!blocked(map, nextX, player.z) && !traffic.blocks(nextX, player.z)) player.x = nextX;
+      if (!blocked(map, player.x, nextZ) && !traffic.blocks(player.x, nextZ)) player.z = nextZ;
     }
     player.x = clamp(player.x, half, city.mapW - half);
     player.z = clamp(player.z, half, city.mapH - half);
@@ -209,6 +233,8 @@ async function start() {
 
     const camX = clamp(snappedX, GROUND_W / 2, city.mapW - GROUND_W / 2);
     const camZ = clamp(snappedZ, GROUND_H / 2, city.mapH - GROUND_H / 2);
+    traffic.update(dt, camX, camZ, player.x, player.z);
+    glow.update(camX, camZ, traffic.lights(camX, camZ));
     camera.position.set(camX, CAMERA_HEIGHT, camZ + cameraSouth);
     camera.lookAt(camX, 0, camZ);
     updateChunks(city.chunks, camX, camZ);

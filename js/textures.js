@@ -69,15 +69,64 @@ function asphalt(ctx, major) {
   ctx.fillRect(0, 0, 48, 48);
 }
 
-function diagonalRoad(ctx, major, slash) {
-  asphalt(ctx, major);
+function laneDashes(ctx, edge) {
+  asphalt(ctx, true);
+  ctx.fillStyle = "#f4f4f4";
+  for (let i = 2; i < 48; i += 12) {
+    if (edge === "s") ctx.fillRect(i, 43, 8, 3);
+    if (edge === "n") ctx.fillRect(i, 2, 8, 3);
+    if (edge === "e") ctx.fillRect(43, i, 3, 8);
+    if (edge === "w") ctx.fillRect(2, i, 3, 8);
+  }
+}
+
+function doubleYellow(ctx, edge) {
+  asphalt(ctx, true);
   ctx.fillStyle = "#e2c14a";
-  for (let i = 0; i < 48; i += 1) {
-    const y = slash ? 47 - i : i;
-    ctx.fillRect(i, y, 1, 2);
-    if (!major) continue;
-    const y2 = slash ? y - 6 : y + 6;
-    if (y2 >= 0 && y2 < 47) ctx.fillRect(i, y2, 1, 2);
+  if (edge === "s") {
+    ctx.fillRect(0, 38, 48, 3);
+    ctx.fillRect(0, 44, 48, 3);
+  } else {
+    ctx.fillRect(38, 0, 3, 48);
+    ctx.fillRect(44, 0, 3, 48);
+  }
+}
+
+function medianTile(ctx, horizontal) {
+  asphalt(ctx, true);
+  ctx.fillStyle = "#e2c14a";
+  if (horizontal) {
+    ctx.fillRect(0, 1, 48, 3);
+    ctx.fillRect(0, 44, 48, 3);
+    ctx.fillStyle = "#6a645c";
+    ctx.fillRect(0, 10, 48, 28);
+    ctx.fillStyle = "#3d6b45";
+    ctx.fillRect(0, 16, 48, 16);
+  } else {
+    ctx.fillRect(1, 0, 3, 48);
+    ctx.fillRect(44, 0, 3, 48);
+    ctx.fillStyle = "#6a645c";
+    ctx.fillRect(10, 0, 28, 48);
+    ctx.fillStyle = "#3d6b45";
+    ctx.fillRect(16, 0, 16, 48);
+  }
+}
+
+function stopBar(ctx, edge) {
+  asphalt(ctx, true);
+  ctx.fillStyle = "#f2f2f2";
+  if (edge === "e") ctx.fillRect(42, 2, 4, 44);
+  if (edge === "w") ctx.fillRect(2, 2, 4, 44);
+  if (edge === "s") ctx.fillRect(2, 42, 44, 4);
+  if (edge === "n") ctx.fillRect(2, 2, 44, 4);
+}
+
+function localDash(ctx, edge) {
+  asphalt(ctx, false);
+  ctx.fillStyle = "#e2c14a";
+  for (let i = 2; i < 48; i += 12) {
+    if (edge === "s") ctx.fillRect(i, 43, 8, 3);
+    else ctx.fillRect(43, i, 3, 8);
   }
 }
 
@@ -109,34 +158,22 @@ export function createTextures() {
       ctx.fillRect(0, 45, 48, 3);
       ctx.fillRect(0, 22, 48, 2);
     }),
-    H: groundTile((ctx) => {
-      asphalt(ctx, true);
-      ctx.fillStyle = "#e2c14a";
-      ctx.fillRect(0, 20, 48, 2);
-      ctx.fillRect(0, 26, 48, 2);
-    }),
-    V: groundTile((ctx) => {
-      asphalt(ctx, true);
-      ctx.fillStyle = "#e2c14a";
-      ctx.fillRect(20, 0, 2, 48);
-      ctx.fillRect(26, 0, 2, 48);
-    }),
+    1: groundTile((ctx) => laneDashes(ctx, "s")),
+    2: groundTile((ctx) => laneDashes(ctx, "n")),
+    3: groundTile((ctx) => doubleYellow(ctx, "s")),
+    4: groundTile((ctx) => medianTile(ctx, true)),
+    5: groundTile((ctx) => laneDashes(ctx, "e")),
+    6: groundTile((ctx) => laneDashes(ctx, "w")),
+    7: groundTile((ctx) => doubleYellow(ctx, "e")),
+    8: groundTile((ctx) => medianTile(ctx, false)),
     "+": groundTile((ctx) => asphalt(ctx, true)),
-    h: groundTile((ctx) => {
-      asphalt(ctx, false);
-      ctx.fillStyle = "#e2c14a";
-      ctx.fillRect(10, 23, 28, 2);
-    }),
-    v: groundTile((ctx) => {
-      asphalt(ctx, false);
-      ctx.fillStyle = "#e2c14a";
-      ctx.fillRect(23, 10, 2, 28);
-    }),
+    h: groundTile((ctx) => localDash(ctx, "s")),
+    v: groundTile((ctx) => localDash(ctx, "e")),
     X: groundTile((ctx) => asphalt(ctx, false)),
-    A: groundTile((ctx) => diagonalRoad(ctx, true, true)),
-    E: groundTile((ctx) => diagonalRoad(ctx, true, false)),
-    a: groundTile((ctx) => diagonalRoad(ctx, false, true)),
-    e: groundTile((ctx) => diagonalRoad(ctx, false, false)),
+    A: groundTile((ctx) => stopBar(ctx, "e")),
+    E: groundTile((ctx) => stopBar(ctx, "w")),
+    a: groundTile((ctx) => stopBar(ctx, "s")),
+    e: groundTile((ctx) => stopBar(ctx, "n")),
     n: groundTile((ctx) => {
       ctx.fillStyle = "#2a2e34";
       ctx.fillRect(0, 0, 48, 48);

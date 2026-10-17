@@ -20,7 +20,7 @@ You stay on roads, sidewalks, parks, plazas, docks, and bridges. Buildings and t
 - Buildings show a little of their south side, because the camera is tilted about 12 degrees toward the north and sits about 12.5% closer, and they still lean in perspective
 - Crisp pixels: the picture is drawn at 960×540 and scaled up by whole numbers (exactly 2× on a 1080p screen)
 - A small map in the corner, and an FPS counter
-- Cars drive the right-hand lane, including the ring road, and turn at intersections. They keep back from the car ahead and stop for you if you stand in front of them. Others stay parked along the curb. A normal car is about one lane wide. Police cars, ambulances, and fire trucks show up less often. You can walk up to a car, and it stops you
+- Cars drive the right-hand lane, including the ring road. They speed up, brake before a junction, and steer through a curved arc instead of spinning in place. They keep back from the car ahead and stop for you if you stand in front of them. Others stay parked along the curb. A normal car is about one lane wide. Police cars, ambulances, and fire trucks show up less often. You can walk up to a car, and it stops you
 
 ## The map file
 

@@ -4,7 +4,7 @@
 
 export const ROAD_COLS = 8;
 export const ROAD_ROWS = 3;
-export const WALK_COLS = 4;
+export const WALK_COLS = 3;
 export const WALK_ROWS = 2;
 
 export const PAT = {
@@ -79,14 +79,6 @@ function straightArrow(tdx, tdz) {
   return -1;
 }
 
-function turnArrow(tdx, tdz, left) {
-  if (tdx > 0 && tdz === 0) return left ? PAT.TURN_E_L : PAT.TURN_E_R;
-  if (tdx < 0 && tdz === 0) return left ? PAT.TURN_W_L : PAT.TURN_W_R;
-  if (tdx === 0 && tdz < 0) return left ? PAT.TURN_N_L : PAT.TURN_N_R;
-  if (tdx === 0 && tdz > 0) return left ? PAT.TURN_S_L : PAT.TURN_S_R;
-  return -1;
-}
-
 export function classifyMarkings(map) {
   const { cols, rows, ground } = map;
   const n = cols * rows;
@@ -119,7 +111,9 @@ export function classifyMarkings(map) {
     for (let x = 0; x < cols; x += 1) {
       const cell = row[x];
       if (isRoad(cell)) {
-        pattern[z * cols + x] = dashFor(cell);
+        const kind = family(cell);
+        const linked = kind && alongDirs(cell).some(([dx, dz]) => family(at(x + dx, z + dz)) === kind);
+        pattern[z * cols + x] = linked ? dashFor(cell) : PAT.ASPHALT;
         priority[z * cols + x] = 1;
       }
       if (cell === "~" || cell === "d") {
@@ -150,10 +144,16 @@ export function classifyMarkings(map) {
   for (let z = 0; z < rows; z += 1) {
     for (let x = 0; x < cols; x += 1) {
       if (ground[z][x] !== "s") continue;
-      const dist = water[z * cols + x];
-      const harbor = (z >= 168 && dist <= 26) || (x >= 210 && z >= 150 && dist <= 18);
-      const variant = tileHash(x, z) % 4;
-      walk[z * cols + x] = (harbor ? 4 : 0) + variant;
+      const north = isRoad(at(x, z - 1));
+      const south = isRoad(at(x, z + 1));
+      const west = isRoad(at(x - 1, z));
+      const east = isRoad(at(x + 1, z));
+      let corner = 0;
+      if (north && east && !south && !west) corner = 2;
+      else if (north && west && !south && !east) corner = 3;
+      else if (south && east && !north && !west) corner = 4;
+      else if (south && west && !north && !east) corner = 5;
+      walk[z * cols + x] = corner;
     }
   }
 
@@ -211,33 +211,24 @@ export function classifyMarkings(map) {
     return tiles;
   }
 
-  function sameAhead(x, z, dx, dz, kind) {
-    for (let step = 1; step <= 4; step += 1) {
-      const next = at(x + dx * step, z + dz * step);
-      if (family(next) === kind) return true;
-      if (!isRoad(next)) return false;
-    }
-    return false;
-  }
-
-  function nearestOther(x, z, kind) {
-    let best = null;
-    for (let dz = -4; dz <= 4; dz += 1) {
-      for (let dx = -4; dx <= 4; dx += 1) {
-        const next = at(x + dx, z + dz);
-        const kindNext = family(next);
-        if (!kindNext || kindNext === kind) continue;
-        const dist = Math.abs(dx) + Math.abs(dz);
-        if (!best || dist < best.dist) best = { x: x + dx, z: z + dz, cell: next, dist };
-      }
-    }
-    return best;
-  }
-
   function paintBand(x, z, cell) {
     const [px, pz] = perpOf(cell);
-    if (bandWidth(x, z, px, pz) > 6) return;
+    if (bandWidth(x, z, px, pz) > 4) return;
     for (const [tx, tz] of bandTiles(x, z, px, pz)) paint(tx, tz, zebraForCell(cell), 4);
+  }
+
+  function crossRun(x, z) {
+    const kind = family(at(x, z));
+    if (!kind) return 0;
+    const [dx, dz] = alongDirs(at(x, z))[0];
+    let run = 1;
+    for (const sign of [1, -1]) {
+      for (let step = 1; step <= 4; step += 1) {
+        if (family(at(x + dx * sign * step, z + dz * sign * step)) !== kind) break;
+        run += 1;
+      }
+    }
+    return run;
   }
 
   let approaches = 0;
@@ -247,60 +238,38 @@ export function classifyMarkings(map) {
       const kind = family(cell);
       if (!kind) continue;
       for (const [dx, dz] of alongDirs(cell)) {
-        const nx = x + dx;
-        const nz = z + dz;
-        const next = at(nx, nz);
-        if (family(next) === kind || !isRoad(next)) continue;
-        const other = nearestOther(nx, nz, kind);
-        if (sameAhead(x, z, dx, dz, kind) && !other) continue;
+        let behind = true;
+        for (let step = 1; step <= 3; step += 1) {
+          if (family(at(x - dx * step, z - dz * step)) !== kind) behind = false;
+        }
+        if (!behind || family(at(x + dx, z + dz)) === kind) continue;
+        let cross = false;
+        for (let step = 1; step <= 2; step += 1) {
+          const nx = x + dx * step;
+          const nz = z + dz * step;
+          const nextKind = family(at(nx, nz));
+          if (nextKind === kind) break;
+          if (nextKind && nextKind !== kind && crossRun(nx, nz) >= 3) {
+            cross = true;
+            break;
+          }
+          if (!isRoad(at(nx, nz))) break;
+        }
+        if (!cross) continue;
         approaches += 1;
         paintBand(x, z, cell);
-        if (other && other.dist <= 4) paintBand(other.x, other.z, other.cell);
-
-        const [lx, lz] = [dz, -dx];
-        const arrow = straightArrow(dx, dz);
-        const left = turnArrow(dx, dz, true);
-        const right = turnArrow(dx, dz, false);
-        const word = CENTER_V.has(cell) ? PAT.SLOW_V : PAT.SLOW_H;
-        const back = (step) => {
-          const bx = x - dx * step;
-          const bz = z - dz * step;
-          return family(at(bx, bz)) === kind ? [bx, bz] : null;
-        };
-        const arrowTile = back(2);
-        if (arrowTile && arrow >= 0) {
-          paint(arrowTile[0], arrowTile[1], arrow, 3);
-          if (left >= 0) paint(arrowTile[0] + lx, arrowTile[1] + lz, left, 3);
-          if (right >= 0) paint(arrowTile[0] - lx, arrowTile[1] - lz, right, 3);
+        const laneX = x - dx * 2;
+        const laneZ = z - dz * 2;
+        if (family(at(laneX, laneZ)) !== kind) break;
+        if (tileHash(laneX, laneZ) % 6 === 0) {
+          const word = CENTER_V.has(cell) ? PAT.SLOW_V : PAT.SLOW_H;
+          paint(laneX, laneZ, word, 3);
+        } else {
+          const arrow = straightArrow(dx, dz);
+          if (arrow >= 0) paint(laneX, laneZ, arrow, 3);
         }
-        const wordTile = back(4);
-        if (wordTile) paint(wordTile[0], wordTile[1], word, 2);
         break;
       }
-    }
-  }
-
-  for (let z = 0; z < rows; z += 1) {
-    for (let x = 0; x < cols; x += 1) {
-      const cell = at(x, z);
-      if (!isCenter(cell)) continue;
-      const i = z * cols + x;
-      if (priority[i] > 1) continue;
-      if (tileHash(x, z) % 41 !== 7) continue;
-      const dx = CENTER_V.has(cell) ? 0 : CENTER_H.has(cell) ? 1 : 1;
-      const dz = CENTER_V.has(cell) ? 1 : CENTER_A.has(cell) ? -1 : CENTER_E.has(cell) ? 1 : 0;
-      let clear = true;
-      for (let step = -2; step <= 2; step += 1) {
-        if (step === 0) continue;
-        const next = at(x + dx * step, z + dz * step);
-        if (!isCenter(next) || dashFor(next) !== dashFor(cell)) {
-          clear = false;
-          break;
-        }
-      }
-      if (!clear) continue;
-      const word = CENTER_V.has(cell) ? PAT.SLOW_V : PAT.SLOW_H;
-      paint(x, z, word, 2);
     }
   }
 

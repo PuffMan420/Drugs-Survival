@@ -8,7 +8,7 @@ import {
   PlaneGeometry,
   SRGBColorSpace,
 } from "three";
-import { headingAngle, planCars, poseAt } from "./routes.js";
+import { createSim, headingAngle, planCars } from "./routes.js";
 
 const FILES = [
   "ambulance",
@@ -35,7 +35,6 @@ const FILES = [
 ];
 
 const RARE = new Set(["police", "ambulance", "fire_truck"]);
-const SPEED = 110;
 const BUCKET = 96;
 
 function loadImage(url) {
@@ -128,8 +127,13 @@ export async function createTraffic(scene, map) {
   };
 
   const plan = planCars(map);
-  const parked = plan.parked.map((car) => ({ ...car, model: pick(car.hash) }));
-  const movers = plan.movers.map((car) => ({ ...car, model: pick(car.hash) }));
+  for (const car of plan.parked) {
+    car.model = pick(car.hash);
+    car.w = models[car.model].w;
+    car.h = models[car.model].h;
+  }
+  const parked = plan.parked;
+  const sim = createSim(plan, models, pick);
   const geometries = new Map();
   const geometryFor = (w, h) => {
     const id = `${w}x${h}`;
@@ -141,9 +145,9 @@ export async function createTraffic(scene, map) {
     return geometries.get(id);
   };
   const dummy = new Object3D();
-  const matrixFor = (x, z, hx, hz) => {
+  const matrixAt = (x, z, angle) => {
     dummy.position.set(x, 2.5, z);
-    dummy.rotation.set(0, headingAngle(hx, hz), 0);
+    dummy.rotation.set(0, angle, 0);
     dummy.updateMatrix();
     return dummy.matrix;
   };
@@ -155,8 +159,7 @@ export async function createTraffic(scene, map) {
   for (let modelIndex = 0; modelIndex < models.length; modelIndex += 1) {
     const model = models[modelIndex];
     const parkedHere = parked.filter((car) => car.model === modelIndex);
-    const movingHere = movers.filter((car) => car.model === modelIndex);
-    const capacity = parkedHere.length + movingHere.length;
+    const capacity = parkedHere.length + 32;
     if (capacity === 0) continue;
     const mesh = new InstancedMesh(
       geometryFor(model.w, model.h),
@@ -189,46 +192,25 @@ export async function createTraffic(scene, map) {
       }
       list.push(body);
     }
-    groups.push({ mesh, model, parked: parkedHere, moving: movingHere });
+    groups.push({ mesh, modelIndex, parked: parkedHere });
   }
-
-  const moverBodies = movers.map((car) => {
-    const pose = poseAt(car);
-    car.pose = pose;
-    return {
-      x: pose.x,
-      z: pose.z,
-      w: models[car.model].w,
-      h: models[car.model].h,
-      angle: headingAngle(pose.hx, pose.hz),
-    };
-  });
 
   const inView = (x, z, camX, camZ) => x > camX - 560 && x < camX + 560 && z > camZ - 420 && z < camZ + 560;
 
   return {
-    update(dt, camX, camZ) {
-      for (let index = 0; index < movers.length; index += 1) {
-        const mover = movers[index];
-        mover.dist = (mover.dist + SPEED * dt) % mover.total;
-        const pose = poseAt(mover);
-        const body = moverBodies[index];
-        body.x = pose.x;
-        body.z = pose.z;
-        body.angle = headingAngle(pose.hx, pose.hz);
-        mover.pose = pose;
-      }
+    update(dt, camX, camZ, playerX, playerZ) {
+      sim.step(dt, camX, camZ, playerX, playerZ);
       for (const group of groups) {
         let count = 0;
         for (const car of group.parked) {
           if (!inView(car.x, car.z, camX, camZ)) continue;
-          group.mesh.setMatrixAt(count, matrixFor(car.x, car.z, car.hx, car.hz));
+          group.mesh.setMatrixAt(count, matrixAt(car.x, car.z, headingAngle(car.hx, car.hz)));
           count += 1;
         }
-        for (const car of group.moving) {
-          const pose = car.pose;
-          if (!pose || !inView(pose.x, pose.z, camX, camZ)) continue;
-          group.mesh.setMatrixAt(count, matrixFor(pose.x, pose.z, pose.hx, pose.hz));
+        for (const car of sim.drivers) {
+          if (car.model !== group.modelIndex) continue;
+          if (!inView(car.x, car.z, camX, camZ)) continue;
+          group.mesh.setMatrixAt(count, matrixAt(car.x, car.z, car.angle));
           count += 1;
         }
         group.mesh.count = count;
@@ -253,7 +235,7 @@ export async function createTraffic(scene, map) {
           }
         }
       }
-      for (const body of moverBodies) {
+      for (const body of sim.drivers) {
         const ox = x - body.x;
         const oz = z - body.z;
         if (ox * ox + oz * oz > 160 * 160) continue;

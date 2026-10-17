@@ -80,6 +80,82 @@ function addGroundQuad(buf, x0, z0, x1, z1, u0 = 0, v0 = 0, u1 = 1, v1 = 1, y = 
   buf.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
 }
 
+// Pier art is 240 px along the pier (one tile, repeats) and 720 px across (three tiles).
+// Edge boards sit on the two outer rows of that width.
+function pierFrames(map) {
+  if (map.pierFrames) return map.pierFrames;
+  const { cols, rows, ground } = map;
+  const frames = new Map();
+  const seen = new Uint8Array(cols * rows);
+  const at = (x, z) => (x < 0 || z < 0 || x >= cols || z >= rows ? "" : ground[z][x]);
+  for (let z = 0; z < rows; z += 1) {
+    for (let x = 0; x < cols; x += 1) {
+      const start = x + z * cols;
+      if (at(x, z) !== "d" || seen[start]) continue;
+      const cells = [];
+      const queue = [[x, z]];
+      seen[start] = 1;
+      while (queue.length > 0) {
+        const [cx, cz] = queue.pop();
+        cells.push([cx, cz]);
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = cx + dx;
+          const nz = cz + dz;
+          const id = nx + nz * cols;
+          if (at(nx, nz) !== "d" || seen[id]) continue;
+          seen[id] = 1;
+          queue.push([nx, nz]);
+        }
+      }
+      let minX = cols;
+      let maxX = 0;
+      let minZ = rows;
+      let maxZ = 0;
+      for (const [cx, cz] of cells) {
+        minX = Math.min(minX, cx);
+        maxX = Math.max(maxX, cx);
+        minZ = Math.min(minZ, cz);
+        maxZ = Math.max(maxZ, cz);
+      }
+      const spanX = maxX - minX + 1;
+      const spanZ = maxZ - minZ + 1;
+      const alongX = spanX >= spanZ;
+      for (const [cx, cz] of cells) {
+        if (alongX) {
+          const i = cz - minZ;
+          frames.set(cx + cz * cols, {
+            alongX: true,
+            u0: 0,
+            u1: 1,
+            v0: (i + 1) / spanZ,
+            v1: i / spanZ,
+          });
+        } else {
+          const i = cx - minX;
+          frames.set(cx + cz * cols, {
+            alongX: false,
+            vWest: i / spanX,
+            vEast: (i + 1) / spanX,
+          });
+        }
+      }
+    }
+  }
+  map.pierFrames = frames;
+  return frames;
+}
+
+function addPierAlongZ(buf, x, z, vWest, vEast) {
+  const x0 = x * TILE;
+  const z0 = z * TILE;
+  const x1 = x0 + TILE;
+  const z1 = z0 + TILE;
+  const base = buf.pos.length / 3;
+  buf.pos.push(x0, PIER_Y, z0, x1, PIER_Y, z0, x1, PIER_Y, z1, x0, PIER_Y, z1);
+  buf.uv.push(0, vWest, 0, vEast, 1, vEast, 1, vWest);
+  buf.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+}
+
 function cellUV(col, row, cols, rows) {
   const insetU = 0.5 / (cols * 48);
   const insetV = 0.5 / (rows * 48);
@@ -325,7 +401,17 @@ function buildChunk(map, cx, cz, materials, ground, quay) {
         buf = { pos: [], uv: [], idx: [] };
         groundBufs.set(key, buf);
       }
-      const groundY = cell === "~" ? WATER_Y : cell === "d" ? PIER_Y : 0;
+      if (cell === "d") {
+        const frame = pierFrames(map).get(x + z * map.cols);
+        if (frame && !frame.alongX) addPierAlongZ(buf, x, z, frame.vWest, frame.vEast);
+        else if (frame) {
+          addGroundQuad(buf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, frame.u0, frame.v0, frame.u1, frame.v1, PIER_Y);
+        } else {
+          addGroundQuad(buf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, 0, 0, 1, 1, PIER_Y);
+        }
+        continue;
+      }
+      const groundY = cell === "~" ? WATER_Y : 0;
       addGroundQuad(buf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, 0, 0, 1, 1, groundY);
     }
   }

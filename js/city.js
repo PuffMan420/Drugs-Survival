@@ -11,7 +11,7 @@ import {
 } from "three";
 import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
 import { createGround } from "./ground.js";
-import { appendQuay, createQuayMaterials, quayPlan, WATER_Y } from "./quay.js";
+import { appendQuay, createQuayMaterials, emptyQuayBuffers, quayPlan, WATER_Y } from "./quay.js";
 import { createTextures } from "./textures.js";
 
 const flat = { toneMapped: false };
@@ -330,14 +330,13 @@ function buildChunk(map, cx, cz, materials, ground, quay) {
     }
   }
 
-  const copingBuf = { pos: [], uv: [], idx: [] };
-  const quayWallBuf = { pos: [], uv: [], idx: [] };
+  const quayBufs = emptyQuayBuffers();
   let waterBuf = groundBufs.get("~");
   if (!waterBuf) {
     waterBuf = { pos: [], uv: [], idx: [] };
     groundBufs.set("~", waterBuf);
   }
-  appendQuay(quay, cx, cz, copingBuf, quayWallBuf, waterBuf);
+  appendQuay(quay, cx, cz, quayBufs, waterBuf);
 
   for (const building of map.buildings) {
     if (building.x < cx || building.x >= x1 || building.z < cz || building.z >= z1) continue;
@@ -383,8 +382,14 @@ function buildChunk(map, cx, cz, materials, ground, quay) {
     group.add(mesh);
   };
   for (const [key, buf] of groundBufs) addMesh(buf, materials.ground[key]);
-  addMesh(copingBuf, materials.quay.coping);
-  addMesh(quayWallBuf, materials.quay.wall);
+  for (const [key, buf] of Object.entries(quayBufs)) {
+    if (buf.idx.length === 0) continue;
+    const mesh = new Mesh(geometryFrom(buf, false), materials.quay[key]);
+    mesh.frustumCulled = false;
+    mesh.matrixAutoUpdate = false;
+    if (key === "shadow") mesh.renderOrder = 2;
+    group.add(mesh);
+  }
   for (const [key, buf] of surfaceBufs) addMesh(buf, ground.material(key));
   for (const [key, buf] of wallBufs) {
     if (buf.idx.length === 0) continue;

@@ -70,7 +70,7 @@ function lockPixelProjection(camera) {
   const apply = () => {
     // The center ray meets the ground farther out than the camera's height,
     // because the camera is tilted. Frame the smaller ground rectangle there
-    // so the 12.5% closer view stays even across the picture.
+    // so the 12.5% closer view stays even across the 960×540 picture.
     const distance = CAMERA_HEIGHT / Math.cos(CAMERA_TILT);
     const scale = camera.near / distance;
     camera.projectionMatrix.makePerspective(
@@ -88,8 +88,8 @@ function lockPixelProjection(camera) {
 }
 
 function fitDisplay(renderer) {
-  // Fill the window with the same 16:9 frame. The scene itself stays at one
-  // pixel per world unit; this only nearest-scales that picture.
+  // Fill the window with the same 16:9 frame. The nearer camera draws that
+  // frame at 960×540; this only nearest-scales that picture.
   const unit = Math.min(window.innerWidth / 16, window.innerHeight / 9);
   const width = Math.max(1, Math.floor(unit) * 16);
   const height = Math.max(1, Math.floor(unit) * 9);

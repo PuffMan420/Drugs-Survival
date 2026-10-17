@@ -14,10 +14,14 @@ const DIRS = [
   [0, -1],
 ];
 
-const MAX_DRIVERS = 32;
+const MAX_DRIVERS = 14;
 const CRUISE_MIN = 108;
 const STOP_GAP = 34;
 const SLOW_GAP = 118;
+const ACCEL = 90;
+const BRAKE = 180;
+const CORNER_SPEED = 46;
+const TURN_RADIUS = 42;
 const LANE_LAT = 30;
 const SPAWN_MIN = 500;
 const SPAWN_MAX = 860;
@@ -333,6 +337,68 @@ export function planCars(map) {
     return out;
   }
 
+  // Replace a sharp corner with a short bezier so the lane itself bends.
+  // The arc is kept only when the whole sprite stays on asphalt along it.
+  function curvePath(pts) {
+    if (pts.length < 3) return pts;
+    const out = [{ x: pts[0].x, z: pts[0].z }];
+    for (let i = 1; i < pts.length - 1; i += 1) {
+      const prev = out[out.length - 1];
+      const corner = pts[i];
+      const next = pts[i + 1];
+      const inX = corner.x - prev.x;
+      const inZ = corner.z - prev.z;
+      const inLen = Math.hypot(inX, inZ);
+      const outX = next.x - corner.x;
+      const outZ = next.z - corner.z;
+      const outLen = Math.hypot(outX, outZ);
+      const ux = inLen > 0 ? inX / inLen : 0;
+      const uz = inLen > 0 ? inZ / inLen : 0;
+      const vx = outLen > 0 ? outX / outLen : 0;
+      const vz = outLen > 0 ? outZ / outLen : 0;
+      if (inLen < 12 || outLen < 12 || ux * vx + uz * vz > 0.92) {
+        out.push({ x: corner.x, z: corner.z });
+        continue;
+      }
+      let fitted = null;
+      for (const lead of [48, 36, 28, 20]) {
+        if (lead + 4 > inLen || lead + 4 > outLen) continue;
+        const p0 = { x: corner.x - ux * lead, z: corner.z - uz * lead };
+        const samples = [];
+        let ok = true;
+        let last = p0;
+        for (let s = 1; s <= 8; s += 1) {
+          const t = s / 8;
+          const u = 1 - t;
+          const p = {
+            x: u * u * p0.x + 2 * u * t * corner.x + t * t * (corner.x + vx * lead),
+            z: u * u * p0.z + 2 * u * t * corner.z + t * t * (corner.z + vz * lead),
+          };
+          if (!poseFits(p.x, p.z, headingAngle(p.x - last.x, p.z - last.z))) {
+            ok = false;
+            break;
+          }
+          samples.push(p);
+          last = p;
+        }
+        if (ok && samples.length > 0) {
+          fitted = { p0, samples };
+          break;
+        }
+      }
+      if (!fitted) {
+        out.push({ x: corner.x, z: corner.z });
+        continue;
+      }
+      if (Math.hypot(fitted.p0.x - prev.x, fitted.p0.z - prev.z) > 2) out.push(fitted.p0);
+      for (const sample of fitted.samples) out.push(sample);
+    }
+    const end = pts[pts.length - 1];
+    const tail = out[out.length - 1];
+    if (Math.hypot(end.x - tail.x, end.z - tail.z) > 2) out.push({ x: end.x, z: end.z });
+    return out;
+  }
+
   function addExit(node, found) {
     if (!found) return;
     const dest = nodeAt.get(`${key(found.tx, found.tz)},${found.di}`);
@@ -350,6 +416,8 @@ export function planCars(map) {
     let pts = raw;
     if (!pathFits(pts)) pts = shapePath(raw);
     if (!pathFits(pts)) return;
+    const rounded = curvePath(pts);
+    if (pathFits(rounded)) pts = rounded;
     const seg = [];
     let len = 0;
     for (let i = 0; i < pts.length - 1; i += 1) {
@@ -381,6 +449,12 @@ export function planCars(map) {
     list.push(node);
   }
   return { parked, nodes, linked, buckets, span, cols, rows, at, isRoad, poseFits };
+}
+
+function wrapAngle(delta) {
+  while (delta > Math.PI) delta -= Math.PI * 2;
+  while (delta < -Math.PI) delta += Math.PI * 2;
+  return delta;
 }
 
 function pointAlong(exit, dist, out) {
@@ -481,6 +555,8 @@ export function createSim(plan, models, pick) {
     driver.angle = headingAngle(edge.pts[1].x - edge.pts[0].x, edge.pts[1].z - edge.pts[0].z);
     driver.speed = 0;
     driver.wait = 0;
+    driver.arc = null;
+    driver.commit = null;
     driver.cruise = CRUISE_MIN + (tileHash(node.tx, node.tz + spawnSerial) % 40);
     return true;
   }
@@ -539,6 +615,8 @@ export function createSim(plan, models, pick) {
         wait: 0,
         alive: true,
         blocked: false,
+        arc: null,
+        commit: null,
       };
       driver.model = pick(hash);
       driver.w = models[driver.model].w;
@@ -573,6 +651,85 @@ export function createSim(plan, models, pick) {
     const turn = Math.abs(Math.atan2(Math.sin(other.angle - driver.angle), Math.cos(other.angle - driver.angle)));
     const reach = turn > 0.8 ? other.h / 2 : other.w / 2;
     return lat - reach < driver.w / 2 + 8;
+  }
+
+  function buildFillet(edge, nextIndex) {
+    const dest = plan.nodes[edge.to];
+    const nx = dest && dest.exits[nextIndex];
+    if (!nx || edge.len < 24 || nx.len < 24) return null;
+    const corner = edge.pts[edge.pts.length - 1];
+    const back = { x: 0, z: 0, hx: 0, hz: 0 };
+    const fore = { x: 0, z: 0, hx: 0, hz: 0 };
+    pointAlong(edge, Math.max(0, edge.len - 8), back);
+    const inAng = headingAngle(corner.x - back.x, corner.z - back.z);
+    pointAlong(nx, Math.min(8, nx.len), fore);
+    const outAng = headingAngle(fore.x - corner.x, fore.z - corner.z);
+    const turn = Math.abs(wrapAngle(outAng - inAng));
+    if (turn < 0.45 || turn > 2.6) return null;
+    for (const lead of [40, 32, 24, 18]) {
+      if (lead + 2 > edge.len || lead + 2 > nx.len) continue;
+      pointAlong(edge, edge.len - lead, back);
+      pointAlong(nx, lead, fore);
+      const p0 = { x: back.x, z: back.z };
+      const p1 = { x: fore.x, z: fore.z };
+      const pts = [p0];
+      const seg = [];
+      let ok = true;
+      let last = p0;
+      for (let s = 1; s <= 10; s += 1) {
+        const t = s / 10;
+        const u = 1 - t;
+        const p = {
+          x: u * u * p0.x + 2 * u * t * corner.x + t * t * p1.x,
+          z: u * u * p0.z + 2 * u * t * corner.z + t * t * p1.z,
+        };
+        if (!plan.poseFits(p.x, p.z, headingAngle(p.x - last.x, p.z - last.z))) {
+          ok = false;
+          break;
+        }
+        seg.push(Math.hypot(p.x - last.x, p.z - last.z) || 0.001);
+        pts.push(p);
+        last = p;
+      }
+      if (!ok) continue;
+      let len = 0;
+      for (const step of seg) len += step;
+      return {
+        pts,
+        seg,
+        len,
+        dist: 0,
+        lead,
+        nextNode: edge.to,
+        nextExit: nextIndex,
+        endDist: lead,
+      };
+    }
+    return null;
+  }
+
+  function commitTurn(edge) {
+    const dest = plan.nodes[edge.to];
+    if (!dest || dest.exits.length === 0) return { exitIndex: -1, arc: null };
+    pointAlong(edge, Math.max(0, edge.len - 8), scratch);
+    const lane = headingAngle(scratch.hx, scratch.hz);
+    const options = [];
+    for (let index = 0; index < dest.exits.length; index += 1) {
+      const nx = dest.exits[index];
+      const ang = headingAngle(nx.pts[1].x - nx.pts[0].x, nx.pts[1].z - nx.pts[0].z);
+      const turn = Math.abs(wrapAngle(ang - lane));
+      if (turn > 2.6 && dest.exits.length > 1) continue;
+      options.push({
+        index,
+        turn,
+        arc: turn >= 0.45 ? buildFillet(edge, index) : null,
+      });
+    }
+    if (options.length === 0) return { exitIndex: chooseExit(edge.to), arc: null };
+    const withArc = options.filter((option) => option.turn < 0.45 || option.arc);
+    const pool = withArc.length > 0 ? withArc : options;
+    const chosen = pool[Math.floor(Math.random() * pool.length)];
+    return { exitIndex: chosen.index, arc: chosen.arc };
   }
 
   return {
@@ -662,13 +819,92 @@ export function createSim(plan, models, pick) {
         if (limit < 8 && !backing) driver.wait += dt;
         else driver.wait = 0;
         driver.blocked = blocked;
-        driver.speed = limit;
-        if (backing) driver.dist = Math.max(0, driver.dist - 80 * dt);
+        const stepDt = Math.min(dt, 0.05);
+        const edgeNow = plan.nodes[driver.node] && plan.nodes[driver.node].exits[driver.exit];
+        let laneNow = driver.angle;
+        if (edgeNow) {
+          pointAlong(edgeNow, driver.dist, scratch);
+          if (scratch.hx * scratch.hx + scratch.hz * scratch.hz > 4) {
+            laneNow = headingAngle(scratch.hx, scratch.hz);
+          }
+        }
+        let turnAt = Infinity;
+        if (edgeNow && !driver.arc && !driver.commit && edgeNow.len - driver.dist < 130) {
+          driver.commit = commitTurn(edgeNow);
+        }
+        if (driver.commit && driver.commit.arc && edgeNow) {
+          turnAt = Math.max(0, edgeNow.len - driver.dist - driver.commit.arc.lead);
+        } else if (driver.arc) {
+          turnAt = 0;
+        }
+        if (edgeNow && turnAt === Infinity) {
+          for (const extra of [24, 48, 72, 100, 130]) {
+            if (driver.dist + extra > edgeNow.len) break;
+            pointAlong(edgeNow, driver.dist + extra, ahead);
+            const look = headingAngle(ahead.hx, ahead.hz);
+            if (Math.abs(wrapAngle(look - laneNow)) > 0.35) {
+              turnAt = extra;
+              break;
+            }
+          }
+          const remain = edgeNow.len - driver.dist;
+          if (remain < 140 && turnAt === Infinity) {
+            const dest = plan.nodes[edgeNow.to];
+            if (dest) {
+              for (const exit of dest.exits) {
+                const hx = exit.pts[1].x - exit.pts[0].x;
+                const hz = exit.pts[1].z - exit.pts[0].z;
+                if (Math.abs(wrapAngle(headingAngle(hx, hz) - laneNow)) > 0.45) {
+                  turnAt = remain;
+                  break;
+                }
+              }
+            }
+          }
+        }
+        if (turnAt < Infinity) {
+          const brakeDist = Math.max(0, driver.speed * driver.speed - CORNER_SPEED * CORNER_SPEED) / (2 * BRAKE);
+          if (turnAt < brakeDist + 36) limit = Math.min(limit, CORNER_SPEED);
+        }
+        if (backing) {
+          driver.speed = Math.max(0, driver.speed - BRAKE * stepDt);
+          if (driver.speed < 8) driver.dist = Math.max(0, driver.dist - 70 * stepDt);
+        } else if (driver.speed < limit) {
+          driver.speed = Math.min(limit, driver.speed + ACCEL * stepDt);
+        } else {
+          driver.speed = Math.max(limit, driver.speed - BRAKE * stepDt);
+        }
         if ((driver.speed < 1 && !backing) || (driver.wait > STUCK_TIME && !blocked)) {
           continue;
         }
 
-        let left = backing ? 0 : driver.speed * dt;
+        let left = backing ? 0 : driver.speed * stepDt;
+        if (backing && driver.arc) {
+          const backEdge = plan.nodes[driver.node].exits[driver.exit];
+          if (backEdge) driver.dist = Math.max(0, backEdge.len - driver.arc.lead);
+          driver.arc = null;
+          driver.commit = null;
+        }
+        if (!backing && !driver.arc && driver.commit && driver.commit.arc && edgeNow) {
+          const remain = edgeNow.len - driver.dist;
+          if (remain <= driver.commit.arc.lead) {
+            driver.arc = driver.commit.arc;
+            driver.arc.dist = Math.max(0, driver.commit.arc.lead - remain);
+            driver.commit = null;
+          }
+        }
+        if (driver.arc) {
+          driver.arc.dist += left;
+          left = 0;
+          if (driver.arc.dist >= driver.arc.len) {
+            left = driver.arc.dist - driver.arc.len;
+            driver.node = driver.arc.nextNode;
+            driver.exit = driver.arc.nextExit;
+            driver.dist = driver.arc.endDist;
+            driver.arc = null;
+            driver.commit = null;
+          }
+        }
         let hops = 0;
         while (left > 0 && hops < 4) {
           hops += 1;
@@ -678,14 +914,30 @@ export function createSim(plan, models, pick) {
             driver.wait = STUCK_TIME;
             break;
           }
-          const remain = edge.len - driver.dist;
-          if (left < remain) {
+          const fillet = driver.commit && driver.commit.arc;
+          const stop = fillet ? edge.len - fillet.lead : edge.len;
+          const remain = stop - driver.dist;
+          if (remain > 0 && left < remain) {
             driver.dist += left;
             left = 0;
+          } else if (fillet) {
+            left -= Math.max(0, remain);
+            driver.arc = fillet;
+            driver.arc.dist = left;
+            driver.commit = null;
+            left = 0;
+            if (driver.arc.dist >= driver.arc.len) {
+              left = driver.arc.dist - driver.arc.len;
+              driver.node = driver.arc.nextNode;
+              driver.exit = driver.arc.nextExit;
+              driver.dist = driver.arc.endDist;
+              driver.arc = null;
+            }
           } else {
-            left -= remain;
+            left -= Math.max(0, remain);
             const arrived = edge.to;
-            const nextExit = chooseExit(arrived);
+            const nextExit = driver.commit && driver.commit.exitIndex >= 0 ? driver.commit.exitIndex : chooseExit(arrived);
+            driver.commit = null;
             if (nextExit < 0) {
               driver.wait = STUCK_TIME;
               driver.blocked = false;
@@ -696,21 +948,20 @@ export function createSim(plan, models, pick) {
             driver.dist = 0;
           }
         }
-        const edge = plan.nodes[driver.node].exits[driver.exit];
+        const riding = driver.arc;
+        const edge = riding || plan.nodes[driver.node].exits[driver.exit];
         if (!edge) continue;
-        pointAlong(edge, driver.dist, scratch);
+        pointAlong(edge, riding ? riding.dist : driver.dist, scratch);
         driver.x = scratch.x;
         driver.z = scratch.z;
         const lane = headingAngle(scratch.hx, scratch.hz);
-        pointAlong(edge, Math.min(edge.len, driver.dist + 36), ahead);
-        let target = lane;
-        if (ahead.hx * ahead.hx + ahead.hz * ahead.hz > 4) {
-          const look = headingAngle(ahead.x - scratch.x, ahead.z - scratch.z);
-          if (plan.poseFits(scratch.x, scratch.z, look)) target = look;
-        }
-        const blend = 1 - Math.exp(-dt * 10);
-        const turned = lerpAngle(driver.angle, target, blend);
-        driver.angle = plan.poseFits(scratch.x, scratch.z, turned) ? turned : lane;
+        const yawCap = (Math.max(driver.speed, 0) / TURN_RADIUS) * stepDt;
+        let delta = driver.speed < 8 ? 0 : wrapAngle(lane - driver.angle);
+        if (delta > yawCap) delta = yawCap;
+        else if (delta < -yawCap) delta = -yawCap;
+        const turned = driver.angle + delta;
+        if (plan.poseFits(scratch.x, scratch.z, turned)) driver.angle = turned;
+        else if (plan.poseFits(scratch.x, scratch.z, lane)) driver.angle = lane;
       }
     },
   };

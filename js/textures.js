@@ -31,17 +31,25 @@ function pixelTexture(canvas, repeat) {
 }
 
 function wallTile(base, mortar, glass) {
-  const { canvas, ctx } = canvas2d();
+  // Two floors in one tile so the facade is a wall with windows, not a stack of identical squares.
+  const { canvas, ctx } = canvas2d(48, 96);
   ctx.fillStyle = base;
-  ctx.fillRect(0, 0, 48, 48);
+  ctx.fillRect(0, 0, 48, 96);
   ctx.fillStyle = mortar;
-  ctx.fillRect(0, 34, 48, 2);
-  ctx.fillStyle = "#10141c";
-  ctx.fillRect(6, 8, 14, 18);
-  ctx.fillRect(26, 8, 14, 18);
+  ctx.fillRect(0, 0, 48, 3);
+  ctx.fillRect(0, 46, 48, 2);
+  ctx.fillRect(0, 94, 48, 2);
+  const holes = [
+    [7, 14, 8, 12],
+    [27, 14, 8, 12],
+    [4, 60, 8, 12],
+    [20, 60, 8, 12],
+    [36, 60, 8, 12],
+  ];
+  ctx.fillStyle = "#141820";
+  for (const [x, y, w, h] of holes) ctx.fillRect(x, y, w, h);
   ctx.fillStyle = glass;
-  ctx.fillRect(8, 10, 4, 6);
-  ctx.fillRect(28, 10, 4, 6);
+  for (const [x, y, w, h] of holes) ctx.fillRect(x + 2, y + 2, 3, 4);
   return pixelTexture(canvas, true);
 }
 

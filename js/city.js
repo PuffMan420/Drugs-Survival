@@ -136,7 +136,9 @@ function addRoofPad(buf, x0, z0, x1, z1, y, color) {
 function addRoofBox(buf, x0, z0, x1, z1, y0, y1, top, side) {
   addRoofPad(buf, x0, z0, x1, z1, y1, top);
   addQuad(buf, [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], side);
-  addQuad(buf, [[x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0]], side);
+  addQuad(buf, [[x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0]], side);
+  addQuad(buf, [[x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1]], side);
+  addQuad(buf, [[x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0]], side);
 }
 
 function addRoofDetails(buf, building) {
@@ -144,33 +146,36 @@ function addRoofDetails(buf, building) {
   const z0 = building.z * TILE;
   const x1 = x0 + building.w * TILE;
   const z1 = z0 + building.d * TILE;
-  const y = building.h * TILE + 0.6;
-  const base = hexRgb(building.roof);
-  const ledge = [0.76, 0.73, 0.6];
-  const lip = 6;
+  const y = building.h * TILE;
+  const ledge = [0.82, 0.78, 0.66];
+  const ledgeSide = [0.48, 0.45, 0.36];
+  const lip = 8;
   if (x1 - x0 > lip * 2 && z1 - z0 > lip * 2) {
-    addRoofPad(buf, x0, z0, x1, z0 + lip, y, ledge);
-    addRoofPad(buf, x0, z1 - lip, x1, z1, y, ledge);
-    addRoofPad(buf, x0, z0 + lip, x0 + lip, z1 - lip, y, ledge);
-    addRoofPad(buf, x1 - lip, z0 + lip, x1, z1 - lip, y, ledge);
+    const y1 = y + 12;
+    addRoofPad(buf, x0, z1 - lip, x1, z1, y1, ledge);
+    addRoofPad(buf, x0, z0, x1, z0 + lip, y1, ledge);
+    addRoofPad(buf, x0, z0 + lip, x0 + lip, z1 - lip, y1, ledge);
+    addRoofPad(buf, x1 - lip, z0 + lip, x1, z1 - lip, y1, ledge);
+    addQuad(buf, [[x0, y, z1], [x1, y, z1], [x1, y1, z1], [x0, y1, z1]], ledgeSide);
+    addQuad(buf, [[x1, y, z0], [x1, y, z1], [x1, y1, z1], [x1, y1, z0]], ledgeSide);
   }
   if (building.w < 2 || building.d < 2) return;
   const h = roofHash(building.x, building.z);
-  const count = 1 + (h % 3);
-  const grey = [0.86, 0.88, 0.9];
-  const dark = [0.34, 0.36, 0.38];
+  const count = 1 + (h % 2);
+  const grey = [0.9, 0.91, 0.93];
+  const dark = [0.28, 0.3, 0.32];
   for (let n = 0; n < count; n += 1) {
-    const spanX = x1 - x0 - 20;
-    const spanZ = z1 - z0 - 20;
-    const ax = x0 + 10 + ((h >>> (n * 5)) % Math.max(1, spanX - 16));
-    const az = z0 + 10 + ((h >>> (8 + n * 4)) % Math.max(1, spanZ - 12));
-    const aw = 16 + (n === 0 ? 8 : 0);
-    const ad = 10;
-    addRoofBox(buf, ax, az, Math.min(x1 - 10, ax + aw), Math.min(z1 - 10, az + ad), y, y + 8, grey, dark);
+    const spanX = x1 - x0 - 28;
+    const spanZ = z1 - z0 - 28;
+    const ax = x0 + 14 + ((h >>> (n * 5)) % Math.max(1, spanX - 28));
+    const az = z0 + 14 + ((h >>> (8 + n * 4)) % Math.max(1, spanZ - 20));
+    const aw = 32 + (n === 0 ? 14 : 0);
+    const ad = 20;
+    addRoofBox(buf, ax, az, Math.min(x1 - 14, ax + aw), Math.min(z1 - 14, az + ad), y, y + 18, grey, dark);
   }
-  const vx = x0 + 10 + ((h >>> 18) % Math.max(1, x1 - x0 - 18));
-  const vz = z0 + lip + 4;
-  addRoofPad(buf, vx, vz, vx + 3, Math.min(z1 - lip, vz + 14), y + 1.2, dark);
+  const vx = x0 + 14 + ((h >>> 18) % Math.max(1, x1 - x0 - 24));
+  const vz = z0 + lip + 6;
+  addRoofBox(buf, vx, vz, vx + 6, Math.min(z1 - lip - 4, vz + 22), y, y + 8, dark, dark);
 }
 
 function appendFace(buf, box, group, scaleU, scaleV, color) {
@@ -257,12 +262,14 @@ function buildChunk(map, cx, cz, materials, markings) {
       walls = { pos: [], uv: [], idx: [] };
       wallBufs.set(style, walls);
     }
+    // Facade art is two floors tall, so it repeats once per two tiles. Shed stripes stay one tile tall.
+    const vScale = style === "shed" ? building.h : building.h * 0.5;
     // Box face order: +X, -X, +Y, -Y, +Z, -Z.
-    appendFace(walls, box, groups[0], building.d, building.h);
-    appendFace(walls, box, groups[1], building.d, building.h);
+    appendFace(walls, box, groups[0], building.d, vScale);
+    appendFace(walls, box, groups[1], building.d, vScale);
     appendFace(roofBuf, box, groups[2], 1, 1, hexRgb(building.roof));
-    appendFace(walls, box, groups[4], building.w, building.h);
-    appendFace(walls, box, groups[5], building.w, building.h);
+    appendFace(walls, box, groups[4], building.w, vScale);
+    appendFace(walls, box, groups[5], building.w, vScale);
     box.dispose();
     addRoofDetails(roofBuf, building);
     const reach = TILE * Math.min(3.4, 1.7 + Math.max(building.w, building.d) * 0.16);

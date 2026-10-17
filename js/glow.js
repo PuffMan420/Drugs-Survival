@@ -56,8 +56,8 @@ function spriteMesh(texture, capacity, size) {
       map: texture,
       transparent: true,
       depthWrite: false,
+      depthTest: true,
       toneMapped: false,
-      fog: false,
       blending: AdditiveBlending,
     }),
     Math.max(1, capacity),
@@ -120,35 +120,32 @@ function collectLights(map) {
 export function createGlow(scene, map) {
   const { lamps, signals } = collectLights(map);
   const lampTexture = radialTexture([
-    [0, "rgba(255, 244, 220, 1)"],
-    [0.1, "rgba(255, 150, 40, 1)"],
-    [0.34, "rgba(255, 78, 12, 0.72)"],
-    [0.68, "rgba(200, 40, 0, 0.22)"],
-    [1, "rgba(120, 20, 0, 0)"],
+    [0, "rgba(255, 210, 150, 0.55)"],
+    [0.22, "rgba(255, 120, 30, 0.18)"],
+    [0.55, "rgba(160, 40, 0, 0.04)"],
+    [1, "rgba(80, 20, 0, 0)"],
   ]);
   const signalTexture = radialTexture([
-    [0, "rgba(255, 220, 210, 1)"],
-    [0.14, "rgba(255, 36, 18, 0.98)"],
-    [0.4, "rgba(210, 0, 0, 0.55)"],
-    [1, "rgba(90, 0, 0, 0)"],
+    [0, "rgba(255, 80, 60, 0.95)"],
+    [0.35, "rgba(220, 20, 10, 0.35)"],
+    [1, "rgba(80, 0, 0, 0)"],
   ]);
   const headTexture = radialTexture([
-    [0, "rgba(255, 250, 230, 1)"],
-    [0.16, "rgba(255, 186, 80, 0.95)"],
-    [0.46, "rgba(255, 110, 24, 0.4)"],
-    [1, "rgba(180, 50, 0, 0)"],
+    [0, "rgba(255, 236, 200, 0.95)"],
+    [0.4, "rgba(255, 170, 60, 0.28)"],
+    [1, "rgba(120, 40, 0, 0)"],
   ]);
   const tailTexture = radialTexture([
-    [0, "rgba(255, 180, 170, 1)"],
-    [0.2, "rgba(255, 24, 16, 0.95)"],
-    [0.55, "rgba(160, 0, 0, 0.28)"],
-    [1, "rgba(60, 0, 0, 0)"],
+    [0, "rgba(255, 40, 30, 0.95)"],
+    [0.4, "rgba(180, 0, 0, 0.3)"],
+    [1, "rgba(40, 0, 0, 0)"],
   ]);
 
-  const pools = spriteMesh(lampTexture, lamps.length, 70);
-  const heads = spriteMesh(headTexture, 64, 26);
-  const tails = spriteMesh(tailTexture, 64, 16);
-  const cores = spriteMesh(signalTexture, signals.length, 22);
+  // Street lamps were 70 units across. A third of that is the largest pool allowed.
+  const pools = spriteMesh(lampTexture, lamps.length, 22);
+  const heads = spriteMesh(headTexture, 64, 8);
+  const tails = spriteMesh(tailTexture, 64, 7);
+  const cores = spriteMesh(signalTexture, signals.length, 9);
   scene.add(pools, heads, tails, cores);
 
   const dummy = new Object3D();
@@ -187,10 +184,10 @@ export function createGlow(scene, map) {
       let tailCount = 0;
       for (const light of carLights) {
         if (light.kind === "head") {
-          if (headCount >= 96) continue;
+          if (headCount >= 64) continue;
           place(heads, headCount, light.x, 4.2, light.z);
           headCount += 1;
-        } else if (tailCount < 96) {
+        } else if (tailCount < 64) {
           place(tails, tailCount, light.x, 4.2, light.z);
           tailCount += 1;
         }

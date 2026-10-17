@@ -45,7 +45,11 @@ function isRoad(cell) {
     cell === "1" ||
     cell === "2" ||
     cell === "5" ||
-    cell === "6"
+    cell === "6" ||
+    cell === "A" ||
+    cell === "E" ||
+    cell === "a" ||
+    cell === "e"
   );
 }
 

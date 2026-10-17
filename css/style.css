@@ -20,10 +20,6 @@ canvas {
   image-rendering: pixelated;
 }
 
-#view {
-  image-rendering: auto;
-}
-
 #fps,
 #place,
 #hint,

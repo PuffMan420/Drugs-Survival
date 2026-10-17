@@ -1,9 +1,15 @@
 import {
-  FogExp2,
+  LinearSRGBColorSpace,
+  Mesh,
+  MeshBasicMaterial,
+  NearestFilter,
   NoToneMapping,
+  OrthographicCamera,
   PerspectiveCamera,
+  PlaneGeometry,
   SRGBColorSpace,
   Scene,
+  WebGLRenderTarget,
   WebGLRenderer,
 } from "three";
 import {
@@ -82,8 +88,8 @@ function lockPixelProjection(camera) {
 }
 
 function fitDisplay(renderer) {
-  // Fill the window with the same 16:9 frame. The drawing buffer stays at
-  // the framed ground size; the browser smooth-scales it to the window.
+  // Fill the window with the same 16:9 frame. The scene itself stays at one
+  // pixel per world unit; this only nearest-scales that picture.
   const unit = Math.min(window.innerWidth / 16, window.innerHeight / 9);
   const width = Math.max(1, Math.floor(unit) * 16);
   const height = Math.max(1, Math.floor(unit) * 9);
@@ -91,6 +97,42 @@ function fitDisplay(renderer) {
   canvas.style.height = `${height}px`;
   renderer.setPixelRatio(1);
   renderer.setSize(RENDER_W, RENDER_H, false);
+}
+
+function createPresenter(renderer) {
+  // The canvas context has no depth buffer. The city is drawn into this
+  // target, which does, so roofs cover the floors inside the buildings.
+  // The target is then nearest-copied onto the screen.
+  const target = new WebGLRenderTarget(RENDER_W, RENDER_H, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    generateMipmaps: false,
+    depthBuffer: true,
+    stencilBuffer: false,
+  });
+  target.texture.minFilter = NearestFilter;
+  target.texture.magFilter = NearestFilter;
+  target.texture.generateMipmaps = false;
+  target.texture.colorSpace = LinearSRGBColorSpace;
+
+  const screenScene = new Scene();
+  const screenCamera = new OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+  screenCamera.position.z = 1;
+  screenScene.add(new Mesh(new PlaneGeometry(2, 2), new MeshBasicMaterial({
+    map: target.texture,
+    toneMapped: false,
+    depthTest: false,
+    depthWrite: false,
+  })));
+
+  return {
+    render(scene, camera) {
+      renderer.setRenderTarget(target);
+      renderer.render(scene, camera);
+      renderer.setRenderTarget(null);
+      renderer.render(screenScene, screenCamera);
+    },
+  };
 }
 
 function blocked(map, x, z) {
@@ -139,7 +181,6 @@ async function start() {
   await new Promise((resolve) => requestAnimationFrame(resolve));
 
   const scene = new Scene();
-  scene.fog = new FogExp2(0xb7a898, 0.000012);
   const city = await buildCity(scene, map);
   const traffic = await createTraffic(scene, map);
   const glow = createGlow(scene, map);
@@ -150,6 +191,7 @@ async function start() {
   camera.up.set(0, tiltUp, -tiltNorth);
   lockPixelProjection(camera);
   const cameraSouth = Math.round(CAMERA_HEIGHT * Math.tan(CAMERA_TILT));
+  const presenter = createPresenter(renderer);
   const origin = tileCenter(map.spawn.x, map.spawn.z);
   const player = { x: origin.x, z: origin.z };
   const half = PLAYER_SIZE / 2;
@@ -196,7 +238,7 @@ async function start() {
     camera.position.set(camX, CAMERA_HEIGHT, camZ + cameraSouth);
     camera.lookAt(camX, 0, camZ);
     updateChunks(city.chunks, camX, camZ);
-    renderer.render(scene, camera);
+    presenter.render(scene, camera);
     minimap.draw(camX, camZ, player.x, player.z, TILE, GROUND_W / TILE, GROUND_H / TILE);
 
     const instant = 1 / Math.max(dt, 1 / 240);

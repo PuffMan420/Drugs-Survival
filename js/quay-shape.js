@@ -396,11 +396,19 @@ export function buildQuayPlan(map) {
       for (let x = bridge.x0; x < bridge.x1; x += 1) water.push({ x, z });
     }
   }
+  const roads = new Set();
+  for (let z = 0; z < rows; z += 1) {
+    const row = ground[z];
+    for (let x = 0; x < cols; x += 1) {
+      if (ROAD.has(row[x])) roads.add(x + z * 1024);
+    }
+  }
   return {
     segments: segments.concat(under),
     water,
     edges: edges.length,
     bridges,
     clearedPiers: cleared,
+    roads,
   };
 }

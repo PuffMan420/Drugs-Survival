@@ -162,6 +162,105 @@ function pushTri(buf, a, b, c, ua, ub, uc) {
   buf.idx.push(base, base + 1, base + 2);
 }
 
+function clipPolygon(poly, x0, z0, x1, z1) {
+  const clipEdge = (input, inside, cross) => {
+    const output = [];
+    if (input.length === 0) return output;
+    let prev = input[input.length - 1];
+    let prevIn = inside(prev);
+    for (const cur of input) {
+      const curIn = inside(cur);
+      if (curIn) {
+        if (!prevIn) output.push(cross(prev, cur));
+        output.push(cur);
+      } else if (prevIn) output.push(cross(prev, cur));
+      prev = cur;
+      prevIn = curIn;
+    }
+    return output;
+  };
+  const hitX = (a, b, x) => {
+    const t = (x - a.x) / (b.x - a.x || 1e-8);
+    return {
+      x,
+      z: a.z + (b.z - a.z) * t,
+      u: a.u + (b.u - a.u) * t,
+      v: a.v + (b.v - a.v) * t,
+    };
+  };
+  const hitZ = (a, b, z) => {
+    const t = (z - a.z) / (b.z - a.z || 1e-8);
+    return {
+      x: a.x + (b.x - a.x) * t,
+      z,
+      u: a.u + (b.u - a.u) * t,
+      v: a.v + (b.v - a.v) * t,
+    };
+  };
+  let out = poly;
+  out = clipEdge(out, (p) => p.x >= x0 - 1e-4, (a, b) => hitX(a, b, x0));
+  out = clipEdge(out, (p) => p.x <= x1 + 1e-4, (a, b) => hitX(a, b, x1));
+  out = clipEdge(out, (p) => p.z >= z0 - 1e-4, (a, b) => hitZ(a, b, z0));
+  out = clipEdge(out, (p) => p.z <= z1 + 1e-4, (a, b) => hitZ(a, b, z1));
+  return out;
+}
+
+// Coping and corner sheets sit above the ground. Drop any part that lands on a road
+// so the road draws through. The quay stays on the bank beside the road.
+function pushOverLand(buf, corners, uvs, roads) {
+  if (!roads) {
+    pushQuad(buf, corners, uvs);
+    return;
+  }
+  const poly = corners.map((p, i) => ({ x: p[0], z: p[2], u: uvs[i][0], v: uvs[i][1] }));
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const p of poly) {
+    minX = Math.min(minX, p.x);
+    maxX = Math.max(maxX, p.x);
+    minZ = Math.min(minZ, p.z);
+    maxZ = Math.max(maxZ, p.z);
+  }
+  const tx0 = Math.floor(minX / TILE);
+  const tx1 = Math.floor((maxX - 1e-3) / TILE);
+  const tz0 = Math.floor(minZ / TILE);
+  const tz1 = Math.floor((maxZ - 1e-3) / TILE);
+  let blocked = false;
+  for (let z = tz0; z <= tz1 && !blocked; z += 1) {
+    for (let x = tx0; x <= tx1; x += 1) {
+      if (roads.has(x + z * 1024)) {
+        blocked = true;
+        break;
+      }
+    }
+  }
+  if (!blocked) {
+    pushQuad(buf, corners, uvs);
+    return;
+  }
+  const y = corners[0][1];
+  for (let z = tz0; z <= tz1; z += 1) {
+    for (let x = tx0; x <= tx1; x += 1) {
+      if (roads.has(x + z * 1024)) continue;
+      const cell = clipPolygon(poly, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE);
+      if (cell.length < 3) continue;
+      for (let i = 1; i < cell.length - 1; i += 1) {
+        pushTri(
+          buf,
+          [cell[0].x, y, cell[0].z],
+          [cell[i].x, y, cell[i].z],
+          [cell[i + 1].x, y, cell[i + 1].z],
+          [cell[0].u, cell[0].v],
+          [cell[i].u, cell[i].v],
+          [cell[i + 1].u, cell[i + 1].v],
+        );
+      }
+    }
+  }
+}
+
 function piecesOf(segment) {
   const len = Math.hypot(segment.bx - segment.ax, segment.bz - segment.az);
   const count = Math.max(1, Math.ceil(len));
@@ -189,7 +288,7 @@ function ownsTile(cx, cz, x, z) {
   return x >= cx && x < cx + CHUNK && z >= cz && z < cz + CHUNK;
 }
 
-function appendStraight(draw, cx, cz, bufs) {
+function appendStraight(draw, cx, cz, bufs, roads) {
   for (const segment of draw.strips) {
     for (const piece of piecesOf(segment)) {
       const midX = (piece.ax + piece.bx) / 2;
@@ -213,17 +312,17 @@ function appendStraight(draw, cx, cz, bufs) {
       if (!piece.soft) continue;
       const ox = piece.nx * COPING;
       const oz = piece.nz * COPING;
-      pushQuad(bufs.coping, [
+      pushOverLand(bufs.coping, [
         [ax + ox, LIP, az + oz],
         [bx + ox, LIP, bz + oz],
         [bx, LIP, bz],
         [ax, LIP, az],
-      ], [[u0, COPING_V0], [u1, COPING_V0], [u1, 1], [u0, 1]]);
+      ], [[u0, COPING_V0], [u1, COPING_V0], [u1, 1], [u0, 1]], roads);
     }
   }
 }
 
-function appendDiag(draw, cx, cz, bufs) {
+function appendDiag(draw, cx, cz, bufs, roads) {
   for (const segment of draw.diags) {
     const lenTiles = Math.hypot(segment.bx - segment.ax, segment.bz - segment.az);
     const sDirX = (segment.bx - segment.ax) / lenTiles;
@@ -243,12 +342,12 @@ function appendDiag(draw, cx, cz, bufs) {
         ];
       };
       const uv = (s, w) => [(s - w) / DIAG_ALONG, 1 - (s + w) / DIAG_ALONG];
-      pushQuad(bufs.diag, [
+      pushOverLand(bufs.diag, [
         point(s0, COPING),
         point(s1, COPING),
         point(s1, -SLOPE),
         point(s0, -SLOPE),
-      ], [uv(s0, COPING), uv(s1, COPING), uv(s1, -SLOPE), uv(s0, -SLOPE)]);
+      ], [uv(s0, COPING), uv(s1, COPING), uv(s1, -SLOPE), uv(s0, -SLOPE)], roads);
     }
   }
 }
@@ -274,7 +373,7 @@ function appendWallCorners(draw, cx, cz, bufs) {
   }
 }
 
-function appendCorners(draw, cx, cz, bufs) {
+function appendCorners(draw, cx, cz, bufs, roads) {
   const half = CORNER / 2;
   for (const corner of draw.corners) {
     if (!ownsTile(cx, cz, Math.floor(corner.x), Math.floor(corner.z))) continue;
@@ -286,12 +385,12 @@ function appendCorners(draw, cx, cz, bufs) {
     const vz = corner.vDir[1] * half;
     const buf = bufs[corner.kind];
     if (!buf) continue;
-    pushQuad(buf, [
+    pushOverLand(buf, [
       [cxw - ux - vx, CORNER_Y, czw - uz - vz],
       [cxw + ux - vx, CORNER_Y, czw + uz - vz],
       [cxw + ux + vx, CORNER_Y, czw + uz + vz],
       [cxw - ux + vx, CORNER_Y, czw - uz + vz],
-    ], [[0, 0], [1, 0], [1, 1], [0, 1]]);
+    ], [[0, 0], [1, 0], [1, 1], [0, 1]], roads);
   }
 }
 
@@ -392,9 +491,10 @@ function appendAbutmentZ(buf, cx, cz, x0, x1, z0, z1, xTile, mirror) {
 }
 
 export function appendQuay(plan, cx, cz, bufs, waterBuf) {
-  appendStraight(plan.draw, cx, cz, bufs);
-  appendDiag(plan.draw, cx, cz, bufs);
-  appendCorners(plan.draw, cx, cz, bufs);
+  const roads = plan.roads;
+  appendStraight(plan.draw, cx, cz, bufs, roads);
+  appendDiag(plan.draw, cx, cz, bufs, roads);
+  appendCorners(plan.draw, cx, cz, bufs, roads);
   appendWallCorners(plan.draw, cx, cz, bufs);
   appendBridges(plan.bridges || BRIDGES, cx, cz, bufs);
   for (const cell of plan.water) {

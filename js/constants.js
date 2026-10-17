@@ -8,6 +8,11 @@ export const CAMERA_HEIGHT = 2800 * CAMERA_DISTANCE;
 export const CAMERA_TILT = 12 * Math.PI / 180;
 export const GROUND_W = VIEW_W * CAMERA_DISTANCE;
 export const GROUND_H = VIEW_H * CAMERA_DISTANCE;
+// The framed ground stays 840×472.5. That picture is drawn at this size and
+// smooth-scaled by the browser, so the zoom stays and the pixels are not
+// hard nearest blocks.
+export const RENDER_W = Math.round(GROUND_W);
+export const RENDER_H = Math.round(GROUND_H);
 export const PLAYER_SIZE = 32;
 export const PLAYER_SPEED = 260;
 export const CHUNK = 20;

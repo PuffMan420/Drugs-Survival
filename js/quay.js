@@ -30,8 +30,11 @@ const ABUT_ALONG = 240 / 5;
 const SHADOW_ACROSS = 840 / 5;
 const SHADOW_PAD = (SHADOW_ACROSS - DECK_ACROSS) / 2;
 const SUN_SHIFT = 28;
-const DECK_Y = 4;
-const SHADOW_Y = 3;
+// Car sprites are a flat plane at y = 2.5. Keep the deck under that plane so
+// the cars draw on top of it, and keep the shadow under the deck. Water is
+// at WATER_Y, far below both.
+const DECK_Y = 2;
+const SHADOW_Y = 1;
 const DECAL_Y = 12;
 const CORNER_Y = 13;
 

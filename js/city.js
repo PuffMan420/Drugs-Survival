@@ -10,7 +10,7 @@ import {
   ShaderMaterial,
 } from "three";
 import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
-import { classifyMarkings, ROAD_COLS, ROAD_ROWS, WALK_COLS, WALK_ROWS } from "./markings.js";
+import { createGround } from "./ground.js";
 import { createTextures } from "./textures.js";
 
 const flat = { toneMapped: false };
@@ -246,15 +246,13 @@ function appendFace(buf, box, group, scaleU, scaleV, color) {
   }
 }
 
-function buildChunk(map, cx, cz, materials, markings) {
+function buildChunk(map, cx, cz, materials, ground) {
   const x1 = Math.min(map.cols, cx + CHUNK);
   const z1 = Math.min(map.rows, cz + CHUNK);
   const groundBufs = new Map();
   const wallBufs = new Map();
   const roofBuf = { pos: [], uv: [], idx: [], col: [] };
-  const roadBuf = { pos: [], uv: [], idx: [] };
-  const walkBuf = { pos: [], uv: [], idx: [] };
-  const curbBuf = { pos: [], uv: [], idx: [], col: [] };
+  const surfaceBufs = new Map();
   const shadowBuf = { pos: [], shade: [], idx: [] };
   let minX = cx * TILE;
   let maxX = x1 * TILE;
@@ -269,26 +267,8 @@ function buildChunk(map, cx, cz, materials, markings) {
   for (let z = cz; z < z1; z += 1) {
     const row = map.ground[z];
     for (let x = cx; x < x1; x += 1) {
-      const i = z * map.cols + x;
-      const roadPat = markings.pattern[i];
-      const walkPat = markings.walk[i];
-      if (roadPat >= 0) {
-        const col = roadPat % ROAD_COLS;
-        const rowIndex = Math.floor(roadPat / ROAD_COLS);
-        const [u0, v0, u1, v1] = cellUV(col, rowIndex, ROAD_COLS, ROAD_ROWS);
-        addGroundQuad(roadBuf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, u0, v0, u1, v1);
-        continue;
-      }
-      if (walkPat >= 0) {
-        const col = walkPat % WALK_COLS;
-        const rowIndex = Math.floor(walkPat / WALK_COLS);
-        const [u0, v0, u1, v1] = cellUV(col, rowIndex, WALK_COLS, WALK_ROWS);
-        addGroundQuad(walkBuf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, u0, v0, u1, v1);
-        if (walkPat >= 2) continue;
-        if (isCurbNeighbor(at(x, z - 1))) addCurb(curbBuf, x * TILE, z * TILE, (x + 1) * TILE, z * TILE + 6, "n");
-        if (isCurbNeighbor(at(x, z + 1))) addCurb(curbBuf, x * TILE, (z + 1) * TILE - 6, (x + 1) * TILE, (z + 1) * TILE, "s");
-        if (isCurbNeighbor(at(x - 1, z))) addCurb(curbBuf, x * TILE, z * TILE, x * TILE + 6, (z + 1) * TILE, "w");
-        if (isCurbNeighbor(at(x + 1, z))) addCurb(curbBuf, (x + 1) * TILE - 6, z * TILE, (x + 1) * TILE, (z + 1) * TILE, "e");
+      if (ground.covers(x, z)) {
+        ground.paint(surfaceBufs, x, z);
         continue;
       }
       const cell = row[x];
@@ -346,9 +326,7 @@ function buildChunk(map, cx, cz, materials, markings) {
     group.add(mesh);
   };
   for (const [key, buf] of groundBufs) addMesh(buf, materials.ground[key]);
-  addMesh(roadBuf, materials.road);
-  addMesh(walkBuf, materials.walk);
-  addMesh(curbBuf, materials.curb, true);
+  for (const [key, buf] of surfaceBufs) addMesh(buf, ground.material(key));
   for (const [key, buf] of wallBufs) {
     if (buf.idx.length === 0) continue;
     const mesh = new Mesh(geometryFrom(buf, false), materials.walls[key]);
@@ -390,11 +368,11 @@ function makePlayer() {
 export async function buildCity(scene, map) {
   const textures = await createTextures();
   const materials = createMaterials(textures);
-  const markings = classifyMarkings(map);
+  const ground = await createGround(map);
   const chunks = [];
   for (let cz = 0; cz < map.rows; cz += CHUNK) {
     for (let cx = 0; cx < map.cols; cx += CHUNK) {
-      const chunk = buildChunk(map, cx, cz, materials, markings);
+      const chunk = buildChunk(map, cx, cz, materials, ground);
       scene.add(chunk.group);
       chunks.push(chunk);
     }

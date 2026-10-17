@@ -22,11 +22,11 @@ const ZEBRA_U = 588 / STRIP_W;
 const CENTER_X = 130;
 const CENTER_Z = 130;
 
-const H_SEED = new Set(["H", "h", "1", "2", "4"]);
-const V_SEED = new Set(["V", "v", "5", "6", "8"]);
+const H_SEED = new Set(["H", "h", "1", "2", "3", "4"]);
+const V_SEED = new Set(["V", "v", "5", "6", "7", "8"]);
 const RING = new Set(["1", "2", "4", "5", "6", "8"]);
 const SHOULDER = new Set(["+", "X"]);
-const ROAD = new Set(["H", "h", "V", "v", "+", "X", "1", "2", "4", "5", "6", "8"]);
+const ROAD = new Set(["H", "h", "V", "v", "+", "X", "1", "2", "3", "4", "5", "6", "7", "8", "A", "E", "a", "e"]);
 const WALK = new Set(["s", "n", "p", "c", "l"]);
 
 const NAMES = {

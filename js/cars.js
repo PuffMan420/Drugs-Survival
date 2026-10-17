@@ -217,6 +217,51 @@ export async function createTraffic(scene, map) {
         group.mesh.instanceMatrix.needsUpdate = count > 0;
       }
     },
+    lights(camX, camZ) {
+      const out = [];
+      const pushCar = (car) => {
+        if (out.length >= 192) return;
+        if (!inView(car.x, car.z, camX, camZ)) return;
+        const fx = -Math.sin(car.angle);
+        const fz = -Math.cos(car.angle);
+        const rx = -fz;
+        const rz = fx;
+        const nose = car.h * 0.4;
+        const tail = car.h * 0.38;
+        const side = Math.min(12, car.w * 0.22);
+        out.push({
+          kind: "head",
+          x: car.x + fx * nose + rx * side,
+          z: car.z + fz * nose + rz * side,
+        });
+        out.push({
+          kind: "head",
+          x: car.x + fx * nose - rx * side,
+          z: car.z + fz * nose - rz * side,
+        });
+        out.push({
+          kind: "tail",
+          x: car.x - fx * tail + rx * side,
+          z: car.z - fz * tail + rz * side,
+        });
+        out.push({
+          kind: "tail",
+          x: car.x - fx * tail - rx * side,
+          z: car.z - fz * tail - rz * side,
+        });
+      };
+      for (const car of sim.drivers) pushCar(car);
+      const parkedNear = [];
+      for (const car of parkedBodies) {
+        if (!inView(car.x, car.z, camX, camZ)) continue;
+        const dx = car.x - camX;
+        const dz = car.z - camZ;
+        parkedNear.push({ car, dist: dx * dx + dz * dz });
+      }
+      parkedNear.sort((a, b) => a.dist - b.dist);
+      for (let i = 0; i < parkedNear.length && i < 16; i += 1) pushCar(parkedNear[i].car);
+      return out;
+    },
     blocks(x, z) {
       const ix = Math.floor(x / BUCKET);
       const iz = Math.floor(z / BUCKET);

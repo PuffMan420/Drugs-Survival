@@ -226,7 +226,7 @@ async function start() {
 
     const camX = clamp(snappedX, GROUND_W / 2, city.mapW - GROUND_W / 2);
     const camZ = clamp(snappedZ, GROUND_H / 2, city.mapH - GROUND_H / 2);
-    traffic.update(dt, camX, camZ);
+    traffic.update(dt, camX, camZ, player.x, player.z);
     camera.position.set(camX, CAMERA_HEIGHT, camZ + cameraSouth);
     camera.lookAt(camX, 0, camZ);
     updateChunks(city.chunks, camX, camZ);

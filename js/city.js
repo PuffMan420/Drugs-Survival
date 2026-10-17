@@ -11,6 +11,7 @@ import {
 } from "three";
 import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
 import { createGround } from "./ground.js";
+import { appendQuay, createQuayMaterials, quayPlan, WATER_Y } from "./quay.js";
 import { createTextures } from "./textures.js";
 
 const flat = { toneMapped: false };
@@ -72,8 +73,7 @@ function geometryFrom(buf, withColor) {
   return geometry;
 }
 
-function addGroundQuad(buf, x0, z0, x1, z1, u0 = 0, v0 = 0, u1 = 1, v1 = 1) {
-  const y = 0;
+function addGroundQuad(buf, x0, z0, x1, z1, u0 = 0, v0 = 0, u1 = 1, v1 = 1, y = 0) {
   const base = buf.pos.length / 3;
   buf.pos.push(x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1);
   buf.uv.push(u0, v1, u1, v1, u1, v0, u0, v0);
@@ -291,7 +291,7 @@ function addTree(buf, x, z) {
   addColoredBox(buf, cx - canopy / 2, gy, cz - canopy / 2, cx + canopy / 2, gy + canopy * 0.55, cz + canopy / 2, greens[h % 3]);
 }
 
-function buildChunk(map, cx, cz, materials, ground) {
+function buildChunk(map, cx, cz, materials, ground, quay) {
   const x1 = Math.min(map.cols, cx + CHUNK);
   const z1 = Math.min(map.rows, cz + CHUNK);
   const groundBufs = new Map();
@@ -325,9 +325,19 @@ function buildChunk(map, cx, cz, materials, ground) {
         buf = { pos: [], uv: [], idx: [] };
         groundBufs.set(key, buf);
       }
-      addGroundQuad(buf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE);
+      const groundY = cell === "~" ? WATER_Y : 0;
+      addGroundQuad(buf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, 0, 0, 1, 1, groundY);
     }
   }
+
+  const copingBuf = { pos: [], uv: [], idx: [] };
+  const quayWallBuf = { pos: [], uv: [], idx: [] };
+  let waterBuf = groundBufs.get("~");
+  if (!waterBuf) {
+    waterBuf = { pos: [], uv: [], idx: [] };
+    groundBufs.set("~", waterBuf);
+  }
+  appendQuay(quay, cx, cz, copingBuf, quayWallBuf, waterBuf);
 
   for (const building of map.buildings) {
     if (building.x < cx || building.x >= x1 || building.z < cz || building.z >= z1) continue;
@@ -373,6 +383,8 @@ function buildChunk(map, cx, cz, materials, ground) {
     group.add(mesh);
   };
   for (const [key, buf] of groundBufs) addMesh(buf, materials.ground[key]);
+  addMesh(copingBuf, materials.quay.coping);
+  addMesh(quayWallBuf, materials.quay.wall);
   for (const [key, buf] of surfaceBufs) addMesh(buf, ground.material(key));
   for (const [key, buf] of wallBufs) {
     if (buf.idx.length === 0) continue;
@@ -421,11 +433,13 @@ function makePlayer() {
 export async function buildCity(scene, map) {
   const textures = await createTextures();
   const materials = createMaterials(textures);
+  materials.quay = await createQuayMaterials();
   const ground = await createGround(map);
+  const quay = quayPlan(map);
   const chunks = [];
   for (let cz = 0; cz < map.rows; cz += CHUNK) {
     for (let cx = 0; cx < map.cols; cx += CHUNK) {
-      const chunk = buildChunk(map, cx, cz, materials, ground);
+      const chunk = buildChunk(map, cx, cz, materials, ground, quay);
       scene.add(chunk.group);
       chunks.push(chunk);
     }

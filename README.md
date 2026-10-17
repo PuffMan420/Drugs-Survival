@@ -8,13 +8,13 @@ The live game is at https://drugs-survival.pages.dev/ . Merging to `main` publis
 
 **WASD** or the **arrow keys** move the yellow square. The camera follows.
 
-**M** opens a map of the whole city. **1** through **6** jump to the skyline, the main avenue, the civic plaza, the harbor, the apartments, and the canal. **Esc** closes the map.
+**M** opens a map of the whole city. **1** through **6** jump to the skyline, a downtown block, the civic plaza, the harbor, the apartments, and the alleys. **Esc** closes the map.
 
 You stay on roads, sidewalks, parks, plazas, docks, and bridges. Buildings and the water stop you.
 
 ## What you should see
 
-- Downtown, the same every time: 260 by 260 blocks, a 4-lane ring road around the island, wider avenues crossing it, and smaller streets between them, plus parks, a civic plaza, a canal with bridges, and a harbor with docks. Quay walls still follow the water, and cars still drive the right-hand lanes
+- Downtown, the same every time: 260 by 260 blocks, straight avenues of a sensible width, a 4-lane ring road around the coast, alleys, plazas, parks, a river, and a harbor. The sea edge is a straight quay with a hard corner where the shore turns. Empty squares inside a block are a park, a parking lot, or a backyard, and the sidewalk is one continuous curb around the block
 - Streets use hand-painted strips: olive paving in the inner city, concrete slabs on the ring, and worn concrete outside it. Most of a street is the plain strip. Oil, patch, and dirty bits are sprinkled along it, and an olive crosswalk sits on the piece of street next to an inner intersection. Alleys use that zone's sidewalk. Plazas use the hex paving. Roofs have a concrete ledge, air-conditioning boxes, and a vent. Each building casts one soft shadow to the southeast, long when the building is tall, following its outline across the street and the cars
 - High-rises, glass towers, and brick apartments with different footprints and heights, taller inland and lower along the water
 - Buildings show a little of their south side, because the camera is tilted about 12 degrees toward the north and sits about 12.5% closer, and they still lean in perspective

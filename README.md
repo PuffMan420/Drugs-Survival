@@ -15,7 +15,7 @@ You stay on roads, sidewalks, parks, plazas, docks, and bridges. Buildings and t
 ## What you should see
 
 - Downtown, the same every time: 260 by 260 blocks, straight avenues of a sensible width, a 4-lane ring road around the coast, alleys, plazas, parks, a river, and a harbor
-- Grey-green streets with a dashed yellow center line, white zebra crossings, turn arrows, and the word SLOW. Sidewalks are one even light olive paving with a raised curb, and the curb rounds the corner at each intersection. Roofs have a concrete ledge, air-conditioning boxes, and a vent. Each building casts one soft shadow to the southeast, long when the building is tall, following its outline across the street and the cars
+- Grey-green streets with a dashed yellow center line and white zebra crossings. A turn arrow sits in the lane just before an intersection, and SLOW appears occasionally near a crossing, one marking on that approach. Sidewalks are one even light olive paving with a raised curb, and the curb rounds the corner at each intersection. Roofs have a concrete ledge, air-conditioning boxes, and a vent. Each building casts one soft shadow to the southeast, long when the building is tall, following its outline across the street and the cars
 - High-rises, glass towers, and brick apartments with different footprints and heights, taller inland and lower along the water
 - Buildings show a little of their south side, because the camera is tilted about 12 degrees toward the north and sits about 12.5% closer, and they still lean in perspective
 - Crisp pixels: the picture is drawn at 960×540 and scaled up by whole numbers (exactly 2× on a 1080p screen)

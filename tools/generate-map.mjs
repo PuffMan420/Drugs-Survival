@@ -1217,6 +1217,75 @@ function roadLabels() {
   return { id, count, largest, size };
 }
 
+function trimWideAsphalt() {
+  const spine = new Set(["H", "V", "h", "v", "1", "2", "4", "5", "6", "8"]);
+  const shoulder = new Set(["+", "X"]);
+  const drop = [];
+  const besideSpine = (x, z) => {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      for (let dx = -1; dx <= 1; dx += 1) {
+        const nx = x + dx;
+        const nz = z + dz;
+        if (inBounds(nx, nz) && spine.has(grid[nz][nx])) return true;
+      }
+    }
+    return false;
+  };
+  for (let z = 0; z < ROWS; z += 1) {
+    for (let x = 0; x < COLS; x += 1) {
+      if (!shoulder.has(grid[z][x]) || besideSpine(x, z)) continue;
+      drop.push([x, z]);
+    }
+  }
+  for (const [x, z] of drop) grid[z][x] = "l";
+}
+
+function tidyWater() {
+  for (let pass = 0; pass < 8; pass += 1) {
+    const peel = [];
+    for (let z = 1; z < ROWS - 1; z += 1) {
+      for (let x = 1; x < COLS - 1; x += 1) {
+        if (grid[z][x] !== "~") continue;
+        let waterN = 0;
+        let landN = 0;
+        for (const [dx, dz] of N4) {
+          const cell = grid[z + dz][x + dx];
+          if (cell === "~" || cell === "d") waterN += 1;
+          else landN += 1;
+        }
+        if (waterN <= 1 && landN >= 3) peel.push([x, z]);
+      }
+    }
+    if (peel.length === 0) break;
+    for (const [x, z] of peel) grid[z][x] = "l";
+  }
+  const seen = Array.from({ length: ROWS }, () => new Uint8Array(COLS));
+  for (let z = 0; z < ROWS; z += 1) {
+    for (let x = 0; x < COLS; x += 1) {
+      if (seen[z][x] || grid[z][x] !== "~") continue;
+      const queue = [[x, z]];
+      seen[z][x] = 1;
+      const cells = [];
+      let edge = false;
+      for (let i = 0; i < queue.length; i += 1) {
+        const [cx, cz] = queue[i];
+        cells.push([cx, cz]);
+        if (cx === 0 || cz === 0 || cx === COLS - 1 || cz === ROWS - 1) edge = true;
+        for (const [dx, dz] of N4) {
+          const nx = cx + dx;
+          const nz = cz + dz;
+          if (!inBounds(nx, nz) || seen[nz][nx] || grid[nz][nx] !== "~") continue;
+          seen[nz][nx] = 1;
+          queue.push([nx, nz]);
+        }
+      }
+      if (!edge && cells.length < 48) {
+        for (const [cx, cz] of cells) grid[cz][cx] = "l";
+      }
+    }
+  }
+}
+
 function connectLooseRoads() {
   for (let pass = 0; pass < 400; pass += 1) {
     const labels = roadLabels();
@@ -1266,14 +1335,11 @@ function connectLooseRoads() {
     let x = hit[2];
     let z = hit[3];
     while (dist[z][x] > 0) {
-      for (const [dx, dz] of [[0, 0], ...N4]) {
-        const nx = x + dx;
-        const nz = z + dz;
-        if (!inBounds(nx, nz) || ROAD.has(grid[nz][nx]) || grid[nz][nx] === "d" || grid[nz][nx] === "~") continue;
-        paintCell(nx, nz, "+", false);
-      }
       const px = prev[z][x * 2];
       const pz = prev[z][x * 2 + 1];
+      if (!ROAD.has(grid[z][x]) && grid[z][x] !== "d" && grid[z][x] !== "~") {
+        paintCell(x, z, px !== x ? "h" : "v", false);
+      }
       x = px;
       z = pz;
     }
@@ -1289,6 +1355,8 @@ harborBridge();
 paintRing();
 carvePasses();
 connectLooseRoads();
+trimWideAsphalt();
+tidyWater();
 placeParksAndPlazas();
 finishGround();
 placePiers();

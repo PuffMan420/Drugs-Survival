@@ -110,7 +110,8 @@ function addCurb(buf, x0, z0, x1, z1, outward) {
 
 function isCurbNeighbor(cell) {
   return cell === "H" || cell === "V" || cell === "+" || cell === "h" || cell === "v"
-    || cell === "X" || cell === "A" || cell === "E" || cell === "a" || cell === "e" || cell === "n";
+    || cell === "X" || cell === "A" || cell === "E" || cell === "a" || cell === "e" || cell === "n"
+    || cell === "1" || cell === "2" || cell === "4" || cell === "5" || cell === "6" || cell === "8";
 }
 
 function appendFace(buf, box, group, scaleU, scaleV, color) {

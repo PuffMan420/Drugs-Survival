@@ -127,7 +127,20 @@ function createPresenter(renderer) {
 }
 
 function blocked(map, x, z) {
-  return tileAt(map, x, z) === "~";
+  // The square's corners have to stay off water and off building footprints.
+  // Roads, sidewalks, parks, docks, and plazas stay open.
+  const reach = PLAYER_SIZE / 2 - 0.01;
+  const samples = [
+    [x - reach, z - reach],
+    [x + reach, z - reach],
+    [x - reach, z + reach],
+    [x + reach, z + reach],
+  ];
+  for (const [sx, sz] of samples) {
+    const tile = tileAt(map, sx, sz);
+    if (tile === "~" || tile === "b") return true;
+  }
+  return false;
 }
 
 async function start() {

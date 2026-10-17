@@ -116,27 +116,6 @@ function laneEdge(ctx, edge) {
   }
 }
 
-function doubleYellow(ctx, edge) {
-  paintAsphalt(ctx, 0, 0);
-  ctx.fillStyle = "#e2c14a";
-  if (edge === "s") {
-    ctx.fillRect(0, 38, 48, 3);
-    ctx.fillRect(0, 44, 48, 3);
-  } else {
-    ctx.fillRect(38, 0, 3, 48);
-    ctx.fillRect(44, 0, 3, 48);
-  }
-}
-
-function stopBar(ctx, edge) {
-  paintAsphalt(ctx, 0, 0);
-  ctx.fillStyle = "#f2f2f2";
-  if (edge === "e") ctx.fillRect(42, 2, 4, 44);
-  if (edge === "w") ctx.fillRect(2, 2, 4, 44);
-  if (edge === "s") ctx.fillRect(2, 42, 44, 4);
-  if (edge === "n") ctx.fillRect(2, 2, 44, 4);
-}
-
 function medianTile(ctx, horizontal) {
   paintAsphalt(ctx, 0, 0);
   ctx.fillStyle = "#f0d24a";
@@ -586,11 +565,9 @@ function plainGround() {
     }),
     1: groundTile((ctx) => laneEdge(ctx, "s")),
     2: groundTile((ctx) => laneEdge(ctx, "n")),
-    3: groundTile((ctx) => doubleYellow(ctx, "s")),
     4: groundTile((ctx) => medianTile(ctx, true)),
     5: groundTile((ctx) => laneEdge(ctx, "e")),
     6: groundTile((ctx) => laneEdge(ctx, "w")),
-    7: groundTile((ctx) => doubleYellow(ctx, "e")),
     8: groundTile((ctx) => medianTile(ctx, false)),
     n: groundTile((ctx) => {
       ctx.fillStyle = "#3a4238";
@@ -650,11 +627,7 @@ export async function createTextures() {
   const ground = plainGround();
   ground.d = pierDeckTexture(await loadImage(PIER_URL));
   ground.b = ground.l;
-  ground.A = groundTile((ctx) => stopBar(ctx, "e"));
-  ground.E = groundTile((ctx) => stopBar(ctx, "w"));
-  ground.a = groundTile((ctx) => stopBar(ctx, "s"));
-  ground.e = groundTile((ctx) => stopBar(ctx, "n"));
-  for (const key of ["H", "V", "+", "h", "v", "X", "s"]) ground[key] = ground.l;
+  for (const key of ["H", "V", "+", "h", "v", "X", "A", "E", "a", "e", "s"]) ground[key] = ground.l;
 
   const walls = {
     tower: wallTile("#c8c2b4", "#9a9488", "#9ec4d4"),

@@ -19,9 +19,9 @@ import {
   GROUND_W,
   PLAYER_SIZE,
   PLAYER_SPEED,
+  RENDER_H,
+  RENDER_W,
   TILE,
-  VIEW_H,
-  VIEW_W,
 } from "./constants.js";
 import { createTraffic } from "./cars.js";
 import { buildCity, tileAt, tileCenter, updateChunks } from "./city.js";
@@ -69,7 +69,7 @@ function lockPixelProjection(camera) {
   const apply = () => {
     // The center ray meets the ground farther out than the camera's height,
     // because the camera is tilted. Frame the smaller ground rectangle there
-    // so the 12.5% closer view stays even across the 960×540 picture.
+    // so the 12.5% closer view stays even across the picture.
     const distance = CAMERA_HEIGHT / Math.cos(CAMERA_TILT);
     const scale = camera.near / distance;
     camera.projectionMatrix.makePerspective(
@@ -86,16 +86,20 @@ function lockPixelProjection(camera) {
   apply();
 }
 
-function integerScale() {
-  const fitX = Math.floor(window.innerWidth / VIEW_W);
-  const fitY = Math.floor(window.innerHeight / VIEW_H);
-  const scale = Math.max(1, Math.min(fitX, fitY));
-  canvas.style.width = `${VIEW_W * scale}px`;
-  canvas.style.height = `${VIEW_H * scale}px`;
+function fitDisplay(renderer) {
+  // Fill the window with the same 16:9 frame. The scene itself stays at one
+  // pixel per world unit; this only nearest-scales that picture.
+  const unit = Math.min(window.innerWidth / 16, window.innerHeight / 9);
+  const width = Math.max(1, Math.floor(unit) * 16);
+  const height = Math.max(1, Math.floor(unit) * 9);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  renderer.setPixelRatio(1);
+  renderer.setSize(RENDER_W, RENDER_H, false);
 }
 
 function createPresenter(renderer) {
-  const target = new WebGLRenderTarget(VIEW_W, VIEW_H, {
+  const target = new WebGLRenderTarget(RENDER_W, RENDER_H, {
     minFilter: NearestFilter,
     magFilter: NearestFilter,
     generateMipmaps: false,
@@ -158,13 +162,11 @@ async function start() {
     return;
   }
 
-  renderer.setPixelRatio(1);
-  renderer.setSize(VIEW_W, VIEW_H, false);
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = NoToneMapping;
   renderer.setClearColor(0x102028, 1);
-  integerScale();
-  window.addEventListener("resize", integerScale);
+  fitDisplay(renderer);
+  window.addEventListener("resize", () => fitDisplay(renderer));
 
   fpsEl.textContent = "Loading map…";
   const map = await fetch("./data/city.json").then((response) => {
@@ -178,7 +180,7 @@ async function start() {
   const city = await buildCity(scene, map);
   const traffic = await createTraffic(scene, map);
   const minimap = createMinimap(map);
-  const camera = new PerspectiveCamera(15, VIEW_W / VIEW_H, NEAR, FAR);
+  const camera = new PerspectiveCamera(15, RENDER_W / RENDER_H, NEAR, FAR);
   const tiltUp = Math.sin(CAMERA_TILT);
   const tiltNorth = Math.cos(CAMERA_TILT);
   camera.up.set(0, tiltUp, -tiltNorth);

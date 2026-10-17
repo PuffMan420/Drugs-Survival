@@ -298,7 +298,7 @@ export function planCars(map) {
       if (taken.has(bucket)) continue;
       taken.add(bucket);
       const [sdx, sdz] = sidewalk;
-      const pull = span * 0.28;
+      const pull = 0;
       const flip = tileHash(z, x) % 2 === 0 ? 1 : -1;
       parked.push({
         x: (x + 0.5) * span + sdx * pull,

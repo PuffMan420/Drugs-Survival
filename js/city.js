@@ -32,7 +32,7 @@ function createMaterials(textures) {
   for (const [key, texture] of Object.entries(textures.walls)) {
     walls[key] = makeMaterial(texture);
   }
-  const roof = makeMaterial(textures.roof, { vertexColors: true });
+  const roof = new MeshBasicMaterial({ vertexColors: true, side: FrontSide, ...flat });
   const road = makeMaterial(textures.road, { side: DoubleSide });
   const walk = makeMaterial(textures.walk, { side: DoubleSide });
   const curb = new MeshBasicMaterial({ vertexColors: true, side: DoubleSide, ...flat });
@@ -85,8 +85,8 @@ function addQuad(buf, pts, color) {
   buf.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
 }
 
-const CURB_TOP = [0.34, 0.36, 0.28];
-const CURB_SIDE = [0.16, 0.18, 0.14];
+const CURB_TOP = [0.78, 0.74, 0.58];
+const CURB_SIDE = [0.32, 0.3, 0.22];
 
 function addShadowQuad(buf, x0, z0, x1, z1, east) {
   const y = 1.5;
@@ -100,18 +100,77 @@ function addShadowQuad(buf, x0, z0, x1, z1, east) {
 
 function addCurb(buf, x0, z0, x1, z1, outward) {
   const y0 = 0.5;
-  const y1 = 5;
-  addQuad(buf, [[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]], CURB_TOP);
-  if (outward === "s") addQuad(buf, [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], CURB_SIDE);
-  else if (outward === "n") addQuad(buf, [[x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0]], CURB_SIDE);
-  else if (outward === "e") addQuad(buf, [[x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1]], CURB_SIDE);
-  else addQuad(buf, [[x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0]], CURB_SIDE);
+  const y1 = 8;
+  const inset = 8;
+  if (outward === "s") {
+    addQuad(buf, [[x0, y1, z1 - inset], [x1, y1, z1 - inset], [x1, y1, z1], [x0, y1, z1]], CURB_TOP);
+    addQuad(buf, [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], CURB_SIDE);
+  } else if (outward === "n") {
+    addQuad(buf, [[x0, y1, z0], [x1, y1, z0], [x1, y1, z0 + inset], [x0, y1, z0 + inset]], CURB_TOP);
+    addQuad(buf, [[x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0]], CURB_SIDE);
+  } else if (outward === "e") {
+    addQuad(buf, [[x1 - inset, y1, z0], [x1, y1, z0], [x1, y1, z1], [x1 - inset, y1, z1]], CURB_TOP);
+    addQuad(buf, [[x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1]], CURB_SIDE);
+  } else {
+    addQuad(buf, [[x0, y1, z0], [x0 + inset, y1, z0], [x0 + inset, y1, z1], [x0, y1, z1]], CURB_TOP);
+    addQuad(buf, [[x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0]], CURB_SIDE);
+  }
 }
 
 function isCurbNeighbor(cell) {
   return cell === "H" || cell === "V" || cell === "+" || cell === "h" || cell === "v"
     || cell === "X" || cell === "A" || cell === "E" || cell === "a" || cell === "e" || cell === "n"
     || cell === "1" || cell === "2" || cell === "4" || cell === "5" || cell === "6" || cell === "8";
+}
+
+function roofHash(x, z) {
+  let h = Math.imul(x | 0, 374761393) ^ Math.imul(z | 0, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return h >>> 0;
+}
+
+function addRoofPad(buf, x0, z0, x1, z1, y, color) {
+  addQuad(buf, [[x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1]], color);
+}
+
+function addRoofBox(buf, x0, z0, x1, z1, y0, y1, top, side) {
+  addRoofPad(buf, x0, z0, x1, z1, y1, top);
+  addQuad(buf, [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], side);
+  addQuad(buf, [[x1, y0, z0], [x1, y0, z1], [x1, y1, z1], [x1, y1, z0]], side);
+}
+
+function addRoofDetails(buf, building) {
+  const x0 = building.x * TILE;
+  const z0 = building.z * TILE;
+  const x1 = x0 + building.w * TILE;
+  const z1 = z0 + building.d * TILE;
+  const y = building.h * TILE + 0.6;
+  const base = hexRgb(building.roof);
+  const ledge = [0.76, 0.73, 0.6];
+  const lip = 6;
+  if (x1 - x0 > lip * 2 && z1 - z0 > lip * 2) {
+    addRoofPad(buf, x0, z0, x1, z0 + lip, y, ledge);
+    addRoofPad(buf, x0, z1 - lip, x1, z1, y, ledge);
+    addRoofPad(buf, x0, z0 + lip, x0 + lip, z1 - lip, y, ledge);
+    addRoofPad(buf, x1 - lip, z0 + lip, x1, z1 - lip, y, ledge);
+  }
+  if (building.w < 2 || building.d < 2) return;
+  const h = roofHash(building.x, building.z);
+  const count = 1 + (h % 3);
+  const grey = [0.86, 0.88, 0.9];
+  const dark = [0.34, 0.36, 0.38];
+  for (let n = 0; n < count; n += 1) {
+    const spanX = x1 - x0 - 20;
+    const spanZ = z1 - z0 - 20;
+    const ax = x0 + 10 + ((h >>> (n * 5)) % Math.max(1, spanX - 16));
+    const az = z0 + 10 + ((h >>> (8 + n * 4)) % Math.max(1, spanZ - 12));
+    const aw = 16 + (n === 0 ? 8 : 0);
+    const ad = 10;
+    addRoofBox(buf, ax, az, Math.min(x1 - 10, ax + aw), Math.min(z1 - 10, az + ad), y, y + 8, grey, dark);
+  }
+  const vx = x0 + 10 + ((h >>> 18) % Math.max(1, x1 - x0 - 18));
+  const vz = z0 + lip + 4;
+  addRoofPad(buf, vx, vz, vx + 3, Math.min(z1 - lip, vz + 14), y + 1.2, dark);
 }
 
 function appendFace(buf, box, group, scaleU, scaleV, color) {
@@ -166,6 +225,7 @@ function buildChunk(map, cx, cz, materials, markings) {
         const rowIndex = Math.floor(walkPat / WALK_COLS);
         const [u0, v0, u1, v1] = cellUV(col, rowIndex, WALK_COLS, WALK_ROWS);
         addGroundQuad(walkBuf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, u0, v0, u1, v1);
+        if (walkPat >= 2) continue;
         if (isCurbNeighbor(at(x, z - 1))) addCurb(curbBuf, x * TILE, z * TILE, (x + 1) * TILE, z * TILE + 6, "n");
         if (isCurbNeighbor(at(x, z + 1))) addCurb(curbBuf, x * TILE, (z + 1) * TILE - 6, (x + 1) * TILE, (z + 1) * TILE, "s");
         if (isCurbNeighbor(at(x - 1, z))) addCurb(curbBuf, x * TILE, z * TILE, x * TILE + 6, (z + 1) * TILE, "w");
@@ -200,10 +260,11 @@ function buildChunk(map, cx, cz, materials, markings) {
     // Box face order: +X, -X, +Y, -Y, +Z, -Z.
     appendFace(walls, box, groups[0], building.d, building.h);
     appendFace(walls, box, groups[1], building.d, building.h);
-    appendFace(roofBuf, box, groups[2], building.w, building.d, hexRgb(building.roof));
+    appendFace(roofBuf, box, groups[2], 1, 1, hexRgb(building.roof));
     appendFace(walls, box, groups[4], building.w, building.h);
     appendFace(walls, box, groups[5], building.w, building.h);
     box.dispose();
+    addRoofDetails(roofBuf, building);
     const reach = TILE * Math.min(3.4, 1.7 + Math.max(building.w, building.d) * 0.16);
     const bx = building.x * TILE;
     const bz = building.z * TILE;

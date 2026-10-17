@@ -35,14 +35,13 @@ function wallTile(base, mortar, glass) {
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, 48, 48);
   ctx.fillStyle = mortar;
-  ctx.fillRect(0, 46, 48, 2);
-  ctx.fillRect(46, 0, 2, 48);
+  ctx.fillRect(0, 34, 48, 2);
   ctx.fillStyle = "#10141c";
-  ctx.fillRect(8, 10, 14, 22);
-  ctx.fillRect(26, 10, 14, 22);
+  ctx.fillRect(6, 8, 14, 18);
+  ctx.fillRect(26, 8, 14, 18);
   ctx.fillStyle = glass;
-  ctx.fillRect(10, 12, 4, 8);
-  ctx.fillRect(28, 12, 4, 8);
+  ctx.fillRect(8, 10, 4, 6);
+  ctx.fillRect(28, 10, 4, 6);
   return pixelTexture(canvas, true);
 }
 
@@ -461,53 +460,63 @@ function drawStains(ctx) {
   }
 }
 
-function tintStone(src, district, variant) {
+function tintStone(src) {
   const { canvas, ctx } = canvas2d();
   const out = ctx.createImageData(48, 48);
   const s = src.data;
   const d = out.data;
   for (let i = 0; i < s.length; i += 4) {
-    let r = s[i];
-    let g = s[i + 1];
-    let b = s[i + 2];
-    if (district === "harbor") {
-      const grey = (r + g + b) / 3;
-      r = grey * 0.9 + 30;
-      g = grey * 0.91 + 28;
-      b = grey * 0.86 + 24;
-    } else {
-      r = r * 1.45 + 58;
-      g = g * 1.32 + 48;
-      b = b * 1.02 + 30;
-    }
-    if (variant === 0) {
-      r = Math.min(255, r * 1.1 + 10);
-      g = Math.min(255, g * 1.1 + 8);
-      b = Math.min(255, b * 1.06 + 6);
-    } else if (variant === 1) {
-      r *= 0.76;
-      g *= 0.76;
-      b *= 0.74;
-    }
-    d[i] = Math.max(0, Math.min(255, r));
-    d[i + 1] = Math.max(0, Math.min(255, g));
-    d[i + 2] = Math.max(0, Math.min(255, b));
+    const grain = (s[i] + s[i + 1] + s[i + 2]) / 3;
+    const lift = (grain - 80) * 0.22;
+    d[i] = Math.max(0, Math.min(255, 196 + lift));
+    d[i + 1] = Math.max(0, Math.min(255, 188 + lift));
+    d[i + 2] = Math.max(0, Math.min(255, 150 + lift * 0.7));
     d[i + 3] = 255;
   }
   ctx.putImageData(out, 0, 0);
-  if (variant === 2) drawCracks(ctx);
-  if (variant === 3) drawStains(ctx);
+  return canvas;
+}
+
+function sidewalkCorner(base, kind) {
+  const { canvas, ctx } = canvas2d();
+  ctx.drawImage(base, 0, 0);
+  const origin = {
+    2: [47, 0],
+    3: [0, 0],
+    4: [47, 47],
+    5: [0, 47],
+  }[kind];
+  const [ox, oy] = origin;
+  const image = ctx.getImageData(0, 0, 48, 48);
+  const data = image.data;
+  for (let y = 0; y < 48; y += 1) {
+    for (let x = 0; x < 48; x += 1) {
+      const dist = Math.hypot(x - ox, y - oy);
+      const i = (y * 48 + x) * 4;
+      if (dist < 12) {
+        data[i] = 92;
+        data[i + 1] = 101;
+        data[i + 2] = 88;
+      } else if (dist < 16) {
+        data[i] = 186;
+        data[i + 1] = 176;
+        data[i + 2] = 132;
+      }
+    }
+  }
+  ctx.putImageData(image, 0, 0);
   return canvas;
 }
 
 function sidewalkAtlas(src) {
+  const plain = tintStone(src);
   const { canvas, ctx } = canvas2d(WALK_COLS * 48, WALK_ROWS * 48);
-  for (let row = 0; row < WALK_ROWS; row += 1) {
-    const district = row === 0 ? "downtown" : "harbor";
-    for (let col = 0; col < WALK_COLS; col += 1) {
-      ctx.drawImage(tintStone(src, district, col), col * 48, row * 48);
-    }
-  }
+  ctx.drawImage(plain, 0, 0);
+  ctx.drawImage(plain, 48, 0);
+  ctx.drawImage(sidewalkCorner(plain, 2), 96, 0);
+  ctx.drawImage(sidewalkCorner(plain, 3), 0, 48);
+  ctx.drawImage(sidewalkCorner(plain, 4), 48, 48);
+  ctx.drawImage(sidewalkCorner(plain, 5), 96, 48);
   return pixelTexture(canvas, false);
 }
 

@@ -19,13 +19,13 @@ const ROWS = 260;
 // Bent avenues. Each leg is either straight or exactly 45 degrees so the
 // yellow lines meet. Spacing and direction change on purpose.
 const AVENUES = [
-  { width: 5, pts: [[18, 46], [96, 46], [146, 96], [200, 96], [236, 60]] },
-  { width: 5, pts: [[36, 22], [36, 78], [78, 120], [78, 168], [44, 202], [44, 242]] },
-  { width: 5, pts: [[168, 20], [168, 64], [128, 104], [188, 164], [188, 210], [150, 248]] },
-  { width: 5, pts: [[230, 28], [176, 28], [136, 68], [196, 128], [240, 128]] },
-  { width: 5, pts: [[20, 128], [70, 128], [118, 176], [178, 176], [214, 140], [248, 140]] },
-  { width: 5, pts: [[24, 24], [24, 86], [64, 126], [24, 166], [24, 214]] },
-  { width: 5, pts: [[100, 210], [150, 210], [190, 170], [236, 170]] },
+  { width: 3, pts: [[18, 46], [96, 46], [146, 96], [200, 96], [236, 60]] },
+  { width: 3, pts: [[36, 22], [36, 78], [78, 120], [78, 168], [44, 202], [44, 242]] },
+  { width: 3, pts: [[168, 20], [168, 64], [128, 104], [188, 164], [188, 210], [150, 248]] },
+  { width: 3, pts: [[230, 28], [176, 28], [136, 68], [196, 128], [240, 128]] },
+  { width: 3, pts: [[20, 128], [70, 128], [118, 176], [178, 176], [214, 140], [248, 140]] },
+  { width: 3, pts: [[24, 24], [24, 86], [64, 126], [24, 166], [24, 214]] },
+  { width: 3, pts: [[100, 210], [150, 210], [190, 170], [236, 170]] },
 ];
 
 // 45-degree avenues. dx/dz are each -1 or 1.
@@ -223,7 +223,14 @@ function rasterSegment(x0, z0, x1, z1) {
 function strokePolyline(pts, width, major, bridgeLimit = 11) {
   const line = [];
   for (let i = 0; i < pts.length - 1; i += 1) {
-    line.push(...rasterSegment(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]));
+    const [x0, z0] = pts[i];
+    const [x1, z1] = pts[i + 1];
+    if (x0 !== x1 && z0 !== z1) {
+      line.push(...rasterSegment(x0, z0, x1, z0));
+      line.push(...rasterSegment(x1, z0, x1, z1));
+    } else {
+      line.push(...rasterSegment(x0, z0, x1, z1));
+    }
   }
   if (line.length === 0) return;
   const water = line.map((cell) => inBounds(cell.x, cell.z) && grid[cell.z][cell.x] === "~");
@@ -285,10 +292,14 @@ function paintAvenues() {
 }
 
 function paintDiagonals() {
+  // Stair-step diagonals read as a wide asphalt blob. Run the same span as
+  // two straight streets that meet at a corner.
   for (const diag of DIAGONALS) {
+    const x2 = diag.x + diag.dx * diag.len;
+    const z2 = diag.z + diag.dz * diag.len;
     strokePolyline(
-      [[diag.x, diag.z], [diag.x + diag.dx * diag.len, diag.z + diag.dz * diag.len]],
-      diag.width,
+      [[diag.x, diag.z], [x2, diag.z], [x2, z2]],
+      3,
       diag.major,
     );
   }
@@ -325,7 +336,7 @@ function waterfrontRoad() {
         pts.push([x, prev[1]]);
       }
     }
-    strokePolyline(pts, 5, true);
+    strokePolyline(pts, 3, true);
   }
 }
 
@@ -338,7 +349,7 @@ function connectIsland() {
   z -= 1;
   while (z > 1 && grid[z][x] === "~") z -= 1;
   if (grid[z][x] !== "~" && islandEdge - z > 1 && islandEdge - z <= 36) {
-    strokePolyline([[x, z], [x, islandEdge + 2]], 5, true, 36);
+    strokePolyline([[x, z], [x, islandEdge + 2]], 3, true, 36);
   }
 }
 
@@ -351,7 +362,7 @@ function harborBridge() {
     const run = x - waterStart;
     if (run < 14 || run > 42 || waterStart < 30 || x >= COLS - 8) continue;
     if (grid[z][waterStart - 1] === "~" || grid[z][x] === "~") continue;
-    strokePolyline([[waterStart - 8, z], [x + 7, z]], 5, true, run + 2);
+    strokePolyline([[waterStart - 8, z], [x + 7, z]], 3, true, run + 2);
     return;
   }
 }
@@ -510,10 +521,6 @@ function carveLot(cells, mode) {
   if (mode === "split" && long < 20) return;
   if (mode === "street" && long < 15) return;
   if (mode === "alley" && (long < 12 || cells.length < 80 || id % 3 === 0)) return;
-  if (mode === "street" && id % 3 === 0) {
-    paintDiagonalAcross(cells);
-    return;
-  }
   const vertical = mode === "street" ? id % 2 === 0 : box.w >= box.h;
   const span = vertical ? box.w : box.h;
   const min = vertical ? box.minX : box.minZ;

@@ -4,7 +4,7 @@
 
 export const ROAD_COLS = 8;
 export const ROAD_ROWS = 3;
-export const WALK_COLS = 4;
+export const WALK_COLS = 3;
 export const WALK_ROWS = 2;
 
 export const PAT = {
@@ -150,10 +150,16 @@ export function classifyMarkings(map) {
   for (let z = 0; z < rows; z += 1) {
     for (let x = 0; x < cols; x += 1) {
       if (ground[z][x] !== "s") continue;
-      const dist = water[z * cols + x];
-      const harbor = (z >= 168 && dist <= 26) || (x >= 210 && z >= 150 && dist <= 18);
-      const variant = tileHash(x, z) % 4;
-      walk[z * cols + x] = (harbor ? 4 : 0) + variant;
+      const north = isRoad(at(x, z - 1));
+      const south = isRoad(at(x, z + 1));
+      const west = isRoad(at(x - 1, z));
+      const east = isRoad(at(x + 1, z));
+      let corner = 0;
+      if (north && east && !south && !west) corner = 2;
+      else if (north && west && !south && !east) corner = 3;
+      else if (south && east && !north && !west) corner = 4;
+      else if (south && west && !north && !east) corner = 5;
+      walk[z * cols + x] = corner;
     }
   }
 

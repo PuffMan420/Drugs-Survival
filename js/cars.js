@@ -8,6 +8,7 @@ import {
   PlaneGeometry,
   SRGBColorSpace,
 } from "three";
+import { pushOutOfCars } from "./car-push.js";
 import { createSim, headingAngle, planCars } from "./routes.js";
 
 const FILES = [
@@ -262,35 +263,23 @@ export async function createTraffic(scene, map) {
       for (let i = 0; i < parkedNear.length && i < 16; i += 1) pushCar(parkedNear[i].car);
       return out;
     },
-    blocks(x, z) {
+    shove(x, z, radius, blocked) {
+      const bodies = [];
       const ix = Math.floor(x / BUCKET);
       const iz = Math.floor(z / BUCKET);
-      for (let dz = -1; dz <= 1; dz += 1) {
-        for (let dx = -1; dx <= 1; dx += 1) {
+      for (let dz = -2; dz <= 2; dz += 1) {
+        for (let dx = -2; dx <= 2; dx += 1) {
           const list = buckets.get(`${ix + dx},${iz + dz}`);
-          if (!list) continue;
-          for (const body of list) {
-            const ox = x - body.x;
-            const oz = z - body.z;
-            const c = Math.cos(body.angle);
-            const s = Math.sin(body.angle);
-            const lx = ox * c - oz * s;
-            const lz = ox * s + oz * c;
-            if (Math.abs(lx) < body.w / 2 + 14 && Math.abs(lz) < body.h / 2 + 14) return true;
-          }
+          if (list) bodies.push(...list);
         }
       }
       for (const body of sim.drivers) {
         const ox = x - body.x;
         const oz = z - body.z;
-        if (ox * ox + oz * oz > 160 * 160) continue;
-        const c = Math.cos(body.angle);
-        const s = Math.sin(body.angle);
-        const lx = ox * c - oz * s;
-        const lz = ox * s + oz * c;
-        if (Math.abs(lx) < body.w / 2 + 14 && Math.abs(lz) < body.h / 2 + 14) return true;
+        if (ox * ox + oz * oz > 280 * 280) continue;
+        bodies.push(body);
       }
-      return false;
+      return pushOutOfCars(x, z, bodies, radius, blocked);
     },
   };
 }

@@ -8,7 +8,7 @@ The live game is at https://drugs-survival.pages.dev/ . Merging to `main` publis
 
 **WASD** or the **arrow keys** move the yellow square. The camera follows.
 
-**M** opens a map of the whole city. **1** through **6** jump to the skyline, a downtown block, the civic plaza, the harbor, the apartments, and the alleys. **Esc** closes the map.
+**M** opens a map of the whole city. **1** through **9** jump across the whole map, each landing on a road: Northwest ring, North avenue, Northeast corner, West avenue, Midtown, East avenue, Southwest quay, South shore, and Southeast ring. **Esc** closes the map.
 
 You stay on roads, sidewalks, parks, plazas, docks, and bridges. Buildings and the water stop you.
 
@@ -19,8 +19,8 @@ You stay on roads, sidewalks, parks, plazas, docks, and bridges. Buildings and t
 - High-rises, glass towers, and brick apartments with different footprints and heights, taller inland and lower along the water
 - Buildings show a little of their south side, because the camera is tilted about 12 degrees toward the north and sits about 12.5% closer, and they still lean in perspective
 - Crisp pixels: the closer view is drawn at 960×540 and scaled up by whole numbers (exactly 2× on a 1080p screen). Small lights mark signals, headlights, taillights, and a dim street lamp
-- A small map in the corner, and an FPS counter
-- Cars drive the right-hand lane, including the ring road. They speed up, brake before a junction, and steer through a curved arc instead of spinning in place. They keep back from the car ahead and stop for you if you stand in front of them. Others stay parked along the curb. A normal car is about one lane wide. Police cars, ambulances, and fire trucks show up less often. You can walk up to a car, and it stops you
+- A larger map in the corner, and an FPS counter
+- Cars drive the right-hand lane, including the ring road. They speed up, brake before a junction, and steer through a curved arc instead of spinning in place. They keep back from the car ahead and stop for you if you stand in front of them. Others stay parked along the curb. A normal car is about one lane wide. Police cars, ambulances, and fire trucks show up less often. You can walk up to a car, and it stops you. If you overlap a parked or moving car, it pushes you back out onto the street so you can walk away
 
 ## The map file
 

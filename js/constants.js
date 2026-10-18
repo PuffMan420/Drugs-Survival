@@ -13,5 +13,7 @@ export const GROUND_H = VIEW_H * CAMERA_DISTANCE;
 export const RENDER_W = VIEW_W;
 export const RENDER_H = VIEW_H;
 export const PLAYER_SIZE = 32;
-export const PLAYER_SPEED = 260;
+// The live speed is measured in player.js: one east/west walk cycle every
+// 2 seconds, about 17 units per second.
+export const PLAYER_SPEED = 17;
 export const CHUNK = 20;

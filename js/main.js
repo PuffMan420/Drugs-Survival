@@ -18,7 +18,6 @@ import {
   GROUND_H,
   GROUND_W,
   PLAYER_SIZE,
-  PLAYER_SPEED,
   RENDER_H,
   RENDER_W,
   TILE,
@@ -244,8 +243,8 @@ async function start() {
     };
     if (moveX !== 0 || moveZ !== 0) {
       const length = Math.hypot(moveX, moveZ);
-      const stepX = (moveX / length) * PLAYER_SPEED * dt;
-      const stepZ = (moveZ / length) * PLAYER_SPEED * dt;
+      const stepX = (moveX / length) * playerSprite.speed * dt;
+      const stepZ = (moveZ / length) * playerSprite.speed * dt;
       // Short slices so a fast step cannot hop through a narrow car.
       const slices = Math.max(1, Math.ceil(Math.hypot(stepX, stepZ) / 8));
       for (let slice = 0; slice < slices; slice += 1) {
@@ -272,7 +271,7 @@ async function start() {
     player.z = clamp(player.z, half, city.mapH - half);
     snappedX = Math.round(player.x);
     snappedZ = Math.round(player.z);
-    playerSprite.update(dt, player.x - previousX, player.z - previousZ, snappedX, snappedZ);
+    playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ);
     camX = clamp(snappedX, GROUND_W / 2, city.mapW - GROUND_W / 2);
     camZ = clamp(snappedZ, GROUND_H / 2, city.mapH - GROUND_H / 2);
     glow.update(camX, camZ, traffic.lights(camX, camZ));

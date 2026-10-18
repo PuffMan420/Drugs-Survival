@@ -198,6 +198,7 @@ async function start() {
   city.playerMesh.geometry.dispose();
   for (const material of city.playerMesh.material) material.dispose();
   const playerSprite = await createPlayer();
+  scene.add(playerSprite.shadow);
   scene.add(playerSprite.mesh);
   const traffic = await createTraffic(scene, map);
   const glow = createGlow(scene, map);

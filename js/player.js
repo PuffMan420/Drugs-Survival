@@ -16,9 +16,11 @@ const IDLE_H = 73;
 const FRAMES = 24;
 // 60% of the full-size sheets. Rounded so each texel is one world unit.
 const SCALE = 0.6;
-// One east/west cycle of the drawn walk lasts this long at full speed.
-const CYCLE_SECONDS = 2;
+// Brisk walk at this size. Frames advance from distance, so the cycle
+// speeds up with him and short steps get skipped.
+const SPEED = 80;
 const SPRITE_Y = 4;
+const SHADOW_Y = 3;
 // A sole cannot step backward more than this in one frame. Larger jumps are
 // the tracker changing feet, not a plant.
 const ADVANCE_CAP = 9;
@@ -66,9 +68,36 @@ function textureOf(canvas) {
   texture.magFilter = NearestFilter;
   texture.minFilter = NearestFilter;
   texture.generateMipmaps = false;
+  texture.premultiplyAlpha = false;
   texture.colorSpace = SRGBColorSpace;
   texture.needsUpdate = true;
   return texture;
+}
+
+function shadowTexture() {
+  const width = 32;
+  const height = 16;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  const image = ctx.createImageData(width, height);
+  const cx = 15.5;
+  const cy = 7.5;
+  const rx = 15;
+  const ry = 7;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const nx = (x - cx) / rx;
+      const ny = (y - cy) / ry;
+      const dist = nx * nx + ny * ny;
+      const alpha = dist >= 1 ? 0 : Math.round(160 * (1 - dist) ** 2);
+      const index = (y * width + x) * 4;
+      image.data[index + 3] = alpha;
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+  return textureOf(canvas);
 }
 
 function drawFrame(image, sx, sy, sw, sh) {
@@ -169,9 +198,7 @@ function frameAt(advances, travel) {
 export async function createPlayer() {
   const walk = {};
   const idle = {};
-  const idleFoot = {};
   const advances = {};
-  const soles = {};
   let idleW = 1;
   let idleH = 1;
   let walkW = 1;
@@ -194,7 +221,6 @@ export async function createPlayer() {
     const [axisX, axisY] = AXIS[dir];
     const stride = strideOf(frames, axisX, axisY, scaleX, scaleZ);
     advances[dir] = stride.advances;
-    soles[dir] = stride.offsets;
     walk[dir] = textures;
 
     const idleImage = await loadImage(new URL(`../assets/player/player_idle_${dir}.png`, import.meta.url));
@@ -203,21 +229,19 @@ export async function createPlayer() {
     idle[dir] = sampledIdle.texture;
     idleW = sampledIdle.w;
     idleH = sampledIdle.h;
-    const foot = solePoint(idleFrame);
-    idleFoot[dir] = {
-      x: (foot.x - IDLE_W / 2) * (sampledIdle.w / IDLE_W),
-      z: (foot.y - IDLE_H / 2) * (sampledIdle.h / IDLE_H),
-    };
   }
-
-  const eastCycle = advances.E.reduce((sum, step) => sum + step, 0);
-  const speed = eastCycle / CYCLE_SECONDS;
 
   const geometry = new PlaneGeometry(walkW, walkH);
   geometry.rotateX(-Math.PI / 2);
+  // Hard cutout. The sheets are fully opaque or fully clear, so nothing
+  // fades the hoodie into the road.
   const material = new MeshBasicMaterial({
     map: idle.S,
-    alphaTest: 0.45,
+    color: 0xffffff,
+    transparent: false,
+    opacity: 1,
+    alphaTest: 0.5,
+    fog: false,
     toneMapped: false,
     side: DoubleSide,
   });
@@ -227,49 +251,45 @@ export async function createPlayer() {
   mesh.renderOrder = 4;
   mesh.scale.set(idleW / walkW, 1, idleH / walkH);
 
+  const shadowGeometry = new PlaneGeometry(18, 8);
+  shadowGeometry.rotateX(-Math.PI / 2);
+  const shadowMaterial = new MeshBasicMaterial({
+    map: shadowTexture(),
+    color: 0xffffff,
+    transparent: true,
+    depthWrite: false,
+    fog: false,
+    toneMapped: false,
+    side: DoubleSide,
+  });
+  const shadow = new Mesh(shadowGeometry, shadowMaterial);
+  shadow.frustumCulled = false;
+  shadow.position.y = SHADOW_Y;
+  shadow.renderOrder = 3;
+
   let dir = "S";
   let travel = 0;
-  let plant = null;
-  let prevForward = null;
-  let prevSole = null;
 
-  function forwardOf(offset, facing) {
-    const [axisX, axisZ] = AXIS[facing];
-    return offset.x * axisX + offset.z * axisZ;
+  function place(x, z) {
+    mesh.position.set(x, SPRITE_Y, z);
+    const height = walkH * mesh.scale.z;
+    shadow.position.set(x, SHADOW_Y, z + height * 0.42);
   }
 
   function showIdle() {
     material.map = idle[dir];
     mesh.scale.set(idleW / walkW, 1, idleH / walkH);
-    const foot = idleFoot[dir];
-    if (plant) {
-      mesh.position.set(plant.x - foot.x, SPRITE_Y, plant.z - foot.z);
-    }
   }
 
-  function showWalk(frame, x, z) {
+  function showWalk(frame) {
     material.map = walk[dir][frame];
     mesh.scale.set(1, 1, 1);
-    const sole = soles[dir][frame];
-    const forward = forwardOf(sole, dir);
-    if (!plant || prevForward === null || forward > prevForward + 1.2) {
-      if (plant && prevSole) {
-        plant = {
-          x: plant.x - prevSole.x + sole.x,
-          z: plant.z - prevSole.z + sole.z,
-        };
-      } else {
-        plant = { x: x + sole.x, z: z + sole.z };
-      }
-    }
-    prevForward = forward;
-    prevSole = sole;
-    mesh.position.set(plant.x - sole.x, SPRITE_Y, plant.z - sole.z);
   }
 
   return {
     mesh,
-    speed,
+    shadow,
+    speed: SPEED,
     update(dx, dz, x, z) {
       const next = directionOf(dx, dz);
       if (next) {
@@ -279,16 +299,13 @@ export async function createPlayer() {
           dir = next;
           const total = advances[dir].reduce((sum, step) => sum + step, 0);
           travel = phase * total;
-          plant = null;
-          prevForward = null;
-          prevSole = null;
         }
         travel += Math.hypot(dx, dz);
-        showWalk(frameAt(advances[dir], travel), x, z);
+        showWalk(frameAt(advances[dir], travel));
       } else {
         showIdle();
-        if (!plant) mesh.position.set(x, SPRITE_Y, z);
       }
+      place(x, z);
     },
   };
 }

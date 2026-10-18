@@ -1,6 +1,7 @@
 import {
   CanvasTexture,
   DoubleSide,
+  LinearFilter,
   Mesh,
   MeshBasicMaterial,
   NearestFilter,
@@ -16,9 +17,12 @@ const IDLE_W = 43;
 const IDLE_H = 73;
 const FRAMES = 24;
 // The 960×540 picture frames 840×472.5 world units, so one render pixel is
-// 0.875 world units. Native texels use that size and land 1:1 on screen.
+// 0.875 world units.
 const WORLD_PER_PX_X = GROUND_W / RENDER_W;
 const WORLD_PER_PX_Z = GROUND_H / RENDER_H;
+// Thirty percent smaller than the native frames. One scale on the whole
+// sprite, so every part of him shrinks together and stays even.
+const CHARACTER_SCALE = 0.7;
 // Brisk walk. Frames advance from distance, so the cycle keeps up with him.
 const SPEED = 80;
 const SPRITE_Y = 4;
@@ -65,12 +69,15 @@ function loadImage(url) {
   });
 }
 
-function textureOf(canvas) {
+function textureOf(canvas, smooth) {
   const texture = new CanvasTexture(canvas);
-  texture.magFilter = NearestFilter;
-  texture.minFilter = NearestFilter;
+  const filter = smooth ? LinearFilter : NearestFilter;
+  texture.magFilter = filter;
+  texture.minFilter = filter;
   texture.generateMipmaps = false;
-  texture.premultiplyAlpha = false;
+  // Smooth sampling mixes in the clear texels. Premultiply so that black
+  // stays out of the edge and the shrink looks even instead of fringed.
+  texture.premultiplyAlpha = smooth;
   texture.colorSpace = SRGBColorSpace;
   texture.needsUpdate = true;
   return texture;
@@ -99,7 +106,7 @@ function shadowTexture() {
     }
   }
   ctx.putImageData(image, 0, 0);
-  return textureOf(canvas);
+  return textureOf(canvas, true);
 }
 
 function drawFrame(image, sx, sy, sw, sh) {
@@ -186,27 +193,38 @@ export async function createPlayer() {
     for (let index = 0; index < FRAMES; index += 1) {
       const frame = drawFrame(sheet, index * FRAME_W, 0, FRAME_W, FRAME_H);
       frames.push(frame);
-      textures.push(textureOf(frame));
+      textures.push(textureOf(frame, true));
     }
     const [axisX, axisY] = AXIS[dir];
-    const stride = strideOf(frames, axisX, axisY, WORLD_PER_PX_X, WORLD_PER_PX_Z);
+    const stride = strideOf(
+      frames,
+      axisX,
+      axisY,
+      WORLD_PER_PX_X * CHARACTER_SCALE,
+      WORLD_PER_PX_Z * CHARACTER_SCALE,
+    );
     advances[dir] = stride.advances;
     walk[dir] = textures;
 
     const idleImage = await loadImage(new URL(`../assets/player/player_idle_${dir}.png`, import.meta.url));
-    idle[dir] = textureOf(drawFrame(idleImage, 0, 0, IDLE_W, IDLE_H));
+    idle[dir] = textureOf(drawFrame(idleImage, 0, 0, IDLE_W, IDLE_H), true);
   }
+
+  const idleScaleX = (idleWorldW / walkWorldW) * CHARACTER_SCALE;
+  const idleScaleZ = (idleWorldH / walkWorldH) * CHARACTER_SCALE;
 
   const geometry = new PlaneGeometry(walkWorldW, walkWorldH);
   geometry.rotateX(-Math.PI / 2);
-  // Hard cutout. The sheets are fully opaque or fully clear, so nothing
-  // fades the hoodie into the road.
+  // Soft edge from the smooth scale. Premultiplied blending keeps the
+  // hoodie solid and stops the clear texels from darkening the outline.
   const material = new MeshBasicMaterial({
     map: idle.S,
     color: 0xffffff,
-    transparent: false,
+    transparent: true,
+    premultipliedAlpha: true,
     opacity: 1,
-    alphaTest: 0.5,
+    alphaTest: 0.05,
+    depthWrite: true,
     fog: false,
     toneMapped: false,
     side: DoubleSide,
@@ -215,14 +233,15 @@ export async function createPlayer() {
   mesh.frustumCulled = false;
   mesh.position.y = SPRITE_Y;
   mesh.renderOrder = 4;
-  mesh.scale.set(idleWorldW / walkWorldW, 1, idleWorldH / walkWorldH);
+  mesh.scale.set(idleScaleX, 1, idleScaleZ);
 
-  const shadowGeometry = new PlaneGeometry(18, 8);
+  const shadowGeometry = new PlaneGeometry(18 * CHARACTER_SCALE, 8 * CHARACTER_SCALE);
   shadowGeometry.rotateX(-Math.PI / 2);
   const shadowMaterial = new MeshBasicMaterial({
     map: shadowTexture(),
     color: 0xffffff,
     transparent: true,
+    premultipliedAlpha: true,
     depthWrite: false,
     fog: false,
     toneMapped: false,
@@ -235,6 +254,7 @@ export async function createPlayer() {
 
   let dir = "S";
   let travel = 0;
+  let standing = true;
 
   function pixelBias(width, height) {
     // Odd sizes need a half pixel so every texel sits on one screen pixel.
@@ -245,8 +265,7 @@ export async function createPlayer() {
   }
 
   function place(x, z) {
-    const idleNow = mesh.scale.x !== 1;
-    const bias = idleNow ? pixelBias(IDLE_W, IDLE_H) : pixelBias(FRAME_W, FRAME_H);
+    const bias = standing ? pixelBias(IDLE_W, IDLE_H) : pixelBias(FRAME_W, FRAME_H);
     const px = x + bias.x;
     const pz = z + bias.z;
     mesh.position.set(px, SPRITE_Y, pz);
@@ -255,13 +274,15 @@ export async function createPlayer() {
   }
 
   function showIdle() {
+    standing = true;
     material.map = idle[dir];
-    mesh.scale.set(idleWorldW / walkWorldW, 1, idleWorldH / walkWorldH);
+    mesh.scale.set(idleScaleX, 1, idleScaleZ);
   }
 
   function showWalk(frame) {
+    standing = false;
     material.map = walk[dir][frame];
-    mesh.scale.set(1, 1, 1);
+    mesh.scale.set(CHARACTER_SCALE, 1, CHARACTER_SCALE);
   }
 
   return {

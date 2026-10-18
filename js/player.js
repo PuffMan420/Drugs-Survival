@@ -7,6 +7,7 @@ import {
   PlaneGeometry,
   SRGBColorSpace,
 } from "three";
+import { GROUND_H, GROUND_W, RENDER_H, RENDER_W } from "./constants.js";
 
 const DIRS = ["S", "SE", "E", "NE", "N", "NW", "W", "SW"];
 const FRAME_W = 54;
@@ -14,10 +15,11 @@ const FRAME_H = 80;
 const IDLE_W = 43;
 const IDLE_H = 73;
 const FRAMES = 24;
-// 60% of the full-size sheets. Rounded so each texel is one world unit.
-const SCALE = 0.6;
-// Brisk walk at this size. Frames advance from distance, so the cycle
-// speeds up with him and short steps get skipped.
+// The 960×540 picture frames 840×472.5 world units, so one render pixel is
+// 0.875 world units. Native texels use that size and land 1:1 on screen.
+const WORLD_PER_PX_X = GROUND_W / RENDER_W;
+const WORLD_PER_PX_Z = GROUND_H / RENDER_H;
+// Brisk walk. Frames advance from distance, so the cycle keeps up with him.
 const SPEED = 80;
 const SPRITE_Y = 4;
 const SHADOW_Y = 3;
@@ -110,33 +112,6 @@ function drawFrame(image, sx, sy, sw, sh) {
   return canvas;
 }
 
-function sampleDown(source) {
-  const sw = source.width;
-  const sh = source.height;
-  const dw = Math.max(1, Math.round(sw * SCALE));
-  const dh = Math.max(1, Math.round(sh * SCALE));
-  const src = source.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, sw, sh).data;
-  const canvas = document.createElement("canvas");
-  canvas.width = dw;
-  canvas.height = dh;
-  const ctx = canvas.getContext("2d");
-  const out = ctx.createImageData(dw, dh);
-  for (let y = 0; y < dh; y += 1) {
-    for (let x = 0; x < dw; x += 1) {
-      const fromX = Math.min(sw - 1, Math.floor((x * sw) / dw));
-      const fromY = Math.min(sh - 1, Math.floor((y * sh) / dh));
-      const from = (fromY * sw + fromX) * 4;
-      const to = (y * dw + x) * 4;
-      out.data[to] = src[from];
-      out.data[to + 1] = src[from + 1];
-      out.data[to + 2] = src[from + 2];
-      out.data[to + 3] = src[from + 3];
-    }
-  }
-  ctx.putImageData(out, 0, 0);
-  return { texture: textureOf(canvas), w: dw, h: dh };
-}
-
 function solePoint(canvas) {
   const { width, height, data } = canvas.getContext("2d", { willReadFrequently: true })
     .getImageData(0, 0, canvas.width, canvas.height);
@@ -199,10 +174,10 @@ export async function createPlayer() {
   const walk = {};
   const idle = {};
   const advances = {};
-  let idleW = 1;
-  let idleH = 1;
-  let walkW = 1;
-  let walkH = 1;
+  const walkWorldW = FRAME_W * WORLD_PER_PX_X;
+  const walkWorldH = FRAME_H * WORLD_PER_PX_Z;
+  const idleWorldW = IDLE_W * WORLD_PER_PX_X;
+  const idleWorldH = IDLE_H * WORLD_PER_PX_Z;
 
   for (const dir of DIRS) {
     const sheet = await loadImage(new URL(`../assets/player/player_walk_${dir}_sheet.png`, import.meta.url));
@@ -211,27 +186,18 @@ export async function createPlayer() {
     for (let index = 0; index < FRAMES; index += 1) {
       const frame = drawFrame(sheet, index * FRAME_W, 0, FRAME_W, FRAME_H);
       frames.push(frame);
-      const sampled = sampleDown(frame);
-      textures.push(sampled.texture);
-      walkW = sampled.w;
-      walkH = sampled.h;
+      textures.push(textureOf(frame));
     }
-    const scaleX = walkW / FRAME_W;
-    const scaleZ = walkH / FRAME_H;
     const [axisX, axisY] = AXIS[dir];
-    const stride = strideOf(frames, axisX, axisY, scaleX, scaleZ);
+    const stride = strideOf(frames, axisX, axisY, WORLD_PER_PX_X, WORLD_PER_PX_Z);
     advances[dir] = stride.advances;
     walk[dir] = textures;
 
     const idleImage = await loadImage(new URL(`../assets/player/player_idle_${dir}.png`, import.meta.url));
-    const idleFrame = drawFrame(idleImage, 0, 0, IDLE_W, IDLE_H);
-    const sampledIdle = sampleDown(idleFrame);
-    idle[dir] = sampledIdle.texture;
-    idleW = sampledIdle.w;
-    idleH = sampledIdle.h;
+    idle[dir] = textureOf(drawFrame(idleImage, 0, 0, IDLE_W, IDLE_H));
   }
 
-  const geometry = new PlaneGeometry(walkW, walkH);
+  const geometry = new PlaneGeometry(walkWorldW, walkWorldH);
   geometry.rotateX(-Math.PI / 2);
   // Hard cutout. The sheets are fully opaque or fully clear, so nothing
   // fades the hoodie into the road.
@@ -249,7 +215,7 @@ export async function createPlayer() {
   mesh.frustumCulled = false;
   mesh.position.y = SPRITE_Y;
   mesh.renderOrder = 4;
-  mesh.scale.set(idleW / walkW, 1, idleH / walkH);
+  mesh.scale.set(idleWorldW / walkWorldW, 1, idleWorldH / walkWorldH);
 
   const shadowGeometry = new PlaneGeometry(18, 8);
   shadowGeometry.rotateX(-Math.PI / 2);
@@ -270,15 +236,27 @@ export async function createPlayer() {
   let dir = "S";
   let travel = 0;
 
+  function pixelBias(width, height) {
+    // Odd sizes need a half pixel so every texel sits on one screen pixel.
+    return {
+      x: (width % 2) * WORLD_PER_PX_X * 0.5,
+      z: (height % 2) * WORLD_PER_PX_Z * 0.5,
+    };
+  }
+
   function place(x, z) {
-    mesh.position.set(x, SPRITE_Y, z);
-    const height = walkH * mesh.scale.z;
-    shadow.position.set(x, SHADOW_Y, z + height * 0.42);
+    const idleNow = mesh.scale.x !== 1;
+    const bias = idleNow ? pixelBias(IDLE_W, IDLE_H) : pixelBias(FRAME_W, FRAME_H);
+    const px = x + bias.x;
+    const pz = z + bias.z;
+    mesh.position.set(px, SPRITE_Y, pz);
+    const height = walkWorldH * mesh.scale.z;
+    shadow.position.set(px, SHADOW_Y, pz + height * 0.42);
   }
 
   function showIdle() {
     material.map = idle[dir];
-    mesh.scale.set(idleW / walkW, 1, idleH / walkH);
+    mesh.scale.set(idleWorldW / walkWorldW, 1, idleWorldH / walkWorldH);
   }
 
   function showWalk(frame) {

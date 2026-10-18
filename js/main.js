@@ -27,6 +27,7 @@ import { createTraffic } from "./cars.js";
 import { buildCity, tileAt, tileCenter, updateChunks } from "./city.js";
 import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
+import { createPlayer } from "./player.js";
 
 const NEAR = 10;
 const FAR = 6000;
@@ -194,6 +195,11 @@ async function start() {
 
   const scene = new Scene();
   const city = await buildCity(scene, map);
+  city.playerMesh.removeFromParent();
+  city.playerMesh.geometry.dispose();
+  for (const material of city.playerMesh.material) material.dispose();
+  const playerSprite = await createPlayer();
+  scene.add(playerSprite.mesh);
   const traffic = await createTraffic(scene, map);
   const glow = createGlow(scene, map);
   const minimap = createMinimap(map, JUMPS);
@@ -220,6 +226,8 @@ async function start() {
   function frame(now) {
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
+    const previousX = player.x;
+    const previousZ = player.z;
 
     let moveX = 0;
     let moveZ = 0;
@@ -264,7 +272,7 @@ async function start() {
     player.z = clamp(player.z, half, city.mapH - half);
     snappedX = Math.round(player.x);
     snappedZ = Math.round(player.z);
-    city.playerMesh.position.set(snappedX, half, snappedZ);
+    playerSprite.update(dt, player.x - previousX, player.z - previousZ, snappedX, snappedZ);
     camX = clamp(snappedX, GROUND_W / 2, city.mapW - GROUND_W / 2);
     camZ = clamp(snappedZ, GROUND_H / 2, city.mapH - GROUND_H / 2);
     glow.update(camX, camZ, traffic.lights(camX, camZ));

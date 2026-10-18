@@ -13,5 +13,6 @@ export const GROUND_H = VIEW_H * CAMERA_DISTANCE;
 export const RENDER_W = VIEW_W;
 export const RENDER_H = VIEW_H;
 export const PLAYER_SIZE = 32;
-export const PLAYER_SPEED = 260;
+// The live speed is player.js SPEED: a brisk 80 units per second.
+export const PLAYER_SPEED = 80;
 export const CHUNK = 20;

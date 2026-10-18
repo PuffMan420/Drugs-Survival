@@ -18,7 +18,6 @@ import {
   GROUND_H,
   GROUND_W,
   PLAYER_SIZE,
-  PLAYER_SPEED,
   RENDER_H,
   RENDER_W,
   TILE,
@@ -27,6 +26,7 @@ import { createTraffic } from "./cars.js";
 import { buildCity, tileAt, tileCenter, updateChunks } from "./city.js";
 import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
+import { createPlayer } from "./player.js";
 
 const NEAR = 10;
 const FAR = 6000;
@@ -194,6 +194,12 @@ async function start() {
 
   const scene = new Scene();
   const city = await buildCity(scene, map);
+  city.playerMesh.removeFromParent();
+  city.playerMesh.geometry.dispose();
+  for (const material of city.playerMesh.material) material.dispose();
+  const playerSprite = await createPlayer();
+  scene.add(playerSprite.shadow);
+  scene.add(playerSprite.mesh);
   const traffic = await createTraffic(scene, map);
   const glow = createGlow(scene, map);
   const minimap = createMinimap(map, JUMPS);
@@ -220,6 +226,8 @@ async function start() {
   function frame(now) {
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
+    const previousX = player.x;
+    const previousZ = player.z;
 
     let moveX = 0;
     let moveZ = 0;
@@ -236,8 +244,8 @@ async function start() {
     };
     if (moveX !== 0 || moveZ !== 0) {
       const length = Math.hypot(moveX, moveZ);
-      const stepX = (moveX / length) * PLAYER_SPEED * dt;
-      const stepZ = (moveZ / length) * PLAYER_SPEED * dt;
+      const stepX = (moveX / length) * playerSprite.speed * dt;
+      const stepZ = (moveZ / length) * playerSprite.speed * dt;
       // Short slices so a fast step cannot hop through a narrow car.
       const slices = Math.max(1, Math.ceil(Math.hypot(stepX, stepZ) / 8));
       for (let slice = 0; slice < slices; slice += 1) {
@@ -264,7 +272,7 @@ async function start() {
     player.z = clamp(player.z, half, city.mapH - half);
     snappedX = Math.round(player.x);
     snappedZ = Math.round(player.z);
-    city.playerMesh.position.set(snappedX, half, snappedZ);
+    playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ);
     camX = clamp(snappedX, GROUND_W / 2, city.mapW - GROUND_W / 2);
     camZ = clamp(snappedZ, GROUND_H / 2, city.mapH - GROUND_H / 2);
     glow.update(camX, camZ, traffic.lights(camX, camZ));

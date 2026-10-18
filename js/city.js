@@ -12,14 +12,10 @@ import {
 import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
 import { createGround } from "./ground.js";
 import { appendQuay, createQuayMaterials, emptyQuayBuffers, PIER_Y, quayPlan, WATER_Y } from "./quay.js";
+import { createFacades } from "./facades.js";
 import { createTextures } from "./textures.js";
 
 const flat = { toneMapped: false };
-
-function hexRgb(hex) {
-  const value = Number.parseInt(hex.slice(1), 16);
-  return [((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255];
-}
 
 function makeMaterial(texture, extra = {}) {
   return new MeshBasicMaterial({ map: texture, side: FrontSide, ...flat, ...extra });
@@ -367,11 +363,19 @@ function addTree(buf, x, z) {
   addColoredBox(buf, cx - canopy / 2, gy, cz - canopy / 2, cx + canopy / 2, gy + canopy * 0.55, cz + canopy / 2, greens[h % 3]);
 }
 
-function buildChunk(map, cx, cz, materials, ground, quay) {
+function addTexturedRoof(buf, x0, z0, x1, z1, y) {
+  const base = buf.pos.length / 3;
+  buf.pos.push(x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1);
+  buf.uv.push(0, 1, 1, 1, 1, 0, 0, 0);
+  buf.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+}
+
+function buildChunk(map, cx, cz, materials, ground, quay, facades) {
   const x1 = Math.min(map.cols, cx + CHUNK);
   const z1 = Math.min(map.rows, cz + CHUNK);
   const groundBufs = new Map();
   const wallBufs = new Map();
+  const roofTexBufs = new Map();
   const roofBuf = { pos: [], uv: [], idx: [], col: [] };
   const surfaceBufs = new Map();
   const shadowBuf = { pos: [], shade: [], idx: [] };
@@ -432,20 +436,32 @@ function buildChunk(map, cx, cz, materials, ground, quay) {
     const box = new BoxGeometry(width, height, depth);
     box.translate((building.x + building.w / 2) * TILE, height / 2, (building.z + building.d / 2) * TILE);
     const groups = box.groups;
-    const style = materials.walls[building.style] ? building.style : "house";
-    let walls = wallBufs.get(style);
+    const look = facades.look(building);
+    let walls = wallBufs.get(look.wall.id);
     if (!walls) {
-      walls = { pos: [], uv: [], idx: [] };
-      wallBufs.set(style, walls);
+      walls = { pos: [], uv: [], idx: [], material: look.wall.material };
+      wallBufs.set(look.wall.id, walls);
     }
-    // Facade art is two floors tall, so it repeats once per two tiles. Shed stripes stay one tile tall.
-    const vScale = style === "shed" ? building.h : building.h * 0.5;
-    // Box face order: +X, -X, +Y, -Y, +Z, -Z.
-    appendFace(walls, box, groups[0], building.d, vScale);
-    appendFace(walls, box, groups[1], building.d, vScale);
-    appendFace(roofBuf, box, groups[2], 1, 1, hexRgb(building.roof));
-    appendFace(walls, box, groups[4], building.w, vScale);
-    appendFace(walls, box, groups[5], building.w, vScale);
+    // A 96 px sheet cell covers two tiles, the same density as the old wall tile.
+    const vScale = building.h / 2;
+    // Box face order: +X, -X, +Y, -Y, +Z, -Z. The top is the roof sheet.
+    appendFace(walls, box, groups[0], building.d / 2, vScale);
+    appendFace(walls, box, groups[1], building.d / 2, vScale);
+    let roofTop = roofTexBufs.get(look.roof.id);
+    if (!roofTop) {
+      roofTop = { pos: [], uv: [], idx: [], material: look.roof.material };
+      roofTexBufs.set(look.roof.id, roofTop);
+    }
+    addTexturedRoof(
+      roofTop,
+      building.x * TILE,
+      building.z * TILE,
+      (building.x + building.w) * TILE,
+      (building.z + building.d) * TILE,
+      height,
+    );
+    appendFace(walls, box, groups[4], building.w / 2, vScale);
+    appendFace(walls, box, groups[5], building.w / 2, vScale);
     box.dispose();
     addRoofDetails(roofBuf, building);
     const bx = building.x * TILE;
@@ -477,9 +493,16 @@ function buildChunk(map, cx, cz, materials, ground, quay) {
     group.add(mesh);
   }
   for (const [key, buf] of surfaceBufs) addMesh(buf, ground.material(key));
-  for (const [key, buf] of wallBufs) {
+  for (const buf of wallBufs.values()) {
     if (buf.idx.length === 0) continue;
-    const mesh = new Mesh(geometryFrom(buf, false), materials.walls[key]);
+    const mesh = new Mesh(geometryFrom(buf, false), buf.material);
+    mesh.frustumCulled = false;
+    mesh.matrixAutoUpdate = false;
+    group.add(mesh);
+  }
+  for (const buf of roofTexBufs.values()) {
+    if (buf.idx.length === 0) continue;
+    const mesh = new Mesh(geometryFrom(buf, false), buf.material);
     mesh.frustumCulled = false;
     mesh.matrixAutoUpdate = false;
     group.add(mesh);
@@ -523,6 +546,7 @@ function makePlayer() {
 
 export async function buildCity(scene, map) {
   const textures = await createTextures();
+  const facades = await createFacades();
   const materials = createMaterials(textures);
   materials.quay = await createQuayMaterials();
   const ground = await createGround(map);
@@ -530,7 +554,7 @@ export async function buildCity(scene, map) {
   const chunks = [];
   for (let cz = 0; cz < map.rows; cz += CHUNK) {
     for (let cx = 0; cx < map.cols; cx += CHUNK) {
-      const chunk = buildChunk(map, cx, cz, materials, ground, quay);
+      const chunk = buildChunk(map, cx, cz, materials, ground, quay, facades);
       scene.add(chunk.group);
       chunks.push(chunk);
     }

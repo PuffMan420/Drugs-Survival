@@ -119,6 +119,49 @@ function drawFrame(image, sx, sy, sw, sh) {
   return canvas;
 }
 
+function visibleBox(canvas) {
+  const { width, height, data } = canvas.getContext("2d", { willReadFrequently: true })
+    .getImageData(0, 0, canvas.width, canvas.height);
+  let minX = width;
+  let minY = height;
+  let maxX = 0;
+  let maxY = 0;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (data[(y * width + x) * 4 + 3] <= 32) continue;
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+  }
+  return { w: maxX - minX + 1, h: maxY - minY + 1 };
+}
+
+// Walk sheets draw a larger figure than the idle pose. The frames whose
+// outline matches that idle pose set the scale, so his visible height matches
+// standing still and the stride still reaches.
+function walkFit(idleCanvas, frames) {
+  const idle = visibleBox(idleCanvas);
+  const idleAspect = idle.w / idle.h;
+  const boxes = frames.map(visibleBox);
+  let best = Infinity;
+  for (const box of boxes) {
+    const delta = Math.abs(box.w / box.h - idleAspect);
+    if (delta < best) best = delta;
+  }
+  const heights = [];
+  for (const box of boxes) {
+    if (Math.abs(box.w / box.h - idleAspect) <= best + 1e-9) heights.push(box.h);
+  }
+  heights.sort((a, b) => a - b);
+  const mid = Math.floor(heights.length / 2);
+  const height = heights.length % 2 === 1
+    ? heights[mid]
+    : (heights[mid - 1] + heights[mid]) / 2;
+  return idle.h / height;
+}
+
 function solePoint(canvas) {
   const { width, height, data } = canvas.getContext("2d", { willReadFrequently: true })
     .getImageData(0, 0, canvas.width, canvas.height);
@@ -181,6 +224,7 @@ export async function createPlayer() {
   const walk = {};
   const idle = {};
   const advances = {};
+  const walkFitByDir = {};
   const walkWorldW = FRAME_W * WORLD_PER_PX_X;
   const walkWorldH = FRAME_H * WORLD_PER_PX_Z;
   const idleWorldW = IDLE_W * WORLD_PER_PX_X;
@@ -195,19 +239,16 @@ export async function createPlayer() {
       frames.push(frame);
       textures.push(textureOf(frame, true));
     }
+    const idleImage = await loadImage(new URL(`../assets/player/player_idle_${dir}.png`, import.meta.url));
+    const idleCanvas = drawFrame(idleImage, 0, 0, IDLE_W, IDLE_H);
+    idle[dir] = textureOf(idleCanvas, true);
+    walkFitByDir[dir] = walkFit(idleCanvas, frames);
+
     const [axisX, axisY] = AXIS[dir];
-    const stride = strideOf(
-      frames,
-      axisX,
-      axisY,
-      WORLD_PER_PX_X * CHARACTER_SCALE,
-      WORLD_PER_PX_Z * CHARACTER_SCALE,
-    );
+    const drawn = CHARACTER_SCALE * walkFitByDir[dir];
+    const stride = strideOf(frames, axisX, axisY, WORLD_PER_PX_X * drawn, WORLD_PER_PX_Z * drawn);
     advances[dir] = stride.advances;
     walk[dir] = textures;
-
-    const idleImage = await loadImage(new URL(`../assets/player/player_idle_${dir}.png`, import.meta.url));
-    idle[dir] = textureOf(drawFrame(idleImage, 0, 0, IDLE_W, IDLE_H), true);
   }
 
   const idleScaleX = (idleWorldW / walkWorldW) * CHARACTER_SCALE;
@@ -282,7 +323,8 @@ export async function createPlayer() {
   function showWalk(frame) {
     standing = false;
     material.map = walk[dir][frame];
-    mesh.scale.set(CHARACTER_SCALE, 1, CHARACTER_SCALE);
+    const drawn = CHARACTER_SCALE * walkFitByDir[dir];
+    mesh.scale.set(drawn, 1, drawn);
   }
 
   return {

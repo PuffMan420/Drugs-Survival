@@ -412,7 +412,16 @@ function buildChunk(map, cx, cz, materials, ground, quay) {
         continue;
       }
       const groundY = cell === "~" ? WATER_Y : 0;
-      addGroundQuad(buf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, 0, 0, 1, 1, groundY);
+      if (cell === "y") {
+        // addGroundQuad applies v1 at z0 and v0 at z1. Match world z to texture v.
+        const u0 = (x * TILE) / 128;
+        const u1 = ((x + 1) * TILE) / 128;
+        const vAtZ0 = (z * TILE) / 128;
+        const vAtZ1 = ((z + 1) * TILE) / 128;
+        addGroundQuad(buf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, u0, vAtZ1, u1, vAtZ0, groundY);
+      } else {
+        addGroundQuad(buf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, 0, 0, 1, 1, groundY);
+      }
     }
   }
 

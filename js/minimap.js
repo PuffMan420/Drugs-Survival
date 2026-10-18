@@ -22,6 +22,7 @@ const GROUND = {
   q: "#d4cbb8",
   s: "#c6c2a4",
   g: "#3d6b45",
+  y: "#505b29",
   p: "#c2b48a",
   l: "#7a7368",
   b: "#6a645a",

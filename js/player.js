@@ -8,7 +8,7 @@ import {
   PlaneGeometry,
   SRGBColorSpace,
 } from "three";
-import { GROUND_H, GROUND_W, RENDER_H, RENDER_W } from "./constants.js";
+import { CAMERA_DISTANCE } from "./constants.js";
 
 const DIRS = ["S", "SE", "E", "NE", "N", "NW", "W", "SW"];
 const FRAME_W = 54;
@@ -16,10 +16,11 @@ const FRAME_H = 80;
 const IDLE_W = 43;
 const IDLE_H = 73;
 const FRAMES = 24;
-// The 960×540 picture frames 840×472.5 world units, so one render pixel is
-// 0.875 world units.
-const WORLD_PER_PX_X = GROUND_W / RENDER_W;
-const WORLD_PER_PX_Z = GROUND_H / RENDER_H;
+// The camera still frames 840×472.5 world units. Sprite texels stay on that
+// original scale (one texel is 0.875 world units) so the figure holds its
+// size when the picture is drawn at a finer resolution.
+const WORLD_PER_PX_X = CAMERA_DISTANCE;
+const WORLD_PER_PX_Z = CAMERA_DISTANCE;
 // Thirty percent smaller than the native frames. One scale on the whole
 // sprite, so every part of him shrinks together and stays even.
 const CHARACTER_SCALE = 0.7;

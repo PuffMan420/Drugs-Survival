@@ -16,8 +16,6 @@ body {
 canvas {
   display: block;
   background: #000;
-  image-rendering: crisp-edges;
-  image-rendering: pixelated;
 }
 
 #fps,

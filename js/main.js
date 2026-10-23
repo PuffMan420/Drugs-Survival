@@ -2,7 +2,7 @@ import {
   LinearSRGBColorSpace,
   Mesh,
   MeshBasicMaterial,
-  NearestFilter,
+  LinearFilter,
   NoToneMapping,
   OrthographicCamera,
   PerspectiveCamera,
@@ -82,7 +82,7 @@ function lockPixelProjection(camera) {
   const apply = () => {
     // The center ray meets the ground farther out than the camera's height,
     // because the camera is tilted. Frame the smaller ground rectangle there
-    // so the 12.5% closer view stays even across the 960×540 picture.
+    // so the 12.5% closer view stays even across the same 840×472.5 world.
     const distance = CAMERA_HEIGHT / Math.cos(CAMERA_TILT);
     const scale = camera.near / distance;
     camera.projectionMatrix.makePerspective(
@@ -100,30 +100,31 @@ function lockPixelProjection(camera) {
 }
 
 function fitDisplay(renderer) {
-  // Fill the window with the same 16:9 frame. The nearer camera draws that
-  // frame at 960×540; this only nearest-scales that picture.
+  // Fill the window with the same 16:9 frame. The city is drawn at the
+  // render-target size; this buffer is the screen, so the copy below can
+  // scale that picture smoothly instead of by whole pixels.
   const unit = Math.min(window.innerWidth / 16, window.innerHeight / 9);
-  const width = Math.max(1, Math.floor(unit) * 16);
-  const height = Math.max(1, Math.floor(unit) * 9);
+  const width = Math.max(1, Math.round(unit * 16));
+  const height = Math.max(1, Math.round(width * 9 / 16));
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
   renderer.setPixelRatio(1);
-  renderer.setSize(RENDER_W, RENDER_H, false);
+  renderer.setSize(width, height, false);
 }
 
 function createPresenter(renderer) {
   // The canvas context has no depth buffer. The city is drawn into this
   // target, which does, so roofs cover the floors inside the buildings.
-  // The target is then nearest-copied onto the screen.
+  // The target is then linearly scaled onto the screen.
   const target = new WebGLRenderTarget(RENDER_W, RENDER_H, {
-    minFilter: NearestFilter,
-    magFilter: NearestFilter,
+    minFilter: LinearFilter,
+    magFilter: LinearFilter,
     generateMipmaps: false,
     depthBuffer: true,
     stencilBuffer: false,
   });
-  target.texture.minFilter = NearestFilter;
-  target.texture.magFilter = NearestFilter;
+  target.texture.minFilter = LinearFilter;
+  target.texture.magFilter = LinearFilter;
   target.texture.generateMipmaps = false;
   target.texture.colorSpace = LinearSRGBColorSpace;
 

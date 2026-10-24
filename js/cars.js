@@ -1,5 +1,8 @@
 import {
+  DynamicDrawUsage,
+  Float32BufferAttribute,
   FrontSide,
+  InstancedBufferAttribute,
   InstancedMesh,
   LinearFilter,
   LinearMipmapLinearFilter,
@@ -43,24 +46,118 @@ const CARS = [
 ];
 
 const RARE = new Set(["police", "ambulance", "fire_truck"]);
+// Job and service liveries stay on the colours built into the model.
+const SERVICE = new Set([
+  "ambulance",
+  "box_truck",
+  "delivery_van",
+  "fire_truck",
+  "garbage_truck",
+  "icecream_van",
+  "police",
+  "school_bus",
+  "swat_van",
+  "taco_truck",
+  "taxi",
+]);
 const BUCKET = 96;
 // Tires sit just above the road.
 const GROUND_Y = 0.6;
 // The mesh is drawn 10% past the footprint w and h. Routes and the push test keep those.
 const DRAW_SCALE = 1.1;
+// colormap.png is 16 columns by 4 rows. Each colour is a flat column beside a
+// gradient column (lighter at the top of the row, darkest at the bottom).
+// The model UVs already sit on the gradient column. A shell vertex is repainted
+// down that column so the roof is the light end and the sill is the dark end.
+const COLUMNS = 16;
+const ROWS = 4;
+const GRADIENT_INSET = 0.008;
+const GRADIENT_SPAN = 1 / ROWS - GRADIENT_INSET * 2;
+// Every painted swatch except the empty black block on the top row.
+const BODY_COLOURS = [];
+for (let row = 0; row < ROWS; row += 1) {
+  for (let pair = 0; pair < 8; pair += 1) {
+    if (row === 0 && pair >= 3) continue;
+    BODY_COLOURS.push({
+      u: (pair * 2 + 1.5) / COLUMNS,
+      v: row / ROWS,
+    });
+  }
+}
+
+function cellCol(u) {
+  return Math.min(COLUMNS - 1, Math.max(0, Math.floor(u * COLUMNS + 1e-4)));
+}
+
+function cellRow(v) {
+  return Math.min(ROWS - 1, Math.max(0, Math.floor(v * ROWS + 1e-4)));
+}
+
+function isWheel(obj) {
+  return obj.name.startsWith("wheel") || (obj.parent && obj.parent.name.startsWith("wheel"));
+}
+
+function colourIndex(salt) {
+  let h = Math.imul(salt | 0, 0x9e3779b1);
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+  return (h >>> 0) % BODY_COLOURS.length;
+}
 
 function bakeGeometry(scene) {
   scene.updateMatrixWorld(true);
-  const parts = [];
+  const meshes = [];
   scene.traverse((obj) => {
-    if (!obj.isMesh) return;
+    if (obj.isMesh) meshes.push(obj);
+  });
+  const stats = new Map();
+  for (const obj of meshes) {
+    if (isWheel(obj)) continue;
+    const uv = obj.geometry.getAttribute("uv");
+    const normal = obj.geometry.getAttribute("normal");
+    for (let i = 0; i < uv.count; i += 1) {
+      const key = cellCol(uv.getX(i)) + cellRow(uv.getY(i)) * COLUMNS;
+      const entry = stats.get(key);
+      const ny = normal ? normal.getY(i) : 0;
+      if (entry) {
+        entry.n += 1;
+        entry.ny += ny;
+      } else {
+        stats.set(key, { n: 1, ny });
+      }
+    }
+  }
+  // Large panels that do not face the road. Glass, lamps, and the underside stay put.
+  const shell = new Set();
+  for (const [key, entry] of stats) {
+    if (entry.n >= 100 && entry.ny / entry.n > -0.15) shell.add(key);
+  }
+  const parts = [];
+  for (const obj of meshes) {
     const geometry = obj.geometry.clone();
     geometry.applyMatrix4(obj.matrixWorld);
     for (const name of Object.keys(geometry.attributes)) {
       if (name !== "position" && name !== "normal" && name !== "uv") geometry.deleteAttribute(name);
     }
+    const uv = geometry.getAttribute("uv");
+    const paint = new Float32Array(uv.count);
+    const shellMask = new Float32Array(uv.count);
+    const cell = new Float32Array(uv.count * 2);
+    const wheel = isWheel(obj);
+    for (let i = 0; i < uv.count; i += 1) {
+      const col = cellCol(uv.getX(i));
+      const row = cellRow(uv.getY(i));
+      const gradCol = col % 2 === 0 ? col + 1 : col;
+      cell[i * 2] = (gradCol + 0.5) / COLUMNS;
+      cell[i * 2 + 1] = row / ROWS;
+      if (wheel) continue;
+      paint[i] = 1;
+      if (shell.has(col + row * COLUMNS)) shellMask[i] = 1;
+    }
+    geometry.setAttribute("aPaint", new Float32BufferAttribute(paint, 1));
+    geometry.setAttribute("aShell", new Float32BufferAttribute(shellMask, 1));
+    geometry.setAttribute("aCell", new Float32BufferAttribute(cell, 2));
     parts.push(geometry);
-  });
+  }
   const merged = mergeGeometries(parts, false);
   for (const geometry of parts) geometry.dispose();
   if (!merged) throw new Error("The car model could not be combined.");
@@ -71,6 +168,23 @@ function bakeGeometry(scene) {
   merged.translate(-cx, -box.min.y, -cz);
   // Kenney cars face +Z. A heading of 0 drives toward -Z, same as the sprites.
   merged.rotateY(Math.PI);
+  const paintAttr = merged.getAttribute("aPaint");
+  const position = merged.getAttribute("position");
+  let yMin = Infinity;
+  let yMax = -Infinity;
+  for (let i = 0; i < paintAttr.count; i += 1) {
+    if (paintAttr.getX(i) < 0.5) continue;
+    const y = position.getY(i);
+    if (y < yMin) yMin = y;
+    if (y > yMax) yMax = y;
+  }
+  const span = Math.max(0.001, yMax - yMin);
+  const paintT = new Float32Array(paintAttr.count);
+  for (let i = 0; i < paintAttr.count; i += 1) {
+    if (paintAttr.getX(i) < 0.5) continue;
+    paintT[i] = (position.getY(i) - yMin) / span;
+  }
+  merged.setAttribute("aPaintT", new Float32BufferAttribute(paintT, 1));
   merged.computeBoundingBox();
   merged.computeBoundingSphere();
   return merged;
@@ -167,13 +281,43 @@ export async function createTraffic(scene, map) {
     toneMapped: false,
     side: FrontSide,
   });
+  material.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        "#include <uv_pars_vertex>",
+        `#include <uv_pars_vertex>
+        attribute float aPaint;
+        attribute float aShell;
+        attribute float aPaintT;
+        attribute vec2 aCell;
+        attribute vec2 aBodyCell;
+        attribute float aRecolor;`,
+      )
+      .replace(
+        "#include <uv_vertex>",
+        `#include <uv_vertex>
+        if (aPaint > 0.5) {
+          vec2 cell = aCell;
+          if (aShell > 0.5 && aRecolor > 0.5) cell = aBodyCell;
+          vMapUv = vec2(cell.x, cell.y + ${GRADIENT_INSET.toFixed(3)} + (1.0 - aPaintT) * ${GRADIENT_SPAN.toFixed(3)});
+        }`,
+      );
+  };
+  material.customProgramCacheKey = () => "car-body-gradient-1";
 
   for (let modelIndex = 0; modelIndex < models.length; modelIndex += 1) {
     const model = models[modelIndex];
     const parkedHere = parked.filter((car) => car.model === modelIndex);
     const capacity = parkedHere.length + 32;
     if (capacity === 0) continue;
-    const mesh = new InstancedMesh(model.geometry, material, capacity);
+    const geometry = model.geometry.clone();
+    const bodyCell = new InstancedBufferAttribute(new Float32Array(capacity * 2), 2);
+    const recolor = new InstancedBufferAttribute(new Float32Array(capacity), 1);
+    bodyCell.setUsage(DynamicDrawUsage);
+    recolor.setUsage(DynamicDrawUsage);
+    geometry.setAttribute("aBodyCell", bodyCell);
+    geometry.setAttribute("aRecolor", recolor);
+    const mesh = new InstancedMesh(geometry, material, capacity);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     mesh.frustumCulled = false;
@@ -198,7 +342,14 @@ export async function createTraffic(scene, map) {
       }
       list.push(body);
     }
-    groups.push({ mesh, model, modelIndex, parked: parkedHere });
+    groups.push({
+      mesh,
+      model,
+      modelIndex,
+      parked: parkedHere,
+      bodyCell,
+      recolor,
+    });
   }
 
   const inView = (x, z, camX, camZ) => x > camX - 560 && x < camX + 560 && z > camZ - 420 && z < camZ + 560;
@@ -208,19 +359,31 @@ export async function createTraffic(scene, map) {
       sim.step(dt, camX, camZ, playerX, playerZ);
       for (const group of groups) {
         let count = 0;
+        const civilian = !SERVICE.has(group.model.name);
+        const stamp = (salt) => {
+          group.recolor.setX(count, civilian ? 1 : 0);
+          if (civilian) {
+            const cell = BODY_COLOURS[colourIndex(salt)];
+            group.bodyCell.setXY(count, cell.u, cell.v);
+          }
+        };
         for (const car of group.parked) {
           if (!inView(car.x, car.z, camX, camZ)) continue;
           group.mesh.setMatrixAt(count, matrixAt(car.x, car.z, headingAngle(car.hx, car.hz), group.model));
+          stamp(car.hash);
           count += 1;
         }
         for (const car of sim.drivers) {
           if (car.model !== group.modelIndex) continue;
           if (!inView(car.x, car.z, camX, camZ)) continue;
           group.mesh.setMatrixAt(count, matrixAt(car.x, car.z, car.angle, group.model));
+          stamp(car.id);
           count += 1;
         }
         group.mesh.count = count;
         group.mesh.instanceMatrix.needsUpdate = count > 0;
+        group.bodyCell.needsUpdate = count > 0;
+        group.recolor.needsUpdate = count > 0;
       }
     },
     lights(camX, camZ) {

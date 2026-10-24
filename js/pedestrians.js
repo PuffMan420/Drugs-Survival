@@ -34,8 +34,8 @@ const FILES = [
   "ped_survivorFemaleA.glb",
   "ped_survivorMaleB.glb",
 ];
-const CROWD = 60;
-const BLOCK = 32;
+const CROWD = 1200;
+const BLOCK = 6;
 
 // Muted clothing colors. Shirt, pants, and shoes are picked independently.
 const CLOTHES = [

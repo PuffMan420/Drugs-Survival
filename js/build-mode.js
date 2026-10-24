@@ -2,6 +2,7 @@ import {
   Group,
   LinearFilter,
   LinearMipmapLinearFilter,
+  Matrix4,
   Plane,
   Raycaster,
   Vector2,
@@ -10,6 +11,7 @@ import {
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { TILE } from "./constants.js";
 import { KITS } from "./kenney-city-catalog.js";
+import { roadKey, roadRecord } from "./kenney-roads.js";
 
 // One Kenney unit is the same 4-tile module as the road pieces already on
 // the west bank. Scale is uniform so a building keeps the height in the file.
@@ -18,6 +20,9 @@ import { KITS } from "./kenney-city-catalog.js";
 const UNIT = 4 * TILE;
 const GROUND_Y = 0.2;
 const MAP_URL = "./west-map.json";
+const SCALE_STEP = 0.25;
+const SCALE_MIN = 0.25;
+const SCALE_MAX = 4;
 
 const catalog = new Map();
 for (const kit of KITS) {
@@ -26,12 +31,20 @@ for (const kit of KITS) {
 
 // Registered while this module loads, before main.js binds walking keys.
 // On window, capture and bubble listeners share one target, so this has to
-// run first and stop the event or S would also walk south.
+// run first and stop the event. S stays free so it can walk south.
+function brushScale(event) {
+  if (event.ctrlKey || event.metaKey || event.altKey) return 0;
+  if (event.key === "+" || event.code === "NumpadAdd") return 1;
+  if (event.key === "-" || event.code === "NumpadSubtract") return -1;
+  return 0;
+}
+
 const keys = {
   enabled: () => false,
   onB: () => {},
   onR: () => {},
-  onS: () => {},
+  onP: () => {},
+  onScale: () => {},
 };
 window.addEventListener("keydown", (event) => {
   if (event.repeat) return;
@@ -42,11 +55,13 @@ window.addEventListener("keydown", (event) => {
     return;
   }
   if (!keys.enabled()) return;
-  if (event.code !== "KeyR" && event.code !== "KeyS") return;
+  const direction = brushScale(event);
+  if (event.code !== "KeyR" && event.code !== "KeyP" && direction === 0) return;
   event.preventDefault();
   event.stopImmediatePropagation();
   if (event.code === "KeyR") keys.onR();
-  else keys.onS();
+  else if (event.code === "KeyP") keys.onP();
+  else keys.onScale(direction);
 }, true);
 
 function modelUrl(path) {
@@ -97,7 +112,21 @@ function disposeGhost(root) {
   root.removeFromParent();
 }
 
-export async function createBuildMode({ scene, camera, canvas, map }) {
+export async function loadWestMap() {
+  let data = null;
+  try {
+    const response = await fetch(MAP_URL);
+    if (response.ok) data = await response.json();
+  } catch {
+    data = null;
+  }
+  return {
+    pieces: Array.isArray(data?.pieces) ? data.pieces : [],
+    removedRoads: Array.isArray(data?.removedRoads) ? data.removedRoads : [],
+  };
+}
+
+export async function createBuildMode({ scene, camera, canvas, map, saved = null, roads = null }) {
   const group = new Group();
   group.name = "west-build";
   scene.add(group);
@@ -112,6 +141,7 @@ export async function createBuildMode({ scene, camera, canvas, map }) {
 
   let enabled = false;
   let turn = 0;
+  let scale = 1;
   let selection = null;
   let preview = null;
   let selectToken = 0;
@@ -150,7 +180,7 @@ export async function createBuildMode({ scene, camera, canvas, map }) {
 
   function status(text) {
     const name = selection ? selection.file.replace(/\.glb$/, "") : "nothing picked";
-    help.textContent = `${text} ${pieces.length} placed. ${name}, turn ${turn}. Click places, right-click removes, R rotates, S downloads west-map.json. Arrows walk.`;
+    help.textContent = `${text} ${pieces.length} placed. ${name}, turn ${turn}, scale ${scale}. Click places, right-click removes a piece or a west road, R rotates, + and - resize, P downloads west-map.json. Arrows walk.`;
     pieceCount();
   }
 
@@ -176,7 +206,7 @@ export async function createBuildMode({ scene, camera, canvas, map }) {
   function wrapper(template, spec) {
     const root = new Group();
     root.add(template.clone(true));
-    root.scale.setScalar(UNIT);
+    root.scale.setScalar(UNIT * (spec.scale ?? 1));
     root.position.set((spec.x + 0.5) * TILE, GROUND_Y, (spec.z + 0.5) * TILE);
     root.rotation.y = spec.turn * Math.PI / 2;
     return root;
@@ -190,6 +220,7 @@ export async function createBuildMode({ scene, camera, canvas, map }) {
       x: spec.x,
       z: spec.z,
       turn: spec.turn,
+      scale: spec.scale ?? 1,
     };
     const root = wrapper(template, record);
     root.userData.piece = record;
@@ -209,19 +240,32 @@ export async function createBuildMode({ scene, camera, canvas, map }) {
     if (!Number.isInteger(raw.x) || !Number.isInteger(raw.z) || !Number.isInteger(raw.turn)) return null;
     if (raw.x < 0 || raw.z < 0 || raw.x >= map.cols || raw.z >= map.rows) return null;
     const turnValue = ((raw.turn % 4) + 4) % 4;
-    return { kit: raw.kit, file: raw.file, x: raw.x, z: raw.z, turn: turnValue };
+    const scaleValue = raw.scale == null ? 1 : Number(raw.scale);
+    if (!Number.isFinite(scaleValue) || scaleValue <= 0) return null;
+    return {
+      kit: raw.kit,
+      file: raw.file,
+      x: raw.x,
+      z: raw.z,
+      turn: turnValue,
+      scale: Math.round(scaleValue * 1000) / 1000,
+    };
+  }
+
+  const layout = saved || await loadWestMap();
+  const removedRoads = [];
+  const removedKeys = new Set();
+  for (const raw of layout.removedRoads) {
+    const record = roadRecord(raw);
+    if (!record) continue;
+    const key = roadKey(record);
+    if (removedKeys.has(key)) continue;
+    removedKeys.add(key);
+    removedRoads.push(record);
   }
 
   async function loadSaved() {
-    let data = null;
-    try {
-      const response = await fetch(MAP_URL);
-      if (response.ok) data = await response.json();
-    } catch {
-      data = null;
-    }
-    const saved = Array.isArray(data?.pieces) ? data.pieces : [];
-    for (const raw of saved) {
+    for (const raw of layout.pieces) {
       const spec = normalize(raw);
       if (!spec) continue;
       let template = null;
@@ -250,7 +294,7 @@ export async function createBuildMode({ scene, camera, canvas, map }) {
     if (token !== selectToken || !enabled || !selection) return;
     dropPreview();
     const spec = hover || { x: 0, z: 0, turn };
-    preview = wrapper(template, { ...spec, turn });
+    preview = wrapper(template, { ...spec, turn, scale });
     ghost(preview);
     preview.visible = hover !== null;
     scene.add(preview);
@@ -299,6 +343,7 @@ export async function createBuildMode({ scene, camera, canvas, map }) {
     if (!enabled || !selection || !cell) return;
     const chosen = selection;
     const placedTurn = turn;
+    const placedScale = scale;
     const token = selectToken;
     let template = null;
     try {
@@ -308,7 +353,7 @@ export async function createBuildMode({ scene, camera, canvas, map }) {
       return;
     }
     if (!enabled || token !== selectToken || selection !== chosen) return;
-    addPiece({ ...chosen, x: cell.x, z: cell.z, turn: placedTurn }, template);
+    addPiece({ ...chosen, x: cell.x, z: cell.z, turn: placedTurn, scale: placedScale }, template);
     status("Placed.");
   }
 
@@ -324,22 +369,63 @@ export async function createBuildMode({ scene, camera, canvas, map }) {
   }
 
   let removedAt = 0;
+  const hiddenRoad = new Matrix4().makeTranslation(0, -1000, 0);
+
+  function rememberRoad(record) {
+    const savedRoad = roadRecord(record);
+    if (!savedRoad) return;
+    const key = roadKey(savedRoad);
+    if (removedKeys.has(key)) return;
+    removedKeys.add(key);
+    removedRoads.push(savedRoad);
+  }
+
+  function pieceHit() {
+    const hits = raycaster.intersectObjects(group.children, true);
+    for (const item of hits) {
+      let node = item.object;
+      while (node && node !== group) {
+        if (node.userData.piece) return { record: node.userData.piece, distance: item.distance };
+        node = node.parent;
+      }
+    }
+    return null;
+  }
+
+  function roadHit() {
+    if (!roads) return null;
+    const hits = raycaster.intersectObjects(roads.children, true);
+    for (const item of hits) {
+      const list = item.object.userData.pieces;
+      const record = list?.[item.instanceId];
+      if (!record || record.removed) continue;
+      return { mesh: item.object, index: item.instanceId, record, distance: item.distance };
+    }
+    return null;
+  }
 
   function removeAt(event) {
     const now = performance.now();
     if (now - removedAt < 80) return;
     removedAt = now;
     const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
     pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
-    const hits = raycaster.intersectObjects(group.children, true);
-    for (const item of hits) {
-      let node = item.object;
-      while (node && node !== group) {
-        if (node.userData.piece && removeRecord(node.userData.piece)) return;
-        node = node.parent;
-      }
+    const piece = pieceHit();
+    const road = roadHit();
+    if (piece && (!road || piece.distance <= road.distance)) {
+      removeRecord(piece.record);
+      return;
+    }
+    if (road) {
+      road.record.removed = true;
+      road.mesh.setMatrixAt(road.index, hiddenRoad);
+      road.mesh.instanceMatrix.needsUpdate = true;
+      rememberRoad(road.record);
+      status("Removed road.");
+      return;
     }
     const cell = cellAt(event);
     if (!cell) return;
@@ -352,7 +438,7 @@ export async function createBuildMode({ scene, camera, canvas, map }) {
   }
 
   function download() {
-    const body = `${JSON.stringify({ pieces }, null, 2)}\n`;
+    const body = `${JSON.stringify({ pieces, removedRoads }, null, 2)}\n`;
     const blob = new Blob([body], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -375,6 +461,14 @@ export async function createBuildMode({ scene, camera, canvas, map }) {
     if (selection) showPreview().catch(() => status("That model failed to load."));
   }
 
+  function stepScale(direction) {
+    const next = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((scale + direction * SCALE_STEP) * 100) / 100));
+    if (next === scale) return;
+    scale = next;
+    if (preview) preview.scale.setScalar(UNIT * scale);
+    status(direction > 0 ? "Bigger." : "Smaller.");
+  }
+
   keys.enabled = () => enabled;
   keys.onB = () => setEnabled(!enabled);
   keys.onR = () => {
@@ -382,7 +476,8 @@ export async function createBuildMode({ scene, camera, canvas, map }) {
     if (preview) preview.rotation.y = turn * Math.PI / 2;
     status("Rotated.");
   };
-  keys.onS = () => download();
+  keys.onP = () => download();
+  keys.onScale = (direction) => stepScale(direction);
 
   canvas.addEventListener("pointermove", (event) => {
     if (!enabled) return;

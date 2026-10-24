@@ -611,7 +611,7 @@ function makePlayer() {
   return mesh;
 }
 
-export async function buildCity(scene, map) {
+export async function buildCity(scene, map, removedRoadKeys) {
   // The west bank keeps its ground, water, piers, and quay. Houses are not built there.
   map.buildings = map.buildings.filter((building) => {
     const cx = building.x + building.w / 2;
@@ -636,12 +636,13 @@ export async function buildCity(scene, map) {
       chunks.push(chunk);
     }
   }
-  addKenneyRoads(scene, kenneyPlan, kenneyKit);
+  const roads = addKenneyRoads(scene, kenneyPlan, kenneyKit, removedRoadKeys);
   const playerMesh = makePlayer();
   scene.add(playerMesh);
   return {
     chunks,
     playerMesh,
+    roads,
     mapW: map.cols * TILE,
     mapH: map.rows * TILE,
   };

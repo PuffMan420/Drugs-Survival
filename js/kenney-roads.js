@@ -15,7 +15,7 @@ import { TILE } from "./constants.js";
 
 // Kenney City Kit Roads (CC0), https://kenney.nl/assets/city-kit-roads.
 // The files in "GLB format/" stay as shipped. A piece is 1 unit square and
-// 0.02 units tall. X and Z scale to that road's full width. Height stays at 6
+// 0.02 units tall. X and Z scale to 4 tiles. Height stays at 6
 // (top at 0.12, under the tire line at 0.6 and the shadow sheet at 0.4).
 
 const FILES = {

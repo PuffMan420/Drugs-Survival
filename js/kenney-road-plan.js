@@ -1,7 +1,9 @@
-// West-of-canal roads, one Kenney piece across the whole asphalt sheet.
-// Avenues in the map are a few tiles wide (usually 2, 3, or 5, not 6).
-// One straight per road-width sits on the centerline. A crossing is one
-// cross, T, or corner sized to that intersection.
+// West-of-canal roads. Every road is one 2-lane Kenney piece, 4 tiles wide.
+// The piece is centered on the old sheet. Asphalt is the middle 60% of the
+// model, so each direction's lane sits 0.6 tiles off that center. Anything
+// the old road had beyond those 4 tiles is left as sidewalk.
+
+import { TILE } from "./constants.js";
 
 const H_SEED = new Set(["H", "h", "1", "2", "4"]);
 const V_SEED = new Set(["V", "v", "5", "6", "8"]);
@@ -20,8 +22,15 @@ const RIVER = [
 const BANK = 4.6;
 const MAX_GAP = 14;
 const MAX_WIDTH = 16;
-// Straights slide this far under a junction so the seam does not crack.
-const TUCK = 0.12;
+const ROAD_TILES = 4;
+// Middle of one asphalt lane. The model keeps asphalt inside 30% of center.
+const LANE_TILES = 0.15 * ROAD_TILES;
+const JUNCTION_Y = 0.004;
+// Straights cross the junction edge by this much so the seam does not crack.
+// The model's sidewalk is the outer 10% (0.4 tiles). A deeper tuck lets the
+// straight's sidewalk run across the other road's mouth.
+const SEAM = 0.04;
+const JUNCTION_TUCK = 0.25;
 
 function riverX(z) {
   if (z <= RIVER[0][1]) return RIVER[0][0];
@@ -53,7 +62,7 @@ function pieceForArms(north, east, south, west) {
 }
 
 function subtractRange(lo, hi, blocks) {
-  let parts = [{ lo, hi, slackLo: 0, slackHi: 0 }];
+  let parts = [{ lo, hi, slackLo: 2, slackHi: 2 }];
   for (const block of blocks) {
     const next = [];
     for (const part of parts) {
@@ -73,22 +82,52 @@ function subtractRange(lo, hi, blocks) {
   return parts;
 }
 
-// Squares of width W along [lo, hi). Slack is how far a junction can hide overhang.
+// Squares of width W along [lo, hi). Junction ends use a small tuck. Pieces may
+// overlap along the road so the run still meets both mouths; callers lift
+// every other piece so the overlap does not flicker.
 function placeRun(lo, hi, width, slackLo, slackHi) {
   const length = hi - lo;
   if (length <= 0.05 || width <= 0) return [];
+  const pinLo = slackLo < 1;
+  const pinHi = slackHi < 1;
   const roomLo = lo - slackLo;
   const roomHi = hi + slackHi;
-  const room = roomHi - roomLo;
   let count = Math.ceil(length / width - 1e-6);
-  if (count * width > room + 1e-4) count = Math.floor((room + 1e-4) / width);
-  if (count < 1) return [];
+  if (count < 1) count = 1;
+  // Open ends can only hold so many pieces. Junction ends may overlap instead.
+  if (!pinLo || !pinHi) {
+    const room = roomHi - roomLo;
+    if (count * width > room + 1e-4) count = Math.floor((room + 1e-4) / width);
+    if (count < 1) return [];
+  }
+
+  if (pinLo && pinHi) {
+    const centers = [];
+    if (count === 1) {
+      // One piece between two mouths. If it cannot sit in the gap without
+      // running across a mouth, leave the gap to the junction pieces.
+      const need = (width - length) / 2;
+      if (need > slackLo + 1e-4) return [];
+      let left = lo + (length - width) / 2;
+      if (left < roomLo) left = roomLo;
+      if (left > roomHi - width) left = roomHi - width;
+      centers.push(left + width / 2);
+      return centers;
+    }
+    const first = lo + width / 2;
+    const last = hi - width / 2;
+    for (let i = 0; i < count; i += 1) {
+      centers.push(first + (last - first) * (i / (count - 1)));
+    }
+    return centers;
+  }
+
   const cover = count * width;
   let left = lo + (length - cover) / 2;
-  const minLeft = roomLo;
-  const maxLeft = roomHi - cover;
-  if (left < minLeft) left = minLeft;
-  if (left > maxLeft) left = maxLeft;
+  if (pinLo) left = lo;
+  if (pinHi) left = hi - cover;
+  if (left < roomLo) left = roomLo;
+  if (left > roomHi - cover) left = roomHi - cover;
   const centers = [];
   for (let i = 0; i < count; i += 1) centers.push(left + (i + 0.5) * width);
   return centers;
@@ -269,152 +308,183 @@ export function planKenneyRoads(map) {
     return active;
   }
 
-  const hRibbons = ribbonsFor(true);
-  const vRibbons = ribbonsFor(false);
-  const overlaps = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0) + 1;
+  const centerOf = (rib) => (rib.p0 + rib.p1 + 1) / 2;
+  function mergeRibbons(list) {
+    const items = list.map((rib) => ({
+      horizontal: rib.horizontal,
+      p0: rib.p0,
+      p1: rib.p1,
+      a0: rib.a0,
+      a1: rib.a1,
+    }));
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (let i = 0; i < items.length; i += 1) {
+        for (let j = i + 1; j < items.length; j += 1) {
+          const a = items[i];
+          const b = items[j];
+          if (Math.min(a.a1, b.a1) - Math.max(a.a0, b.a0) < 0) continue;
+          const apart = Math.abs(centerOf(a) - centerOf(b));
+          const spanGap = Math.max(a.p0, b.p0) - Math.min(a.p1, b.p1);
+          if (apart >= ROAD_TILES - 0.5 && spanGap > 1) continue;
+          a.p0 = Math.min(a.p0, b.p0);
+          a.p1 = Math.max(a.p1, b.p1);
+          a.a0 = Math.min(a.a0, b.a0);
+          a.a1 = Math.max(a.a1, b.a1);
+          items.splice(j, 1);
+          changed = true;
+          break;
+        }
+        if (changed) break;
+      }
+    }
+    return items;
+  }
+
+  const hRibbons = mergeRibbons(ribbonsFor(true));
+  const vRibbons = mergeRibbons(ribbonsFor(false));
   const raw = [];
   for (const h of hRibbons) {
     for (const v of vRibbons) {
-      // The crossing is the full width of each road, not just the columns
-      // where both ribbons happened to have a sample.
-      if (h.a1 < v.p0 - 1 || h.a0 > v.p1 + 1) continue;
-      if (v.a1 < h.p0 - 1 || v.a0 > h.p1 + 1) continue;
-      const x0 = v.p0;
-      const x1 = v.p1;
-      const z0 = h.p0;
-      const z1 = h.p1;
-      let road = false;
-      for (let z = z0; z <= z1 && !road; z += 1) {
-        for (let x = x0; x <= x1; x += 1) {
-          if (westRoad(x, z)) {
-            road = true;
-            break;
-          }
-        }
-      }
-      if (!road) continue;
-      raw.push({ x0, x1, z0, z1, h, v });
+      const cx = centerOf(v);
+      const cz = centerOf(h);
+      if (cx < h.a0 - 0.5 || cx > h.a1 + 1.5) continue;
+      if (cz < v.a0 - 0.5 || cz > v.a1 + 1.5) continue;
+      raw.push({
+        cx,
+        cz,
+        h,
+        v,
+        west: h.a0 < cx - ROAD_TILES / 2,
+        east: h.a1 + 1 > cx + ROAD_TILES / 2,
+        north: v.a0 < cz - ROAD_TILES / 2,
+        south: v.a1 + 1 > cz + ROAD_TILES / 2,
+      });
     }
   }
 
   const junctions = [];
   for (const box of raw) {
-    const hit = junctions.find((item) => item.x0 <= box.x1 && box.x0 <= item.x1 && item.z0 <= box.z1 && box.z0 <= item.z1);
+    const hit = junctions.find((item) => Math.abs(item.cx - box.cx) < 2.5 && Math.abs(item.cz - box.cz) < 2.5);
     if (!hit) {
-      junctions.push({ ...box, ribbonsH: [box.h], ribbonsV: [box.v] });
+      junctions.push({ ...box });
       continue;
     }
-    hit.x0 = Math.min(hit.x0, box.x0);
-    hit.x1 = Math.max(hit.x1, box.x1);
-    hit.z0 = Math.min(hit.z0, box.z0);
-    hit.z1 = Math.max(hit.z1, box.z1);
-    if (!hit.ribbonsH.includes(box.h)) hit.ribbonsH.push(box.h);
-    if (!hit.ribbonsV.includes(box.v)) hit.ribbonsV.push(box.v);
-  }
-  const reaches = (rib, lo, hi, start, end, before) => {
-    const width = rib.p1 - rib.p0 + 1;
-    const shared = overlaps(rib.p0, rib.p1, lo, hi);
-    if (shared < Math.min(width, hi - lo + 1) - 1) return false;
-    if (before) return rib.a0 < start && rib.a1 >= start - 2;
-    return rib.a1 > end && rib.a0 <= end + 2;
-  };
-  for (const box of junctions) {
-    box.west = hRibbons.some((rib) => reaches(rib, box.z0, box.z1, box.x0, box.x1, true));
-    box.east = hRibbons.some((rib) => reaches(rib, box.z0, box.z1, box.x0, box.x1, false));
-    box.north = vRibbons.some((rib) => reaches(rib, box.x0, box.x1, box.z0, box.z1, true));
-    box.south = vRibbons.some((rib) => reaches(rib, box.x0, box.x1, box.z0, box.z1, false));
+    hit.west = hit.west || box.west;
+    hit.east = hit.east || box.east;
+    hit.north = hit.north || box.north;
+    hit.south = hit.south || box.south;
   }
 
   const placements = [];
+  const liveJunctions = [];
   for (const box of junctions) {
     const choice = pieceForArms(box.north, box.east, box.south, box.west);
     if (!choice) continue;
-    const bw = box.x1 - box.x0 + 1;
-    const bh = box.z1 - box.z0 + 1;
-    const scale = Math.max(bw, bh);
     placements.push({
       piece: choice.piece,
       turn: choice.turn,
-      x: (box.x0 + box.x1 + 1) / 2,
-      z: (box.z0 + box.z1 + 1) / 2,
-      scale,
-      y: 0.02,
+      x: box.cx,
+      z: box.cz,
+      scale: ROAD_TILES,
+      y: JUNCTION_Y,
     });
-    box.scale = scale;
-    box.cx = (box.x0 + box.x1 + 1) / 2;
-    box.cz = (box.z0 + box.z1 + 1) / 2;
+    liveJunctions.push(box);
   }
 
   const blocksFor = (rib) => {
     const blocks = [];
-    for (const box of junctions) {
-      if (!box.scale) continue;
-      const mine = rib.horizontal ? box.ribbonsH.includes(rib) : box.ribbonsV.includes(rib);
-      if (!mine) continue;
-      const center = rib.horizontal ? box.cx : box.cz;
-      const half = box.scale / 2;
-      // Tuck under the junction, and stop short of its center so the
-      // opposite arm cannot occupy the same asphalt.
-      const slack = Math.max(0, half - TUCK - 0.2);
-      blocks.push({ lo: center - half + TUCK, hi: center + half - TUCK, slack });
+    const perp = centerOf(rib);
+    for (const box of liveJunctions) {
+      const along = rib.horizontal ? box.cx : box.cz;
+      const other = rib.horizontal ? box.cz : box.cx;
+      if (Math.abs(other - perp) > 1.25) continue;
+      if (along < rib.a0 - 2 || along > rib.a1 + 3) continue;
+      const half = ROAD_TILES / 2;
+      blocks.push({
+        lo: along - half + SEAM,
+        hi: along + half - SEAM,
+        slack: JUNCTION_TUCK,
+      });
     }
     return blocks;
   };
 
   const addStraights = (rib) => {
-    const width = rib.p1 - rib.p0 + 1;
-    const perp = (rib.p0 + rib.p1 + 1) / 2;
+    const perp = centerOf(rib);
     const parts = subtractRange(rib.a0, rib.a1 + 1, blocksFor(rib));
     for (const part of parts) {
-      const centers = placeRun(part.lo, part.hi, width, part.slackLo, part.slackHi);
-      for (const center of centers) {
+      const centers = placeRun(part.lo, part.hi, ROAD_TILES, part.slackLo, part.slackHi);
+      centers.forEach((center, index) => {
         placements.push({
           piece: "straight",
           turn: rib.horizontal ? 0 : 1,
           x: rib.horizontal ? center : perp,
           z: rib.horizontal ? perp : center,
-          scale: width,
-          y: 0,
+          scale: ROAD_TILES,
+          // Neighbors along one road overlap. A hair of height keeps the seam quiet.
+          y: index % 2 === 0 ? 0 : 0.002,
         });
-      }
+      });
     }
   };
   for (const rib of hRibbons) addStraights(rib);
   for (const rib of vRibbons) addStraights(rib);
 
   const kept = [];
-  const straights = placements.filter((item) => item.piece === "straight")
-    .sort((a, b) => b.scale - a.scale || a.turn - b.turn);
-  const others = placements.filter((item) => item.piece !== "straight");
-  for (const item of straights) {
+  for (const item of placements) {
+    if (item.piece !== "straight") {
+      kept.push(item);
+      continue;
+    }
     const clash = kept.some((other) => {
-      if (other.turn !== item.turn) return false;
-      const overlapX = (item.scale + other.scale) / 2 - Math.abs(item.x - other.x);
-      const overlapZ = (item.scale + other.scale) / 2 - Math.abs(item.z - other.z);
-      return overlapX > 0.35 && overlapZ > 0.35;
+      if (other.piece !== "straight" || other.turn !== item.turn) return false;
+      const along = item.turn === 0 ? "x" : "z";
+      const perp = item.turn === 0 ? "z" : "x";
+      if (Math.abs(item[perp] - other[perp]) > 0.3) return false;
+      return Math.abs(item[along] - other[along]) < 2;
     });
     if (!clash) kept.push(item);
   }
   placements.length = 0;
-  placements.push(...others, ...kept);
+  placements.push(...kept);
 
   const covered = new Uint8Array(cols * rows);
+  const footprint = new Uint8Array(cols * rows);
   for (const item of placements) {
     const half = item.scale / 2;
-    const x0 = Math.max(0, Math.floor(item.x - half + 1e-4));
-    const x1 = Math.min(cols - 1, Math.ceil(item.x + half - 1e-4) - 1);
-    const z0 = Math.max(0, Math.floor(item.z - half + 1e-4));
-    const z1 = Math.min(rows - 1, Math.ceil(item.z + half - 1e-4) - 1);
+    const x0 = Math.floor(item.x - half);
+    const x1 = Math.floor(item.x + half - 1e-4);
+    const z0 = Math.floor(item.z - half);
+    const z1 = Math.floor(item.z + half - 1e-4);
     for (let z = z0; z <= z1; z += 1) {
       for (let x = x0; x <= x1; x += 1) {
+        if (x < 0 || z < 0 || x >= cols || z >= rows) continue;
+        footprint[z * cols + x] = 1;
+        if (!westRoad(x, z)) continue;
         const cx = x + 0.5;
         const cz = z + 0.5;
-        if (Math.abs(cx - item.x) > half + 1e-4 || Math.abs(cz - item.z) > half + 1e-4) continue;
-        if (!westRoad(x, z)) continue;
-        covered[z * cols + x] = 1;
+        if (Math.abs(cx - item.x) <= half + 1e-4 && Math.abs(cz - item.z) <= half + 1e-4) {
+          covered[z * cols + x] = 1;
+        }
       }
     }
   }
+
+  const ribbonAt = (tx, tz, horizontal) => {
+    const list = horizontal ? hRibbons : vRibbons;
+    const along = horizontal ? tx : tz;
+    const perp = horizontal ? tz : tx;
+    let best = null;
+    for (const rib of list) {
+      if (along < rib.a0 - 1 || along > rib.a1 + 1) continue;
+      if (perp < rib.p0 - 1 || perp > rib.p1 + 1) continue;
+      const dist = Math.abs(perp + 0.5 - centerOf(rib));
+      if (!best || dist < best.dist) best = { rib, dist };
+    }
+    return best ? best.rib : null;
+  };
 
   return {
     count: placements.length,
@@ -422,6 +492,31 @@ export function planKenneyRoads(map) {
     covers(x, z) {
       if (x < 0 || z < 0 || x >= cols || z >= rows) return false;
       return covered[z * cols + x] === 1;
+    },
+    roadPaint(x, z) {
+      if (!westOfCanal(x, z) || !ROAD.has(at(x, z))) return "paint";
+      return covered[z * cols + x] === 1 ? "skip" : "walk";
+    },
+    contains(x, z) {
+      const tx = Math.floor(x / TILE);
+      const tz = Math.floor(z / TILE);
+      if (tx < 0 || tz < 0 || tx >= cols || tz >= rows) return false;
+      return footprint[tz * cols + tx] === 1;
+    },
+    lanePoint(tx, tz, dx, dz) {
+      if (!westOfCanal(tx, tz)) return null;
+      const horizontal = dx !== 0;
+      const rib = ribbonAt(tx, tz, horizontal);
+      if (!rib) return null;
+      const center = centerOf(rib) * TILE;
+      const offset = LANE_TILES * TILE;
+      let sign = 1;
+      if (dx > 0) sign = 1;
+      else if (dx < 0) sign = -1;
+      else if (dz > 0) sign = -1;
+      else sign = 1;
+      if (horizontal) return { x: (tx + 0.5) * TILE, z: center + sign * offset };
+      return { x: center + sign * offset, z: (tz + 0.5) * TILE };
     },
   };
 }

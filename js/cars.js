@@ -68,11 +68,15 @@ const DRAW_SCALE = 1.1;
 // colormap.png is 16 columns by 4 rows. Each colour is a flat column beside a
 // gradient column (lighter at the top of the row, darkest at the bottom).
 // The model UVs already sit on the gradient column. A shell vertex is repainted
-// down that column so the roof is the light end and the sill is the dark end.
+// down that column so the roof is the light end and the lower body is darker.
+// The sample starts a step below the pale tip, so the body reads slightly darker.
+// The dark grey bumper, sill, and underbody stay on the UVs built into the model.
 const COLUMNS = 16;
 const ROWS = 4;
 const GRADIENT_INSET = 0.008;
 const GRADIENT_SPAN = 1 / ROWS - GRADIENT_INSET * 2;
+const BODY_DARKEN = 0.05;
+const GREY_TRIM = new Set([5 + 2 * COLUMNS, 7 + 2 * COLUMNS]);
 // Every painted swatch except the empty black block on the top row.
 const BODY_COLOURS = [];
 for (let row = 0; row < ROWS; row += 1) {
@@ -169,6 +173,8 @@ function bakeGeometry(scene) {
   // Kenney cars face +Z. A heading of 0 drives toward -Z, same as the sprites.
   merged.rotateY(Math.PI);
   const paintAttr = merged.getAttribute("aPaint");
+  const shellAttr = merged.getAttribute("aShell");
+  const cellAttr = merged.getAttribute("aCell");
   const position = merged.getAttribute("position");
   let yMin = Infinity;
   let yMax = -Infinity;
@@ -182,6 +188,13 @@ function bakeGeometry(scene) {
   const paintT = new Float32Array(paintAttr.count);
   for (let i = 0; i < paintAttr.count; i += 1) {
     if (paintAttr.getX(i) < 0.5) continue;
+    const col = Math.round(cellAttr.getX(i) * COLUMNS - 0.5);
+    const row = Math.round(cellAttr.getY(i) * ROWS);
+    if (GREY_TRIM.has(col + row * COLUMNS)) {
+      paintAttr.setX(i, 0);
+      shellAttr.setX(i, 0);
+      continue;
+    }
     paintT[i] = (position.getY(i) - yMin) / span;
   }
   merged.setAttribute("aPaintT", new Float32BufferAttribute(paintT, 1));
@@ -299,11 +312,11 @@ export async function createTraffic(scene, map) {
         if (aPaint > 0.5) {
           vec2 cell = aCell;
           if (aShell > 0.5 && aRecolor > 0.5) cell = aBodyCell;
-          vMapUv = vec2(cell.x, cell.y + ${GRADIENT_INSET.toFixed(3)} + (1.0 - aPaintT) * ${GRADIENT_SPAN.toFixed(3)});
+          vMapUv = vec2(cell.x, cell.y + ${(GRADIENT_INSET + BODY_DARKEN).toFixed(3)} + (1.0 - aPaintT) * ${(GRADIENT_SPAN - BODY_DARKEN).toFixed(3)});
         }`,
       );
   };
-  material.customProgramCacheKey = () => "car-body-gradient-1";
+  material.customProgramCacheKey = () => "car-body-gradient-2";
 
   for (let modelIndex = 0; modelIndex < models.length; modelIndex += 1) {
     const model = models[modelIndex];

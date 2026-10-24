@@ -11,7 +11,6 @@ import {
 } from "three";
 import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
 import { createGround } from "./ground.js";
-import { addKenneyRoads, createKenneyRoads } from "./kenney-roads.js";
 import { clearBuildingsFromRoads, planKenneyRoads, westOfCanal } from "./kenney-road-plan.js";
 import { appendQuay, createQuayMaterials, emptyQuayBuffers, PIER_Y, quayPlan, WATER_Y } from "./quay.js";
 import { createTextures } from "./textures.js";
@@ -442,7 +441,7 @@ function buildChunk(map, cx, cz, materials, ground, quay, plan) {
     for (let x = cx; x < x1; x += 1) {
       const cell = row[x];
       // West of the canal is empty ground, plus water and the pier decks.
-      // Kenney roads and the quay walls are drawn separately.
+      // Quay walls are drawn separately. Roads are not.
       if (westOfCanal(x, z) && cell !== "~" && cell !== "d") {
         let buf = groundBufs.get("y");
         if (!buf) {
@@ -611,7 +610,7 @@ function makePlayer() {
   return mesh;
 }
 
-export async function buildCity(scene, map, removedRoadKeys) {
+export async function buildCity(scene, map, _removedRoadKeys) {
   // The west bank keeps its ground, water, piers, and quay. Houses are not built there.
   map.buildings = map.buildings.filter((building) => {
     const cx = building.x + building.w / 2;
@@ -623,10 +622,7 @@ export async function buildCity(scene, map, removedRoadKeys) {
   const textures = await createTextures();
   const materials = createMaterials(textures);
   materials.quay = await createQuayMaterials();
-  const [ground, kenneyKit] = await Promise.all([
-    createGround(map, (x, z) => kenneyPlan.roadPaint(x, z)),
-    createKenneyRoads(),
-  ]);
+  const ground = await createGround(map, (x, z) => kenneyPlan.roadPaint(x, z));
   const quay = quayPlan(map);
   const chunks = [];
   for (let cz = 0; cz < map.rows; cz += CHUNK) {
@@ -636,7 +632,10 @@ export async function buildCity(scene, map, removedRoadKeys) {
       chunks.push(chunk);
     }
   }
-  const roads = addKenneyRoads(scene, kenneyPlan, kenneyKit, removedRoadKeys);
+  // No road meshes west of the canal. The empty group is what build mode raycasts.
+  const roads = new Group();
+  roads.name = "kenney-roads";
+  scene.add(roads);
   const playerMesh = makePlayer();
   scene.add(playerMesh);
   return {

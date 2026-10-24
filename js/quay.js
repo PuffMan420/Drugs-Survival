@@ -1,8 +1,9 @@
 import {
   ClampToEdgeWrapping,
   DoubleSide,
+  LinearFilter,
+  LinearMipmapLinearFilter,
   MeshBasicMaterial,
-  NearestFilter,
   RepeatWrapping,
   SRGBColorSpace,
   Texture,
@@ -74,9 +75,11 @@ function materialFrom(image, wrap, transparent = false) {
   const texture = new Texture(image);
   texture.flipY = false;
   texture.colorSpace = SRGBColorSpace;
-  texture.magFilter = NearestFilter;
-  texture.minFilter = NearestFilter;
-  texture.generateMipmaps = false;
+  texture.magFilter = LinearFilter;
+  // The shadow's clear texels would fringe if mipmaps averaged them in.
+  const mipmaps = !transparent;
+  texture.minFilter = mipmaps ? LinearMipmapLinearFilter : LinearFilter;
+  texture.generateMipmaps = mipmaps;
   texture.wrapS = wrap;
   texture.wrapT = wrap;
   texture.needsUpdate = true;

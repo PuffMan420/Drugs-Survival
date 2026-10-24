@@ -15,9 +15,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { GROUND_H, GROUND_W, TILE } from "./constants.js";
 
-// Same height fit as the player, so these figures stand with him.
+// Same height fit as the player, including his extra 10%, so these figures stand with him.
 const SEDAN_LENGTH = 71;
-const SCALE_BUMP = 1.15;
+const SCALE_BUMP = 1.15 * 1.1;
 const FEET_Y = 0.6;
 const FADE = 0.12;
 // A walk covers a little under one sidewalk tile per cycle. Run is twice that.
@@ -339,9 +339,11 @@ function litMaterials(model) {
 
 function fitModel(model) {
   // Same root-scale measurement as the player. These files share his rig.
+  // v15's root is 1.0. Measure at 1.05/1.134, as he does, so the restored
+  // scale lands on his height.
   const root = model.getObjectByName("Root");
   const fileScale = root ? root.scale.x : 1;
-  if (root) root.scale.setScalar(1.05);
+  if (root) root.scale.setScalar(1.05 / 1.134);
   model.updateMatrixWorld(true);
   const bounds = new Box3().setFromObject(model);
   const height = Math.max(0.001, bounds.max.y - bounds.min.y);

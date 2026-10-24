@@ -25,7 +25,6 @@ const NAMES = ["idle", "walk", "run"];
 const STARTS = [
   { file: "ped_criminalMaleA.glb", tx: 121, tz: 91, dx: 0, dz: 1 },
   { file: "ped_humanFemaleA.glb", tx: 121, tz: 97, dx: 0, dz: -1 },
-  { file: "ped_humanMaleA.glb", tx: 124, tz: 91, dx: 0, dz: 1 },
   { file: "ped_skaterFemaleA.glb", tx: 124, tz: 96, dx: 0, dz: -1 },
   { file: "ped_skaterMaleA.glb", tx: 126, tz: 92, dx: 0, dz: 1 },
   { file: "ped_survivorFemaleA.glb", tx: 126, tz: 98, dx: 0, dz: -1 },
@@ -150,7 +149,7 @@ export async function createPedestrians(scene, map) {
   async function clipsFor(gltf) {
     const missing = NAMES.filter((name) => !clipNamed(gltf.animations, name));
     if (missing.length > 0 && !donor) {
-      const url = new URL("../assets/player/humanMaleA_v14.glb", import.meta.url).href;
+      const url = new URL("../assets/player/humanMaleA_v15.glb", import.meta.url).href;
       try {
         donor = await loader.loadAsync(url);
       } catch {
@@ -174,7 +173,7 @@ export async function createPedestrians(scene, map) {
   const people = [];
   for (let index = 0; index < STARTS.length; index += 1) {
     const start = STARTS[index];
-    const url = new URL(`../pedestrians_v14/${start.file}`, import.meta.url).href;
+    const url = new URL(`../pedestrians_v15/${start.file}`, import.meta.url).href;
     let gltf;
     try {
       gltf = await loader.loadAsync(url);

@@ -4,6 +4,33 @@
 
 const DIAG_MAX = 2.4;
 
+// Places 1, 4 and 7: Northwest ring, West avenue, Southwest quay.
+// Only the waterfront within a short walk of those marks is tidied here.
+const PATROL = [
+  [41, 40],
+  [40, 126],
+  [52, 200],
+];
+const PATROL_REACH = 36;
+
+function westPatrol(x, z) {
+  for (const [sx, sz] of PATROL) {
+    const dx = x - sx;
+    const dz = z - sz;
+    if (dx * dx + dz * dz <= PATROL_REACH * PATROL_REACH) return true;
+  }
+  return false;
+}
+
+function distanceToSegment(px, pz, seg) {
+  const vx = seg.bx - seg.ax;
+  const vz = seg.bz - seg.az;
+  const len2 = vx * vx + vz * vz || 1;
+  let t = ((px - seg.ax) * vx + (pz - seg.az) * vz) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (seg.ax + vx * t), pz - (seg.az + vz * t));
+}
+
 // Image directions (x right, y down) of the two bank arms leaving the centre.
 // Away-directions of a 45° bend sit about 135° apart; a square bend sits at 90°.
 // arms leave the centre. land is the image direction (x right, y down) toward dry ground.
@@ -136,6 +163,12 @@ export function planQuayDraw(segments) {
     if (!prev || !next || prev.shape === "diag" || next.shape === "diag") continue;
     const point = intersect(prev, next);
     if (!point) continue;
+    // A square sheet can stand in for a one-tile stair. If the extended
+    // neighbors meet a tile away from this diagonal, that sheet misses the
+    // bank and the diagonal is the piece that belongs there.
+    const midX = (seg.ax + seg.bx) / 2;
+    const midZ = (seg.az + seg.bz) / 2;
+    if (westPatrol(midX, midZ) && distanceToSegment(point[0], point[1], seg) > 0.65) continue;
     const w1 = armAway(prev, point[0], point[1]);
     const w2 = armAway(next, point[0], point[1]);
     if (Math.abs(angleBetween(w1, w2) - 90) > 25) continue;

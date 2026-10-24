@@ -12,7 +12,7 @@ import {
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { pushOutOfCars } from "./car-push.js";
-import { createSim, headingAngle, planCars } from "./routes.js";
+import { createSim, headingAngle, planCars, settleParked } from "./routes.js";
 
 // Kenney Car Kit models (CC0), from https://kenney.nl/assets/car-kit.
 // The old sprite names stay, so spawn weights and the rare set do not move.
@@ -143,6 +143,7 @@ export async function createTraffic(scene, map) {
     car.model = pick(car.hash);
     car.w = models[car.model].w;
     car.h = models[car.model].h;
+    settleParked(car, map);
   }
   const parked = plan.parked;
   const sim = createSim(plan, models, pick);

@@ -1,5 +1,5 @@
 import {
-  DoubleSide,
+  FrontSide,
   InstancedMesh,
   LinearFilter,
   LinearMipmapLinearFilter,
@@ -46,26 +46,6 @@ const RARE = new Set(["police", "ambulance", "fire_truck"]);
 const BUCKET = 96;
 // Tires sit just above the road.
 const GROUND_Y = 0.6;
-const DEPTH_Y = 2.5;
-
-function flattenCarDepth(material) {
-  // The painted building shadow sits at y = 10. Flattening the car's depth
-  // keeps that shadow over the whole body instead of only the roof.
-  material.customProgramCacheKey = () => "kenney-car-depth";
-  material.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader.replace(
-      "#include <project_vertex>",
-      `#include <project_vertex>
-      vec4 flatPos = vec4(transformed, 1.0);
-      #ifdef USE_INSTANCING
-        flatPos = instanceMatrix * flatPos;
-      #endif
-      flatPos.y = ${DEPTH_Y.toFixed(1)};
-      vec4 flatClip = projectionMatrix * modelViewMatrix * flatPos;
-      gl_Position.z = flatClip.z / flatClip.w * gl_Position.w;`,
-    );
-  };
-}
 
 function bakeGeometry(scene) {
   scene.updateMatrixWorld(true);
@@ -182,9 +162,8 @@ export async function createTraffic(scene, map) {
     map: mapTexture,
     color: 0xffffff,
     toneMapped: false,
-    side: DoubleSide,
+    side: FrontSide,
   });
-  flattenCarDepth(material);
 
   for (let modelIndex = 0; modelIndex < models.length; modelIndex += 1) {
     const model = models[modelIndex];

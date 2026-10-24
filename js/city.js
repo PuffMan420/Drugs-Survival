@@ -181,9 +181,10 @@ const CURB_TOP = [0.78, 0.74, 0.58];
 const CURB_SIDE = [0.32, 0.3, 0.22];
 
 // One sun, from the northwest. Shadows fall southeast and scale with height.
+// The sheet sits just above the road and below the tires (cars start at y = 0.6).
 const SUN_X = 0.4;
 const SUN_Z = 0.58;
-const SHADOW_Y = 10;
+const SHADOW_Y = 0.4;
 const SHADOW_FEATHER = 46;
 const SHADOW_MAX = TILE * 4.4;
 

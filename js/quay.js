@@ -350,12 +350,24 @@ function appendStraight(draw, cx, cz, bufs, roads, docks) {
       // The straight wall stays one edge. Cutting it into road cells stacks
       // those pieces on the bank.
       if (piece.straightWall) {
+        // The coping art ends in a yellow corner band. That band is the three
+        // marks on this water edge. The concrete just inside it is drawn instead.
+        const inset = 4;
+        const lipV = 1 - inset / COPING;
+        const ix = piece.nx * inset;
+        const iz = piece.nz * inset;
         pushQuad(bufs.coping, [
           [ax + ox, LIP, az + oz],
           [bx + ox, LIP, bz + oz],
+          [bx + ix, LIP, bz + iz],
+          [ax + ix, LIP, az + iz],
+        ], [[u0, COPING_V0], [u1, COPING_V0], [u1, lipV], [u0, lipV]]);
+        pushQuad(bufs.coping, [
+          [ax + ix, LIP, az + iz],
+          [bx + ix, LIP, bz + iz],
           [bx, LIP, bz],
           [ax, LIP, az],
-        ], [[u0, COPING_V0], [u1, COPING_V0], [u1, 1], [u0, 1]]);
+        ], [[u0, lipV], [u1, lipV], [u1, lipV], [u0, lipV]]);
         continue;
       }
       pushFitted(bufs.coping, [

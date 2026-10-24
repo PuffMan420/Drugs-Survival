@@ -13,7 +13,7 @@ import {
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
-import { TILE } from "./constants.js";
+import { GROUND_H, GROUND_W, TILE } from "./constants.js";
 
 // Same height fit as the player, so these figures stand with him.
 const SEDAN_LENGTH = 71;
@@ -124,9 +124,10 @@ function unitHash(n) {
   return (h >>> 0) / 4294967296;
 }
 
+const CLOTH_COLORS = CLOTHES.map((hex) => new Color(hex));
+
 function clothColor(salt) {
-  const index = Math.floor(unitHash(salt) * CLOTHES.length);
-  return new Color(CLOTHES[index]);
+  return CLOTH_COLORS[Math.floor(unitHash(salt) * CLOTH_COLORS.length)];
 }
 
 function boneGroup(name) {
@@ -201,31 +202,54 @@ function clothMask(root) {
   return texture;
 }
 
-function paintClothes(root, mask, shirt, pants, shoes) {
-  root.traverse((obj) => {
-    if (!obj.isMesh || !obj.material) return;
-    const sources = Array.isArray(obj.material) ? obj.material : [obj.material];
-    const painted = sources.map((source) => {
-      const material = source.clone();
-      material.userData = Object.assign({}, source.userData, {
-        cloth: { shirt, pants, shoes },
-      });
-      material.onBeforeCompile = (shader) => {
-        const cloth = material.userData.cloth;
-        shader.uniforms.pedShirtColor = { value: cloth.shirt };
-        shader.uniforms.pedPantsColor = { value: cloth.pants };
-        shader.uniforms.pedShoeColor = { value: cloth.shoes };
-        shader.uniforms.pedClothMask = { value: mask };
-        shader.fragmentShader = CLOTH_UNIFORMS + shader.fragmentShader.replace(
-          "#include <map_fragment>",
-          `#include <map_fragment>\n${CLOTH_TINT}`,
-        );
-      };
-      material.customProgramCacheKey = () => "ped-cloth-1";
-      return material;
-    });
-    obj.material = painted.length === 1 ? painted[0] : painted;
-  });
+const clothMaterials = new Map();
+
+function sharedClothMaterial(base, mask, shirt, pants, shoes) {
+  const key = `${base.uuid}:${shirt.getHexString()}:${pants.getHexString()}:${shoes.getHexString()}`;
+  const cached = clothMaterials.get(key);
+  if (cached) return cached;
+  const material = base.clone();
+  material.userData = { cloth: { shirt, pants, shoes } };
+  material.onBeforeCompile = (shader) => {
+    const cloth = material.userData.cloth;
+    shader.uniforms.pedShirtColor = { value: cloth.shirt };
+    shader.uniforms.pedPantsColor = { value: cloth.pants };
+    shader.uniforms.pedShoeColor = { value: cloth.shoes };
+    shader.uniforms.pedClothMask = { value: mask };
+    shader.fragmentShader = CLOTH_UNIFORMS + shader.fragmentShader.replace(
+      "#include <map_fragment>",
+      `#include <map_fragment>\n${CLOTH_TINT}`,
+    );
+  };
+  material.customProgramCacheKey = () => "ped-cloth-1";
+  clothMaterials.set(key, material);
+  return material;
+}
+
+function bindActions(mixer, clips) {
+  const actions = {
+    idle: mixer.clipAction(clips.idle),
+    walk: mixer.clipAction(clips.walk),
+    run: mixer.clipAction(clips.run),
+  };
+  for (const name of NAMES) actions[name].play();
+  return actions;
+}
+
+function showClip(ped, name) {
+  if (name === ped.playing) return;
+  const live = ped.live;
+  if (live) {
+    const from = live.actions[ped.playing];
+    const to = live.actions[name];
+    to.paused = false;
+    to.enabled = true;
+    to.setEffectiveTimeScale(ped.vary);
+    to.setEffectiveWeight(1);
+    to.time = 0;
+    from.crossFadeTo(to, FADE, true);
+  }
+  ped.playing = name;
 }
 
 function crowdTiles(cells, neighbors) {
@@ -308,8 +332,8 @@ function litMaterials(model) {
     });
     obj.material = next.length === 1 ? next[0] : next;
     obj.frustumCulled = false;
-    obj.castShadow = true;
-    obj.receiveShadow = true;
+    obj.castShadow = false;
+    obj.receiveShadow = false;
   });
 }
 
@@ -423,85 +447,92 @@ export async function createPedestrians(scene, map) {
     const mask = clothMask(template);
     litMaterials(template);
     fitModel(template);
-    prototypes.push({ file, template, clips, mask });
+    prototypes.push({
+      file,
+      template,
+      clips,
+      mask,
+      material: skinnedMeshOf(template).material,
+    });
   }
 
   const tiles = crowdTiles(graph.cells, graph.neighbors);
   const people = [];
+  const pools = prototypes.map(() => []);
   for (let index = 0; index < tiles.length; index += 1) {
-    const prototype = prototypes[index % prototypes.length];
-    const model = cloneSkeleton(prototype.template);
-    paintClothes(
-      model,
-      prototype.mask,
-      clothColor(index * 3 + 1),
-      clothColor(index * 3 + 2),
-      clothColor(index * 3 + 3),
-    );
-
-    const holder = new Group();
-    holder.name = prototype.file;
-    holder.frustumCulled = false;
-    holder.add(model);
-    scene.add(holder);
-
-    const mixer = new AnimationMixer(model);
-    const { clips } = prototype;
-    const actions = {
-      idle: mixer.clipAction(clips.idle),
-      walk: mixer.clipAction(clips.walk),
-      run: mixer.clipAction(clips.run),
-    };
-    const vary = 0.85 + unitHash(index + 11) * 0.3;
-
-    function setWeight(action, weight) {
-      action.enabled = true;
-      action.setEffectiveTimeScale(vary);
-      action.setEffectiveWeight(weight);
-    }
-
-    function crossFade(from, to) {
-      to.paused = false;
-      setWeight(to, 1);
-      to.time = 0;
-      from.crossFadeTo(to, FADE, true);
-    }
-
-    setWeight(actions.idle, 0);
-    setWeight(actions.walk, 1);
-    setWeight(actions.run, 0);
-    actions.idle.play();
-    actions.walk.play();
-    actions.run.play();
-    actions.walk.time = unitHash(index + 29) * clips.walk.duration;
-    mixer.update(0);
-
+    const proto = index % prototypes.length;
     const [tx, tz] = tiles[index];
     const open = graph.neighbors(tx, tz);
     const preferred = open[Math.floor(unitHash(index + 7) * open.length)] || [0, 0];
     const home = centerOf(tx, tz, span);
-    const ped = {
-      holder,
-      mixer,
-      actions,
-      vary,
+    people.push({
+      proto,
+      shirt: clothColor(index * 3 + 1),
+      pants: clothColor(index * 3 + 2),
+      shoes: clothColor(index * 3 + 3),
+      vary: 0.85 + unitHash(index + 11) * 0.3,
       salt: index + 3,
       playing: "walk",
+      live: null,
       dx: preferred[0],
       dz: preferred[1],
       x: home.x,
       z: home.z,
       goalX: home.x + preferred[0] * span,
       goalZ: home.z + preferred[1] * span,
-      show(name) {
-        if (name === ped.playing) return;
-        crossFade(actions[ped.playing], actions[name]);
-        ped.playing = name;
-      },
-    };
-    holder.rotation.y = Math.atan2(ped.dx, ped.dz);
-    holder.position.set(ped.x, FEET_Y, ped.z);
-    people.push(ped);
+    });
+  }
+
+  function acquire(ped) {
+    const prototype = prototypes[ped.proto];
+    let live = pools[ped.proto].pop();
+    if (!live) {
+      const model = cloneSkeleton(prototype.template);
+      const holder = new Group();
+      holder.name = prototype.file;
+      holder.frustumCulled = false;
+      holder.add(model);
+      live = {
+        holder,
+        model,
+        mixer: new AnimationMixer(model),
+        actions: null,
+      };
+      live.actions = bindActions(live.mixer, prototype.clips);
+    }
+    const mesh = skinnedMeshOf(live.model);
+    mesh.material = sharedClothMaterial(
+      prototype.material,
+      prototype.mask,
+      ped.shirt,
+      ped.pants,
+      ped.shoes,
+    );
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
+    for (const name of NAMES) {
+      const action = live.actions[name];
+      action.enabled = true;
+      action.paused = false;
+      action.setEffectiveTimeScale(ped.vary);
+      action.setEffectiveWeight(name === ped.playing ? 1 : 0);
+      action.play();
+    }
+    const current = live.actions[ped.playing];
+    current.time = unitHash(ped.salt + 29) * prototype.clips[ped.playing].duration;
+    live.mixer.update(0);
+    live.holder.rotation.y = Math.atan2(ped.dx, ped.dz);
+    live.holder.position.set(ped.x, FEET_Y, ped.z);
+    scene.add(live.holder);
+    ped.live = live;
+  }
+
+  function release(ped) {
+    const live = ped.live;
+    ped.live = null;
+    live.holder.removeFromParent();
+    live.mixer.stopAllAction();
+    pools[ped.proto].push(live);
   }
 
   let panic = false;
@@ -589,27 +620,57 @@ export async function createPedestrians(scene, map) {
     }
   }
 
+  const mapW = map.cols * TILE;
+  const mapH = map.rows * TILE;
+  const enterMargin = TILE * 2;
+  const leaveMargin = TILE * 4;
+
+  function viewRect(playerX, playerZ, margin) {
+    const camX = Math.min(Math.max(Math.round(playerX), GROUND_W / 2), mapW - GROUND_W / 2);
+    const camZ = Math.min(Math.max(Math.round(playerZ), GROUND_H / 2), mapH - GROUND_H / 2);
+    return {
+      minX: camX - GROUND_W / 2 - margin,
+      maxX: camX + GROUND_W / 2 + margin,
+      minZ: camZ - GROUND_H / 2 - margin,
+      maxZ: camZ + GROUND_H / 2 + margin,
+    };
+  }
+
+  function inRect(ped, rect) {
+    return ped.x >= rect.minX && ped.x <= rect.maxX && ped.z >= rect.minZ && ped.z <= rect.maxZ;
+  }
+
   return {
     setPanic(value) {
       const next = Boolean(value);
       if (next === panic) return;
       panic = next;
-      for (const ped of people) ped.show(panic ? "run" : "walk");
+      const name = panic ? "run" : "walk";
+      for (const ped of people) showClip(ped, name);
     },
     update(dt, playerX, playerZ) {
       const step = Math.min(Math.max(dt, 0), 0.05);
+      const enter = viewRect(playerX, playerZ, enterMargin);
+      const leave = viewRect(playerX, playerZ, leaveMargin);
       for (const ped of people) {
+        if (ped.live && !inRect(ped, leave)) {
+          release(ped);
+          continue;
+        }
+        if (!ped.live && inRect(ped, enter)) acquire(ped);
+        if (!ped.live) continue;
         steer(ped, playerX, playerZ);
         const speed = (panic ? RUN_SPEED : WALK_SPEED) * ped.vary;
         advance(ped, speed * step, playerX, playerZ);
+        const live = ped.live;
         if (ped.dx !== 0 || ped.dz !== 0) {
-          ped.holder.rotation.y = Math.atan2(ped.dx, ped.dz);
-          ped.show(panic ? "run" : "walk");
+          live.holder.rotation.y = Math.atan2(ped.dx, ped.dz);
+          showClip(ped, panic ? "run" : "walk");
         } else {
-          ped.show("idle");
+          showClip(ped, "idle");
         }
-        ped.mixer.update(step);
-        ped.holder.position.set(ped.x, FEET_Y, ped.z);
+        live.mixer.update(step);
+        live.holder.position.set(ped.x, FEET_Y, ped.z);
       }
     },
   };

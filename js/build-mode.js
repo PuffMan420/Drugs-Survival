@@ -44,6 +44,7 @@ const keys = {
   onB: () => {},
   onR: () => {},
   onP: () => {},
+  onX: () => {},
   onScale: () => {},
 };
 window.addEventListener("keydown", (event) => {
@@ -56,11 +57,12 @@ window.addEventListener("keydown", (event) => {
   }
   if (!keys.enabled()) return;
   const direction = brushScale(event);
-  if (event.code !== "KeyR" && event.code !== "KeyP" && direction === 0) return;
+  if (event.code !== "KeyR" && event.code !== "KeyP" && event.code !== "KeyX" && direction === 0) return;
   event.preventDefault();
   event.stopImmediatePropagation();
   if (event.code === "KeyR") keys.onR();
   else if (event.code === "KeyP") keys.onP();
+  else if (event.code === "KeyX") keys.onX();
   else keys.onScale(direction);
 }, true);
 
@@ -146,6 +148,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   let preview = null;
   let selectToken = 0;
   let hover = null;
+  let pointerAt = null;
 
   const panel = document.createElement("aside");
   panel.id = "build-panel";
@@ -180,7 +183,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
 
   function status(text) {
     const name = selection ? selection.file.replace(/\.glb$/, "") : "nothing picked";
-    help.textContent = `${text} ${pieces.length} placed. ${name}, turn ${turn}, scale ${scale}. Click places, right-click removes a piece or a west road, R rotates, + and - resize, P downloads west-map.json. Arrows walk.`;
+    help.textContent = `${text} ${pieces.length} placed. ${name}, turn ${turn}, scale ${scale}. Click places, X or right-click removes a piece or a west road, R rotates, + and - resize, P downloads west-map.json. Arrows walk.`;
     pieceCount();
   }
 
@@ -477,11 +480,19 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     status("Rotated.");
   };
   keys.onP = () => download();
+  keys.onX = () => {
+    if (!pointerAt) return;
+    removeAt(pointerAt);
+  };
   keys.onScale = (direction) => stepScale(direction);
 
   canvas.addEventListener("pointermove", (event) => {
+    pointerAt = { clientX: event.clientX, clientY: event.clientY };
     if (!enabled) return;
     movePreview(cellAt(event));
+  });
+  canvas.addEventListener("pointerleave", () => {
+    pointerAt = null;
   });
 
   canvas.addEventListener("pointerdown", (event) => {
@@ -495,8 +506,8 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   });
 
   canvas.addEventListener("contextmenu", (event) => {
-    if (!enabled) return;
     event.preventDefault();
+    if (!enabled) return;
     removeAt(event);
   });
 

@@ -49,6 +49,66 @@ function isRoad(cell) {
   );
 }
 
+// Same three west-side places as the quay tidy. Parked cars elsewhere stay put.
+const PATROL = [
+  [41, 40],
+  [40, 126],
+  [52, 200],
+];
+const PATROL_REACH = 36;
+
+function westPatrol(tx, tz) {
+  for (const [sx, sz] of PATROL) {
+    const dx = tx - sx;
+    const dz = tz - sz;
+    if (dx * dx + dz * dz <= PATROL_REACH * PATROL_REACH) return true;
+  }
+  return false;
+}
+
+function roadCell(cell) {
+  return isRoad(cell);
+}
+
+function carFits(car, at, span) {
+  const len = car.h;
+  const wid = car.w;
+  for (const t of [-0.48, -0.24, 0, 0.24, 0.48]) {
+    for (const s of [-0.48, 0, 0.48]) {
+      const wx = car.x + car.hx * t * len + (-car.hz) * s * wid;
+      const wz = car.z + car.hz * t * len + car.hx * s * wid;
+      if (!roadCell(at(Math.floor(wx / span), Math.floor(wz / span)))) return false;
+    }
+  }
+  return true;
+}
+
+// A curb tile is one car-length shorter than some models. Slide along the
+// curb until the whole body is on road. Cars that already fit do not move.
+export function settleParked(car, map) {
+  if (!westPatrol(car.tx, car.tz)) return;
+  const span = map.tile || 48;
+  const at = (x, z) => {
+    if (x < 0 || z < 0 || x >= map.cols || z >= map.rows) return "~";
+    return map.ground[z][x];
+  };
+  if (carFits(car, at, span)) return;
+  for (let step = 1; step <= 16; step += 1) {
+    for (const sign of [-1, 1]) {
+      const shift = sign * step * (span / 24);
+      const trial = {
+        ...car,
+        x: car.x + car.hx * shift,
+        z: car.z + car.hz * shift,
+      };
+      if (!carFits(trial, at, span)) continue;
+      car.x = trial.x;
+      car.z = trial.z;
+      return;
+    }
+  }
+}
+
 export function headingAngle(hx, hz) {
   return Math.atan2(-hx, -hz);
 }

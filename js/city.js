@@ -11,7 +11,7 @@ import {
 } from "three";
 import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
 import { createGround } from "./ground.js";
-import { addKenneyChunk, createKenneyRoads } from "./kenney-roads.js";
+import { addKenneyRoads, createKenneyRoads } from "./kenney-roads.js";
 import { planKenneyRoads } from "./kenney-road-plan.js";
 import { appendQuay, createQuayMaterials, emptyQuayBuffers, PIER_Y, quayPlan, WATER_Y } from "./quay.js";
 import { createTextures } from "./textures.js";
@@ -370,7 +370,7 @@ function addTree(buf, x, z) {
   addColoredBox(buf, cx - canopy / 2, gy, cz - canopy / 2, cx + canopy / 2, gy + canopy * 0.55, cz + canopy / 2, greens[h % 3]);
 }
 
-function buildChunk(map, cx, cz, materials, ground, quay, kenneyPlan, kenneyKit) {
+function buildChunk(map, cx, cz, materials, ground, quay) {
   const x1 = Math.min(map.cols, cx + CHUNK);
   const z1 = Math.min(map.rows, cz + CHUNK);
   const groundBufs = new Map();
@@ -520,7 +520,6 @@ function buildChunk(map, cx, cz, materials, ground, quay, kenneyPlan, kenneyKit)
     mesh.renderOrder = 3;
     group.add(mesh);
   }
-  if (kenneyPlan && kenneyKit) addKenneyChunk(group, kenneyPlan, kenneyKit, cx, cz, x1, z1);
   group.updateMatrix();
   return { group, minX, maxX, minZ, maxZ };
 }
@@ -547,11 +546,12 @@ export async function buildCity(scene, map) {
   const chunks = [];
   for (let cz = 0; cz < map.rows; cz += CHUNK) {
     for (let cx = 0; cx < map.cols; cx += CHUNK) {
-      const chunk = buildChunk(map, cx, cz, materials, ground, quay, kenneyPlan, kenneyKit);
+      const chunk = buildChunk(map, cx, cz, materials, ground, quay);
       scene.add(chunk.group);
       chunks.push(chunk);
     }
   }
+  addKenneyRoads(scene, kenneyPlan, kenneyKit);
   const playerMesh = makePlayer();
   scene.add(playerMesh);
   return {

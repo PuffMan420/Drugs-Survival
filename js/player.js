@@ -1,87 +1,31 @@
 import {
+  AnimationMixer,
+  Box3,
   CanvasTexture,
   DoubleSide,
-  LinearFilter,
+  Group,
+  LoopOnce,
   Mesh,
   MeshBasicMaterial,
+  MeshLambertMaterial,
   PlaneGeometry,
   SRGBColorSpace,
 } from "three";
-import { CAMERA_DISTANCE } from "./constants.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-const DIRS = ["S", "SE", "E", "NE", "N", "NW", "W", "SW"];
-const FRAME_W = 54;
-const FRAME_H = 80;
-const IDLE_W = 43;
-const IDLE_H = 73;
-const FRAMES = 24;
-// The camera still frames 840×472.5 world units. Sprite texels stay on that
-// original scale (one texel is 0.875 world units) so the figure holds its
-// size when the picture is drawn at a finer resolution.
-const WORLD_PER_PX_X = CAMERA_DISTANCE;
-const WORLD_PER_PX_Z = CAMERA_DISTANCE;
-// Thirty percent smaller than the native frames. One scale on the whole
-// sprite, so every part of him shrinks together and stays even.
-const CHARACTER_SCALE = 0.7;
-// Brisk walk. Frames advance from distance, so the cycle keeps up with him.
+// Brisk walk. The live speed stays here; constants.js mirrors it.
 const SPEED = 80;
-const SPRITE_Y = 4;
-const SHADOW_Y = 3;
-// A sole cannot step backward more than this in one frame. Larger jumps are
-// the tracker changing feet, not a plant.
-const ADVANCE_CAP = 9;
-const SWING = 0.35;
-
-// Image +x is east, image +y is south, matching the flat sprite.
-const AXIS = {
-  E: [1, 0],
-  W: [-1, 0],
-  S: [0, 1],
-  N: [0, -1],
-  SE: [Math.SQRT1_2, Math.SQRT1_2],
-  SW: [-Math.SQRT1_2, Math.SQRT1_2],
-  NE: [Math.SQRT1_2, -Math.SQRT1_2],
-  NW: [-Math.SQRT1_2, -Math.SQRT1_2],
-};
-
-function directionOf(dx, dz) {
-  const east = dx > 0.001;
-  const west = dx < -0.001;
-  const south = dz > 0.001;
-  const north = dz < -0.001;
-  if (south && east) return "SE";
-  if (south && west) return "SW";
-  if (north && east) return "NE";
-  if (north && west) return "NW";
-  if (south) return "S";
-  if (north) return "N";
-  if (east) return "E";
-  if (west) return "W";
-  return null;
-}
-
-function loadImage(url) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`The player sprite failed to load: ${url}`));
-    image.src = url;
-  });
-}
-
-function textureOf(canvas, smooth) {
-  const texture = new CanvasTexture(canvas);
-  // Frames are tiny and premultiplied. Mipmaps would fringe the clear edge.
-  texture.magFilter = LinearFilter;
-  texture.minFilter = LinearFilter;
-  texture.generateMipmaps = false;
-  // Smooth sampling mixes in the clear texels. Premultiply so that black
-  // stays out of the edge and the shrink looks even instead of fringed.
-  texture.premultiplyAlpha = smooth;
-  texture.colorSpace = SRGBColorSpace;
-  texture.needsUpdate = true;
-  return texture;
-}
+// Blue sedan footprint in js/cars.js (assets/cars3d/sedan.glb): 37 wide, 71 long.
+// A real height is a third of that length. He is drawn a bit larger than that
+// so he reads clearly beside the cars. Shoulders stay inside the sedan's width.
+const SEDAN_LENGTH = 71;
+const SCALE_BUMP = 1.15;
+// Tires sit at this height. His soles use the same ground.
+const FEET_Y = 0.6;
+const SHADOW_Y = 0.35;
+// Map jumps (keys 1-9) move hundreds of units in one frame. A shove never does.
+const JUMP_STEP = 200;
+const FADE = 0.12;
 
 function shadowTexture() {
   const width = 32;
@@ -91,261 +35,159 @@ function shadowTexture() {
   canvas.height = height;
   const ctx = canvas.getContext("2d");
   const image = ctx.createImageData(width, height);
-  const cx = 15.5;
-  const cy = 7.5;
-  const rx = 15;
-  const ry = 7;
+  const cx = (width - 1) / 2;
+  const cy = (height - 1) / 2;
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
-      const nx = (x - cx) / rx;
-      const ny = (y - cy) / ry;
+      const nx = (x - cx) / cx;
+      const ny = (y - cy) / cy;
       const dist = nx * nx + ny * ny;
-      const alpha = dist >= 1 ? 0 : Math.round(160 * (1 - dist) ** 2);
-      const index = (y * width + x) * 4;
-      image.data[index + 3] = alpha;
+      const alpha = dist >= 1 ? 0 : Math.round(140 * (1 - dist) ** 2);
+      image.data[(y * width + x) * 4 + 3] = alpha;
     }
   }
   ctx.putImageData(image, 0, 0);
-  return textureOf(canvas, true);
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  texture.premultiplyAlpha = true;
+  texture.needsUpdate = true;
+  return texture;
 }
 
-function drawFrame(image, sx, sy, sw, sh) {
-  const canvas = document.createElement("canvas");
-  canvas.width = sw;
-  canvas.height = sh;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(image, sx, sy, sw, sh, 0, 0, sw, sh);
-  return canvas;
-}
-
-function visibleBox(canvas) {
-  const { width, height, data } = canvas.getContext("2d", { willReadFrequently: true })
-    .getImageData(0, 0, canvas.width, canvas.height);
-  let minX = width;
-  let minY = height;
-  let maxX = 0;
-  let maxY = 0;
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      if (data[(y * width + x) * 4 + 3] <= 32) continue;
-      if (x < minX) minX = x;
-      if (y < minY) minY = y;
-      if (x > maxX) maxX = x;
-      if (y > maxY) maxY = y;
-    }
-  }
-  return { w: maxX - minX + 1, h: maxY - minY + 1 };
-}
-
-// Walk sheets draw a larger figure than the idle pose. The frames whose
-// outline matches that idle pose set the scale, so his visible height matches
-// standing still and the stride still reaches.
-function walkFit(idleCanvas, frames) {
-  const idle = visibleBox(idleCanvas);
-  const idleAspect = idle.w / idle.h;
-  const boxes = frames.map(visibleBox);
-  let best = Infinity;
-  for (const box of boxes) {
-    const delta = Math.abs(box.w / box.h - idleAspect);
-    if (delta < best) best = delta;
-  }
-  const heights = [];
-  for (const box of boxes) {
-    if (Math.abs(box.w / box.h - idleAspect) <= best + 1e-9) heights.push(box.h);
-  }
-  heights.sort((a, b) => a - b);
-  const mid = Math.floor(heights.length / 2);
-  const height = heights.length % 2 === 1
-    ? heights[mid]
-    : (heights[mid - 1] + heights[mid]) / 2;
-  return idle.h / height;
-}
-
-function solePoint(canvas) {
-  const { width, height, data } = canvas.getContext("2d", { willReadFrequently: true })
-    .getImageData(0, 0, canvas.width, canvas.height);
-  let maxY = 0;
-  for (let y = height - 1; y >= 0; y -= 1) {
-    let found = false;
-    for (let x = 0; x < width; x += 1) {
-      if (data[(y * width + x) * 4 + 3] > 32) {
-        maxY = y;
-        found = true;
-        break;
-      }
-    }
-    if (found) break;
-  }
-  let sumX = 0;
-  let count = 0;
-  for (let x = 0; x < width; x += 1) {
-    if (data[(maxY * width + x) * 4 + 3] > 32) {
-      sumX += x;
-      count += 1;
-    }
-  }
-  return { x: sumX / count, y: maxY };
-}
-
-function strideOf(frames, axisX, axisY, scaleX, scaleZ) {
-  const axisScale = Math.hypot(axisX * scaleX, axisY * scaleZ);
-  const proj = frames.map((frame) => {
-    const sole = solePoint(frame);
-    return sole.x * axisX + sole.y * axisY;
+function litMaterials(model) {
+  // The sun lights the city with Lambert. The same material shades the figure.
+  const swapped = new Map();
+  model.traverse((obj) => {
+    if (!obj.isMesh) return;
+    const sources = Array.isArray(obj.material) ? obj.material : [obj.material];
+    const next = sources.map((source) => {
+      if (swapped.has(source)) return swapped.get(source);
+      const map = source.map ?? null;
+      if (map) map.colorSpace = SRGBColorSpace;
+      const lit = new MeshLambertMaterial({
+        map,
+        color: 0xffffff,
+        toneMapped: false,
+        fog: false,
+        side: source.side ?? DoubleSide,
+      });
+      swapped.set(source, lit);
+      source.dispose();
+      return lit;
+    });
+    obj.material = next.length === 1 ? next[0] : next;
+    obj.frustumCulled = false;
+    obj.castShadow = true;
+    obj.receiveShadow = true;
   });
-  const advances = proj.map((value, index) => {
-    const next = proj[(index + 1) % FRAMES];
-    const raw = Math.max(0, value - next);
-    const step = raw > ADVANCE_CAP || raw < 0.8 ? SWING : raw;
-    return step * axisScale;
-  });
-  const offsets = frames.map((frame) => {
-    const sole = solePoint(frame);
-    return {
-      x: (sole.x - FRAME_W / 2) * scaleX,
-      z: (sole.y - FRAME_H / 2) * scaleZ,
-    };
-  });
-  return { advances, offsets };
 }
 
-function frameAt(advances, travel) {
-  const total = advances.reduce((sum, step) => sum + step, 0);
-  let remain = travel % total;
-  for (let index = 0; index < FRAMES; index += 1) {
-    if (remain < advances[index]) return index;
-    remain -= advances[index];
-  }
-  return 0;
+function clipNamed(animations, name) {
+  const clip = animations.find((item) => item.name === name);
+  if (!clip) throw new Error(`The player model is missing the ${name} animation.`);
+  return clip;
 }
 
 export async function createPlayer() {
-  const walk = {};
-  const idle = {};
-  const advances = {};
-  const walkFitByDir = {};
-  const walkWorldW = FRAME_W * WORLD_PER_PX_X;
-  const walkWorldH = FRAME_H * WORLD_PER_PX_Z;
-  const idleWorldW = IDLE_W * WORLD_PER_PX_X;
-  const idleWorldH = IDLE_H * WORLD_PER_PX_Z;
-
-  for (const dir of DIRS) {
-    const sheet = await loadImage(new URL(`../assets/player/player_walk_${dir}_sheet.png`, import.meta.url));
-    const frames = [];
-    const textures = [];
-    for (let index = 0; index < FRAMES; index += 1) {
-      const frame = drawFrame(sheet, index * FRAME_W, 0, FRAME_W, FRAME_H);
-      frames.push(frame);
-      textures.push(textureOf(frame, true));
-    }
-    const idleImage = await loadImage(new URL(`../assets/player/player_idle_${dir}.png`, import.meta.url));
-    const idleCanvas = drawFrame(idleImage, 0, 0, IDLE_W, IDLE_H);
-    idle[dir] = textureOf(idleCanvas, true);
-    walkFitByDir[dir] = walkFit(idleCanvas, frames);
-
-    const [axisX, axisY] = AXIS[dir];
-    const drawn = CHARACTER_SCALE * walkFitByDir[dir];
-    const stride = strideOf(frames, axisX, axisY, WORLD_PER_PX_X * drawn, WORLD_PER_PX_Z * drawn);
-    advances[dir] = stride.advances;
-    walk[dir] = textures;
+  const loader = new GLTFLoader();
+  const url = new URL("../assets/player/humanMaleA_v10.glb", import.meta.url).href;
+  let gltf;
+  try {
+    gltf = await loader.loadAsync(url);
+  } catch {
+    throw new Error("The player model failed to load.");
   }
 
-  const idleScaleX = (idleWorldW / walkWorldW) * CHARACTER_SCALE;
-  const idleScaleZ = (idleWorldH / walkWorldH) * CHARACTER_SCALE;
+  const model = gltf.scene;
+  litMaterials(model);
+  // The figure faces +Z. atan2(east, south) turns that axis toward travel.
+  const bounds = new Box3().setFromObject(model);
+  const height = Math.max(0.001, bounds.max.y - bounds.min.y);
+  const scale = (SEDAN_LENGTH / 3) * SCALE_BUMP / height;
+  model.scale.setScalar(scale);
+  model.updateMatrixWorld(true);
+  const fitted = new Box3().setFromObject(model);
+  model.position.y -= fitted.min.y;
 
-  const geometry = new PlaneGeometry(walkWorldW, walkWorldH);
-  geometry.rotateX(-Math.PI / 2);
-  // Soft edge from the smooth scale. Premultiplied blending keeps the
-  // hoodie solid and stops the clear texels from darkening the outline.
-  const material = new MeshBasicMaterial({
-    map: idle.S,
-    color: 0xffffff,
-    transparent: true,
-    premultipliedAlpha: true,
-    opacity: 1,
-    alphaTest: 0.05,
-    depthWrite: true,
-    fog: false,
-    toneMapped: false,
-    side: DoubleSide,
-  });
-  const mesh = new Mesh(geometry, material);
-  mesh.frustumCulled = false;
-  mesh.position.y = SPRITE_Y;
-  mesh.renderOrder = 4;
-  mesh.scale.set(idleScaleX, 1, idleScaleZ);
+  const holder = new Group();
+  holder.frustumCulled = false;
+  holder.add(model);
 
-  const shadowGeometry = new PlaneGeometry(18 * CHARACTER_SCALE, 8 * CHARACTER_SCALE);
-  shadowGeometry.rotateX(-Math.PI / 2);
-  const shadowMaterial = new MeshBasicMaterial({
+  const shadow = new Mesh(new PlaneGeometry(9, 4.5), new MeshBasicMaterial({
     map: shadowTexture(),
-    color: 0xffffff,
     transparent: true,
     premultipliedAlpha: true,
     depthWrite: false,
     fog: false,
     toneMapped: false,
     side: DoubleSide,
-  });
-  const shadow = new Mesh(shadowGeometry, shadowMaterial);
+  }));
+  shadow.geometry.rotateX(-Math.PI / 2);
   shadow.frustumCulled = false;
+  shadow.renderOrder = 1;
   shadow.position.y = SHADOW_Y;
-  shadow.renderOrder = 3;
 
-  let dir = "S";
-  let travel = 0;
-  let standing = true;
+  const mixer = new AnimationMixer(model);
+  const actions = {
+    idle: mixer.clipAction(clipNamed(gltf.animations, "idle")),
+    run: mixer.clipAction(clipNamed(gltf.animations, "run")),
+    jump: mixer.clipAction(clipNamed(gltf.animations, "jump")),
+  };
+  actions.jump.setLoop(LoopOnce, 1);
+  actions.jump.clampWhenFinished = true;
+  actions.idle.play();
 
-  function pixelBias(width, height) {
-    // Odd sizes need a half pixel so every texel sits on one screen pixel.
-    return {
-      x: (width % 2) * WORLD_PER_PX_X * 0.5,
-      z: (height % 2) * WORLD_PER_PX_Z * 0.5,
-    };
+  let playing = "idle";
+  let moving = false;
+  let then = performance.now();
+
+  function play(name) {
+    if (name === playing) return;
+    const next = actions[name];
+    const prev = actions[playing];
+    // A finished fade-out disables the action. play() does not turn it back on.
+    if (name === "jump") next.reset();
+    next.enabled = true;
+    next.paused = false;
+    next.fadeIn(FADE).play();
+    prev.fadeOut(FADE);
+    playing = name;
+  }
+
+  mixer.addEventListener("finished", (event) => {
+    if (event.action !== actions.jump || playing !== "jump") return;
+    play(moving ? "run" : "idle");
+  });
+
+  function face(dx, dz) {
+    holder.rotation.y = Math.atan2(dx, dz);
   }
 
   function place(x, z) {
-    const bias = standing ? pixelBias(IDLE_W, IDLE_H) : pixelBias(FRAME_W, FRAME_H);
-    const px = x + bias.x;
-    const pz = z + bias.z;
-    mesh.position.set(px, SPRITE_Y, pz);
-    const height = walkWorldH * mesh.scale.z;
-    shadow.position.set(px, SHADOW_Y, pz + height * 0.42);
-  }
-
-  function showIdle() {
-    standing = true;
-    material.map = idle[dir];
-    mesh.scale.set(idleScaleX, 1, idleScaleZ);
-  }
-
-  function showWalk(frame) {
-    standing = false;
-    material.map = walk[dir][frame];
-    const drawn = CHARACTER_SCALE * walkFitByDir[dir];
-    mesh.scale.set(drawn, 1, drawn);
+    holder.position.set(x, FEET_Y, z);
+    shadow.position.set(x, SHADOW_Y, z);
   }
 
   return {
-    mesh,
+    mesh: holder,
     shadow,
     speed: SPEED,
     update(dx, dz, x, z) {
-      const next = directionOf(dx, dz);
-      if (next) {
-        if (next !== dir) {
-          const oldTotal = advances[dir].reduce((sum, step) => sum + step, 0);
-          const phase = oldTotal > 0 ? (travel / oldTotal) % 1 : 0;
-          dir = next;
-          const total = advances[dir].reduce((sum, step) => sum + step, 0);
-          travel = phase * total;
-        }
-        travel += Math.hypot(dx, dz);
-        showWalk(frameAt(advances[dir], travel));
-      } else {
-        showIdle();
+      const now = performance.now();
+      const dt = Math.min((now - then) / 1000, 0.05);
+      then = now;
+      const dist = Math.hypot(dx, dz);
+      moving = dist > 0.001 && dist < JUMP_STEP;
+      if (dist >= JUMP_STEP) {
+        face(dx, dz);
+        play("jump");
+      } else if (moving) {
+        face(dx, dz);
+        play("run");
+      } else if (playing !== "jump") {
+        play("idle");
       }
+      mixer.update(dt);
       place(x, z);
     },
   };

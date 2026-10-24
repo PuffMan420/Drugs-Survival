@@ -46,6 +46,8 @@ const RARE = new Set(["police", "ambulance", "fire_truck"]);
 const BUCKET = 96;
 // Tires sit just above the road.
 const GROUND_Y = 0.6;
+// The mesh is drawn 10% past the footprint w and h. Routes and the push test keep those.
+const DRAW_SCALE = 1.1;
 
 function bakeGeometry(scene) {
   scene.updateMatrixWorld(true);
@@ -123,9 +125,9 @@ export async function createTraffic(scene, map) {
       ...car,
       geometry,
       weight: RARE.has(car.name) ? 1 : 6,
-      scaleX: car.w / width,
-      scaleY: car.h / length,
-      scaleZ: car.h / length,
+      scaleX: car.w / width * DRAW_SCALE,
+      scaleY: car.h / length * DRAW_SCALE,
+      scaleZ: car.h / length * DRAW_SCALE,
     };
   });
   const weightTotal = models.reduce((sum, model) => sum + model.weight, 0);

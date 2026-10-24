@@ -7,6 +7,8 @@
 // module, so at this scale it would be a 12-tile circle and is not used.
 // Straights run up to the junction and stop. Pieces of one avenue share a
 // centerline, and a curb of sidewalk can sit under the piece.
+// The ring (lanes 1/2 and 5/6, median 4/8) is four lanes: two of these
+// two-lane pieces side by side. Their sidewalks meet on the median.
 
 import { TILE } from "./constants.js";
 
@@ -683,6 +685,43 @@ export function planKenneyRoads(map) {
   placements.length = 0;
   placements.push(...kept);
 
+  // The ring is drawn as one piece on the median. Replace that piece with
+  // two copies, one on each carriageway, so the sidewalks form the median.
+  const shift = ROAD_TILES / 2;
+  const widened = [];
+  const spansBoth = (item, a, b) => {
+    const half = item.scale / 2;
+    const x0 = Math.floor(item.x - half);
+    const x1 = Math.floor(item.x + half - 1e-4);
+    const z0 = Math.floor(item.z - half);
+    const z1 = Math.floor(item.z + half - 1e-4);
+    let hasA = false;
+    let hasB = false;
+    for (let z = z0; z <= z1; z += 1) {
+      for (let x = x0; x <= x1; x += 1) {
+        const cell = at(x, z);
+        if (cell === a) hasA = true;
+        else if (cell === b) hasB = true;
+      }
+    }
+    return hasA && hasB;
+  };
+  for (const item of placements) {
+    const across = spansBoth(item, "1", "2");
+    const along = spansBoth(item, "5", "6");
+    if (across && !along) {
+      widened.push({ ...item, z: item.z - shift });
+      widened.push({ ...item, z: item.z + shift });
+    } else if (along && !across) {
+      widened.push({ ...item, x: item.x - shift });
+      widened.push({ ...item, x: item.x + shift });
+    } else {
+      widened.push(item);
+    }
+  }
+  placements.length = 0;
+  placements.push(...widened);
+
   const covered = new Uint8Array(cols * rows);
   const footprint = new Uint8Array(cols * rows);
   const cornerCell = new Uint8Array(cols * rows);
@@ -749,7 +788,14 @@ export function planKenneyRoads(map) {
       const horizontal = dx !== 0;
       const rib = ribbonAt(tx, tz, horizontal);
       if (!rib) return null;
-      const center = centerOf(rib) * TILE;
+      let ribbonCenter = centerOf(rib);
+      const cell = at(tx, tz);
+      // Ring lanes sit on the paired pieces, not on the median between them.
+      if (cell === "1" || cell === "2" || cell === "5" || cell === "6") {
+        const perp = horizontal ? tz + 0.5 : tx + 0.5;
+        ribbonCenter += (perp < ribbonCenter ? -1 : 1) * shift;
+      }
+      const center = ribbonCenter * TILE;
       const offset = LANE_TILES * TILE;
       let sign = 1;
       if (dx > 0) sign = 1;

@@ -90,6 +90,61 @@ function addQuad(buf, x0, z0, x1, z1, u0, v0, u1, v1) {
   buf.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
 }
 
+function addFan(buf, pts) {
+  if (pts.length < 3) return;
+  const y = 0;
+  const base = buf.pos.length / 3;
+  for (const p of pts) {
+    buf.pos.push(p[0], y, p[1]);
+    buf.uv.push(p[2], p[3]);
+  }
+  for (let i = 1; i < pts.length - 1; i += 1) buf.idx.push(base, base + i, base + i + 1);
+}
+
+// Place 7's straight water wall. These three concrete tiles cross that line,
+// and the corner past the lip is the yellow triangle on the water edge.
+const WALL_BITES = new Set(["69,171", "70,172", "71,173"]);
+
+function straightWallLand(x, z) {
+  const ax = 77 * TILE;
+  const az = 178 * TILE;
+  const bx = 62.5 * TILE;
+  const bz = 164.5 * TILE;
+  const dx = bx - ax;
+  const dz = bz - az;
+  const len = Math.hypot(dx, dz);
+  let nx = dz / len;
+  let nz = -dx / len;
+  if (nx * -0.71 + nz * 0.71 < 0) {
+    nx = -nx;
+    nz = -nz;
+  }
+  // One unit onto the bank, under the coping, so the cut does not leave a sliver.
+  return (x - ax) * nx + (z - az) * nz - 1;
+}
+
+function clipToStraightWall(poly) {
+  const out = [];
+  for (let i = 0; i < poly.length; i += 1) {
+    const a = poly[i];
+    const b = poly[(i + 1) % poly.length];
+    const fa = straightWallLand(a[0], a[1]);
+    const fb = straightWallLand(b[0], b[1]);
+    const aIn = fa >= 0;
+    const bIn = fb >= 0;
+    if (aIn && bIn) out.push(b);
+    else if (aIn && !bIn) {
+      const t = fa / (fa - fb);
+      out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+    } else if (!aIn && bIn) {
+      const t = fa / (fa - fb);
+      out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+      out.push(b);
+    }
+  }
+  return out;
+}
+
 // Vertical streets run the strip's length along Z and its width along X.
 // U follows Z and V follows X, so the four corners are not a simple u(x), v(z) pair.
 function addVerticalStrip(buf, x0, z0, x1, z1, u0, v0, u1, v1) {
@@ -504,6 +559,15 @@ export async function createGround(map) {
     const z0 = z * TILE;
     const x1 = x0 + TILE;
     const z1 = z0 + TILE;
+    if (WALL_BITES.has(`${x},${z}`)) {
+      const zone = zoneOf(x, z, ringDist[z][x] <= 2);
+      const span = { zone, tiles: 2 };
+      const key = walkKey(span.zone === "hex" ? "olive" : span.zone, span.tiles);
+      const size = textures.get(key).image.width;
+      const poly = clipToStraightWall([[x0, z0], [x1, z0], [x1, z1], [x0, z1]]);
+      addFan(buffersOf(buffers, key), poly.map((p) => [p[0], p[1], p[0] / size, p[1] / size]));
+      return;
+    }
     if (cell === "l") {
       const zone = zoneOf(x, z, ringDist[z][x] <= 2);
       const key = asphaltKey(zone, 2);

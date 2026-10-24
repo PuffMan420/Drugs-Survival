@@ -397,10 +397,12 @@ export function buildQuayPlan(map) {
     }
   }
   const roads = new Set();
+  const docks = new Set();
   for (let z = 0; z < rows; z += 1) {
     const row = ground[z];
     for (let x = 0; x < cols; x += 1) {
       if (ROAD.has(row[x])) roads.add(x + z * 1024);
+      if (row[x] === "d") docks.add(x + z * 1024);
     }
   }
   return {
@@ -410,5 +412,6 @@ export function buildQuayPlan(map) {
     bridges,
     clearedPiers: cleared,
     roads,
+    docks,
   };
 }

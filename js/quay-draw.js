@@ -4,6 +4,33 @@
 
 const DIAG_MAX = 2.4;
 
+// Places 1, 4 and 7: Northwest ring, West avenue, Southwest quay.
+// Only the waterfront within a short walk of those marks is tidied here.
+const PATROL = [
+  [41, 40],
+  [40, 126],
+  [52, 200],
+];
+const PATROL_REACH = 36;
+
+function westPatrol(x, z) {
+  for (const [sx, sz] of PATROL) {
+    const dx = x - sx;
+    const dz = z - sz;
+    if (dx * dx + dz * dz <= PATROL_REACH * PATROL_REACH) return true;
+  }
+  return false;
+}
+
+function distanceToSegment(px, pz, seg) {
+  const vx = seg.bx - seg.ax;
+  const vz = seg.bz - seg.az;
+  const len2 = vx * vx + vz * vz || 1;
+  let t = ((px - seg.ax) * vx + (pz - seg.az) * vz) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (seg.ax + vx * t), pz - (seg.az + vz * t));
+}
+
 // Image directions (x right, y down) of the two bank arms leaving the centre.
 // Away-directions of a 45° bend sit about 135° apart; a square bend sits at 90°.
 // arms leave the centre. land is the image direction (x right, y down) toward dry ground.
@@ -106,8 +133,59 @@ function angleBetween(a, b) {
   return Math.acos(dot) * 180 / Math.PI;
 }
 
+// The southwest quay notch turns through two tiles. That turn is not drawn.
+// One straight wall runs across it, the way a straight bank is already drawn.
+function acrossSouthwestNotch(segments) {
+  const notch = [
+    [77, 178, 69.5, 170.5],
+    [69.5, 170.5, 67, 170.5],
+    [67, 170.5, 67, 169],
+    [67, 169, 64.5, 166.5],
+    [64.5, 166.5, 62.5, 164.5],
+  ];
+  const isNotch = (seg) => notch.some(([ax, az, bx, bz]) => (
+    Math.hypot(seg.ax - ax, seg.az - az) < 0.15
+    && Math.hypot(seg.bx - bx, seg.bz - bz) < 0.15
+  ));
+  const kept = [];
+  let found = 0;
+  for (const seg of segments) {
+    if (isNotch(seg)) {
+      found += 1;
+      continue;
+    }
+    kept.push(seg);
+  }
+  if (found !== notch.length) return segments;
+  const ax = 77;
+  const az = 178;
+  const bx = 62.5;
+  const bz = 164.5;
+  const dx = bx - ax;
+  const dz = bz - az;
+  const len = Math.hypot(dx, dz);
+  let nx = dz / len;
+  let nz = -dx / len;
+  if (nx * -0.71 + nz * 0.71 < 0) {
+    nx = -nx;
+    nz = -nz;
+  }
+  kept.push({
+    ax,
+    az,
+    bx,
+    bz,
+    nx,
+    nz,
+    soft: true,
+    dock: false,
+    straightWall: true,
+  });
+  return kept;
+}
+
 export function planQuayDraw(segments) {
-  const tagged = segments.map((seg) => ({
+  const tagged = acrossSouthwestNotch(segments).map((seg) => ({
     ...seg,
     len: Math.hypot(seg.bx - seg.ax, seg.bz - seg.az),
     shape: segmentKind(seg),
@@ -136,6 +214,18 @@ export function planQuayDraw(segments) {
     if (!prev || !next || prev.shape === "diag" || next.shape === "diag") continue;
     const point = intersect(prev, next);
     if (!point) continue;
+    // A square sheet can stand in for a one-tile stair. If that sheet would
+    // land off the bank, keep the diagonal itself as the single edge.
+    // Dock joints stay on the original path: concrete sheets stay off the
+    // wooden pier, and the pier edge is unchanged.
+    const midX = (seg.ax + seg.bx) / 2;
+    const midZ = (seg.az + seg.bz) / 2;
+    const onPier = seg.dock || prev.dock || next.dock;
+    if (!onPier && westPatrol(midX, midZ) && distanceToSegment(point[0], point[1], seg) > 0.65) {
+      suppressed.add(keyOf(seg.ax, seg.az));
+      suppressed.add(keyOf(seg.bx, seg.bz));
+      continue;
+    }
     const w1 = armAway(prev, point[0], point[1]);
     const w2 = armAway(next, point[0], point[1]);
     if (Math.abs(angleBetween(w1, w2) - 90) > 25) continue;
@@ -169,6 +259,8 @@ export function planQuayDraw(segments) {
     if (turn > 70 && turn < 110) placed = orient(["outer90", "inner90"], w1, n1, w2, n2);
     else if (turn > 115 && turn < 155) placed = orient(["outer", "inner"], w1, n1, w2, n2);
     if (!placed) continue;
+    // This sheet sits on the end of the straight wall and stacks on it.
+    if (Math.hypot(x - 62.5, z - 164.5) < 0.3) continue;
     corners.push({ x, z, trim: 0.85, ...placed });
   }
 
@@ -184,7 +276,7 @@ export function planQuayDraw(segments) {
   const diags = [];
   for (const seg of tagged) {
     if (seg.skip || seg.len < 0.08) continue;
-    const keepDiag = seg.shape === "diag" && seg.soft;
+    const keepDiag = seg.shape === "diag" && seg.soft && !seg.straightWall;
     const aTrim = trimFor(seg.ax, seg.az);
     const bTrim = trimFor(seg.bx, seg.bz);
     if (aTrim + bTrim + 0.2 >= seg.len) continue;
@@ -199,6 +291,7 @@ export function planQuayDraw(segments) {
       nz: seg.nz,
       soft: seg.soft,
       dock: seg.dock,
+      straightWall: Boolean(seg.straightWall),
     };
     if (keepDiag) diags.push(drawn);
     else strips.push(drawn);

@@ -724,7 +724,6 @@ export function planKenneyRoads(map) {
 
   const covered = new Uint8Array(cols * rows);
   const footprint = new Uint8Array(cols * rows);
-  const cornerCell = new Uint8Array(cols * rows);
   for (const item of placements) {
     const half = item.scale / 2;
     const x0 = Math.floor(item.x - half);
@@ -735,7 +734,6 @@ export function planKenneyRoads(map) {
       for (let x = x0; x <= x1; x += 1) {
         if (x < 0 || z < 0 || x >= cols || z >= rows) continue;
         footprint[z * cols + x] = 1;
-        if (item.piece === "corner") cornerCell[z * cols + x] = 1;
         if (!westRoad(x, z)) continue;
         const cx = x + 0.5;
         const cz = z + 0.5;
@@ -768,14 +766,9 @@ export function planKenneyRoads(map) {
       return covered[z * cols + x] === 1;
     },
     roadPaint(x, z) {
-      if (!westOfCanal(x, z)) return "paint";
-      const cell = at(x, z);
-      // The curved turn does not fill its square. The open corner is sidewalk.
-      if (cornerCell[z * cols + x] === 1 && (WALK.has(cell) || ROAD.has(cell))) return "walk";
-      // A sidewalk tile under a west piece would show as a pale bar in any crack.
-      if (WALK.has(cell)) return footprint[z * cols + x] === 1 ? "skip" : "paint";
-      if (!ROAD.has(cell)) return "paint";
-      return covered[z * cols + x] === 1 ? "skip" : "walk";
+      // West of the canal stays bare ground: no old asphalt and no sidewalk strips.
+      if (westOfCanal(x, z)) return "skip";
+      return "paint";
     },
     contains(x, z) {
       const tx = Math.floor(x / TILE);

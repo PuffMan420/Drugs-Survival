@@ -539,7 +539,7 @@ export async function buildCity(scene, map) {
   const materials = createMaterials(textures);
   materials.quay = await createQuayMaterials();
   const [ground, kenneyKit] = await Promise.all([
-    createGround(map, (x, z) => kenneyPlan.covers(x, z)),
+    createGround(map, (x, z) => kenneyPlan.roadPaint(x, z)),
     createKenneyRoads(),
   ]);
   const quay = quayPlan(map);

@@ -557,7 +557,14 @@ export async function createGround(map, skipRoad = () => false) {
     paint(buffers, x, z) {
       const cell = at(x, z);
       if (ROAD.has(cell)) {
-        if (!skipRoad(x, z)) paintRoad(buffers, x, z);
+        const mode = skipRoad(x, z);
+        if (mode === true || mode === "skip") return;
+        if (mode === "walk") {
+          const zone = zoneOf(x, z, ringDist[z][x] <= 2);
+          paintPlainWalk(buffers, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, { zone, tiles: 2 });
+          return;
+        }
+        paintRoad(buffers, x, z);
       } else paintWalk(buffers, x, z, cell);
     },
     material(key) {

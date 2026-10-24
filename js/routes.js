@@ -5,7 +5,7 @@
 // 1 (west), 2 (east), 5 (south) and 6 (north) are driven as marked.
 // Medians 4 and 8 are never driven.
 
-import { planKenneyRoads } from "./kenney-road-plan.js";
+import { planKenneyRoads, westOfCanal } from "./kenney-road-plan.js";
 
 const CENTER_H = new Set(["H", "h"]);
 const CENTER_V = new Set(["V", "v"]);
@@ -188,6 +188,7 @@ export function planCars(map) {
   for (let z = 1; z < rows - 1; z += 1) {
     for (let x = 1; x < cols - 1; x += 1) {
       if (parked.length >= 220) break;
+      if (westOfCanal(x, z)) continue;
       const cell = at(x, z);
       if (cell !== "+" && cell !== "X") continue;
       if (clear.has(key(x, z))) continue;

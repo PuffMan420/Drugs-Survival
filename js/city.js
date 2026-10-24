@@ -441,6 +441,21 @@ function buildChunk(map, cx, cz, materials, ground, quay, plan) {
     const row = map.ground[z];
     for (let x = cx; x < x1; x += 1) {
       const cell = row[x];
+      // West of the canal is empty ground, plus water and the pier decks.
+      // Kenney roads and the quay walls are drawn separately.
+      if (westOfCanal(x, z) && cell !== "~" && cell !== "d") {
+        let buf = groundBufs.get("y");
+        if (!buf) {
+          buf = { pos: [], uv: [], idx: [] };
+          groundBufs.set("y", buf);
+        }
+        const u0 = (x * TILE) / 128;
+        const u1 = ((x + 1) * TILE) / 128;
+        const vAtZ0 = (z * TILE) / 128;
+        const vAtZ1 = ((z + 1) * TILE) / 128;
+        addGroundQuad(buf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, u0, vAtZ1, u1, vAtZ0, 0);
+        continue;
+      }
       if (cell === "g" && mixHash(x, z) % 5 === 0 && !treeHitsRoad(x, z, plan)) addTree(treeBuf, x, z);
       if (ground.covers(x, z)) {
         ground.paint(surfaceBufs, x, z);
@@ -597,7 +612,7 @@ function makePlayer() {
 }
 
 export async function buildCity(scene, map) {
-  // Houses west of the canal are not built. East buildings stay.
+  // The west bank keeps its ground, water, piers, and quay. Houses are not built there.
   map.buildings = map.buildings.filter((building) => {
     const cx = building.x + building.w / 2;
     const cz = building.z + building.d / 2;

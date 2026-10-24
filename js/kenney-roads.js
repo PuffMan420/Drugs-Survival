@@ -1,5 +1,6 @@
 import {
   DoubleSide,
+  Group,
   InstancedMesh,
   LinearFilter,
   LinearMipmapLinearFilter,
@@ -13,9 +14,8 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { TILE } from "./constants.js";
 
 // Kenney City Kit Roads (CC0), https://kenney.nl/assets/city-kit-roads.
-// The files in "GLB format/" stay as shipped. Each piece is 1 unit square,
-// so the footprint scale is TILE. The models are only 0.02 units tall; scaling
-// that by TILE would lift the curb into the cars, so height stays at 6
+// The files in "GLB format/" stay as shipped. A piece is 1 unit square and
+// 0.02 units tall. X and Z scale to that road's full width. Height stays at 6
 // (top at 0.12, under the tire line at 0.6 and the shadow sheet at 0.4).
 
 const FILES = {
@@ -77,15 +77,10 @@ export async function createKenneyRoads() {
   return { geometries, material, dummy };
 }
 
-export function addKenneyChunk(group, plan, kit, cx, cz, x1, z1) {
+export function addKenneyRoads(scene, plan, kit) {
   const buckets = { straight: [], corner: [], tee: [], cross: [] };
-  for (let z = cz; z < z1; z += 1) {
-    for (let x = cx; x < x1; x += 1) {
-      const cell = plan.cell(x, z);
-      if (!cell) continue;
-      buckets[cell.piece].push({ x, z, turn: cell.turn });
-    }
-  }
+  for (const item of plan.placements) buckets[item.piece].push(item);
+  const group = new Group();
   for (const [name, list] of Object.entries(buckets)) {
     if (list.length === 0) continue;
     const mesh = new InstancedMesh(kit.geometries[name], kit.material, list.length);
@@ -93,15 +88,19 @@ export function addKenneyChunk(group, plan, kit, cx, cz, x1, z1) {
     mesh.matrixAutoUpdate = false;
     mesh.castShadow = false;
     mesh.receiveShadow = true;
+    mesh.renderOrder = name === "straight" ? 0 : 1;
     for (let i = 0; i < list.length; i += 1) {
-      const cell = list[i];
-      kit.dummy.position.set((cell.x + 0.5) * TILE, 0, (cell.z + 0.5) * TILE);
-      kit.dummy.rotation.set(0, cell.turn * Math.PI / 2, 0);
-      kit.dummy.scale.set(TILE, HEIGHT_SCALE, TILE);
+      const item = list[i];
+      const size = item.scale * TILE;
+      kit.dummy.position.set(item.x * TILE, item.y, item.z * TILE);
+      kit.dummy.rotation.set(0, item.turn * Math.PI / 2, 0);
+      kit.dummy.scale.set(size, HEIGHT_SCALE, size);
       kit.dummy.updateMatrix();
       mesh.setMatrixAt(i, kit.dummy.matrix);
     }
     mesh.instanceMatrix.needsUpdate = true;
     group.add(mesh);
   }
+  scene.add(group);
+  return group;
 }

@@ -20,6 +20,7 @@ import {
 } from "./constants.js";
 import { createTraffic } from "./cars.js";
 import { buildCity, tileAt, tileCenter, updateChunks } from "./city.js";
+import { createPedestrians } from "./pedestrians.js";
 import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
 import { createPlayer } from "./player.js";
@@ -303,6 +304,8 @@ async function start() {
   scene.add(playerSprite.mesh);
   lightMesh(playerSprite.mesh, { forwardMap: true, cast: true });
   const traffic = await createTraffic(scene, map);
+  const pedestrians = await createPedestrians(scene, map);
+  window.pedestrians = pedestrians;
   const glow = createGlow(scene, map);
   const sun = createSun(scene);
   const minimap = createMinimap(map, JUMPS);
@@ -379,6 +382,7 @@ async function start() {
     snappedX = Math.round(player.x);
     snappedZ = Math.round(player.z);
     playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ);
+    pedestrians.update(dt, player.x, player.z);
     camX = clamp(snappedX, GROUND_W / 2, city.mapW - GROUND_W / 2);
     camZ = clamp(snappedZ, GROUND_H / 2, city.mapH - GROUND_H / 2);
     glow.update(camX, camZ, traffic.lights(camX, camZ));

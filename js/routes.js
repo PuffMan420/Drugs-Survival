@@ -204,6 +204,9 @@ export function planCars(map) {
         if (drive[i].has(key(x, z))) kind = 0;
       }
       if (kind === 0) continue;
+      // The red junker at the northwest ring sits half on the grass.
+      // It does not get a curb spot.
+      if (x === 35 && z === 42) continue;
       const bucket = `${Math.floor(x / 2)},${Math.floor(z / 2)}`;
       if (taken.has(bucket)) continue;
       taken.add(bucket);

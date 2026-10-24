@@ -24,6 +24,7 @@ import { createPedestrians } from "./pedestrians.js";
 import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
 import { createPlayer } from "./player.js";
+import { createBuildMode } from "./build-mode.js";
 
 const NEAR = 10;
 const FAR = 6000;
@@ -322,6 +323,9 @@ async function start() {
   const origin = tileCenter(map.spawn.x, map.spawn.z);
   const player = { x: origin.x, z: origin.z };
   const half = PLAYER_SIZE / 2;
+
+  fpsEl.textContent = "Loading saved layout…";
+  await createBuildMode({ scene, camera, canvas, map });
 
   session.ready = true;
   session.map = map;

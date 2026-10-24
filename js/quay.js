@@ -11,6 +11,7 @@ import {
 import { CHUNK, TILE } from "./constants.js";
 import { buildQuayPlan } from "./quay-shape.js";
 import { planQuayDraw } from "./quay-draw.js";
+import { fitCornerSheets, patrolSplit } from "./quay-clip.js";
 
 export const WATER_Y = -58;
 const LIP = 10;
@@ -37,6 +38,9 @@ const DECK_Y = 2;
 const SHADOW_Y = 0.4;
 const DECAL_Y = 12;
 const CORNER_Y = 13;
+// Wooden decks sit at PIER_Y. Concrete that falls on a dock is dropped
+// just under the boards so the planks stay the surface.
+const UNDER_PIER_Y = PIER_Y - 1;
 
 const LAYERS = [
   "coping",
@@ -242,7 +246,12 @@ function pushOverLand(buf, corners, uvs, roads) {
     }
   }
   if (!blocked) {
-    pushQuad(buf, corners, uvs);
+    if (corners.length === 4) pushQuad(buf, corners, uvs);
+    else {
+      for (let i = 1; i < corners.length - 1; i += 1) {
+        pushTri(buf, corners[0], corners[i], corners[i + 1], uvs[0], uvs[i], uvs[i + 1]);
+      }
+    }
     return;
   }
   const y = corners[0][1];
@@ -293,7 +302,27 @@ function ownsTile(cx, cz, x, z) {
   return x >= cx && x < cx + CHUNK && z >= cz && z < cz + CHUNK;
 }
 
-function appendStraight(draw, cx, cz, bufs, roads) {
+function pushPoly(buf, poly, y, roads) {
+  if (!poly || poly.length < 3) return;
+  pushOverLand(
+    buf,
+    poly.map((p) => [p.x, y, p.z]),
+    poly.map((p) => [p.u, p.v]),
+    roads,
+  );
+}
+
+function pushFitted(buf, poly, y, roads, docks, tileX, tileZ) {
+  const split = patrolSplit(poly, docks, tileX, tileZ);
+  if (!split) {
+    pushPoly(buf, poly, y, roads);
+    return;
+  }
+  for (const part of split.land) pushPoly(buf, part, y, roads);
+  for (const part of split.under) pushPoly(buf, part, UNDER_PIER_Y, roads);
+}
+
+function appendStraight(draw, cx, cz, bufs, roads, docks) {
   for (const segment of draw.strips) {
     for (const piece of piecesOf(segment)) {
       const midX = (piece.ax + piece.bx) / 2;
@@ -317,17 +346,17 @@ function appendStraight(draw, cx, cz, bufs, roads) {
       if (!piece.soft) continue;
       const ox = piece.nx * COPING;
       const oz = piece.nz * COPING;
-      pushOverLand(bufs.coping, [
-        [ax + ox, LIP, az + oz],
-        [bx + ox, LIP, bz + oz],
-        [bx, LIP, bz],
-        [ax, LIP, az],
-      ], [[u0, COPING_V0], [u1, COPING_V0], [u1, 1], [u0, 1]], roads);
+      pushFitted(bufs.coping, [
+        { x: ax + ox, z: az + oz, u: u0, v: COPING_V0 },
+        { x: bx + ox, z: bz + oz, u: u1, v: COPING_V0 },
+        { x: bx, z: bz, u: u1, v: 1 },
+        { x: ax, z: az, u: u0, v: 1 },
+      ], LIP, roads, docks, midX, midZ);
     }
   }
 }
 
-function appendDiag(draw, cx, cz, bufs, roads) {
+function appendDiag(draw, cx, cz, bufs, roads, docks) {
   for (const segment of draw.diags) {
     const lenTiles = Math.hypot(segment.bx - segment.ax, segment.bz - segment.az);
     const sDirX = (segment.bx - segment.ax) / lenTiles;
@@ -347,12 +376,17 @@ function appendDiag(draw, cx, cz, bufs, roads) {
         ];
       };
       const uv = (s, w) => [(s - w) / DIAG_ALONG, 1 - (s + w) / DIAG_ALONG];
-      pushOverLand(bufs.diag, [
-        point(s0, COPING),
-        point(s1, COPING),
-        point(s1, -SLOPE),
-        point(s0, -SLOPE),
-      ], [uv(s0, COPING), uv(s1, COPING), uv(s1, -SLOPE), uv(s0, -SLOPE)], roads);
+      const at = (s, w) => {
+        const p = point(s, w);
+        const t = uv(s, w);
+        return { x: p[0], z: p[2], u: t[0], v: t[1] };
+      };
+      pushFitted(bufs.diag, [
+        at(s0, COPING),
+        at(s1, COPING),
+        at(s1, -SLOPE),
+        at(s0, -SLOPE),
+      ], DECAL_Y, roads, docks, midX, midZ);
     }
   }
 }
@@ -380,16 +414,24 @@ function appendWallCorners(draw, cx, cz, bufs) {
 
 function appendCorners(draw, cx, cz, bufs, roads) {
   const half = CORNER / 2;
-  for (const corner of draw.corners) {
+  const fitted = draw.cornerFit;
+  for (let index = 0; index < draw.corners.length; index += 1) {
+    const corner = draw.corners[index];
     if (!ownsTile(cx, cz, Math.floor(corner.x), Math.floor(corner.z))) continue;
+    const buf = bufs[corner.kind];
+    if (!buf) continue;
+    const fit = fitted ? fitted[index] : null;
+    if (fit) {
+      for (const poly of fit.land) pushPoly(buf, poly, CORNER_Y, roads);
+      for (const poly of fit.under) pushPoly(buf, poly, UNDER_PIER_Y, roads);
+      continue;
+    }
     const cxw = corner.x * TILE;
     const czw = corner.z * TILE;
     const ux = corner.uDir[0] * half;
     const uz = corner.uDir[1] * half;
     const vx = corner.vDir[0] * half;
     const vz = corner.vDir[1] * half;
-    const buf = bufs[corner.kind];
-    if (!buf) continue;
     pushOverLand(buf, [
       [cxw - ux - vx, CORNER_Y, czw - uz - vz],
       [cxw + ux - vx, CORNER_Y, czw + uz - vz],
@@ -497,8 +539,11 @@ function appendAbutmentZ(buf, cx, cz, x0, x1, z0, z1, xTile, mirror) {
 
 export function appendQuay(plan, cx, cz, bufs, waterBuf) {
   const roads = plan.roads;
-  appendStraight(plan.draw, cx, cz, bufs, roads);
-  appendDiag(plan.draw, cx, cz, bufs, roads);
+  if (!plan.draw.cornerFit) {
+    plan.draw.cornerFit = fitCornerSheets(plan.draw, plan.docks, CORNER / 2, COPING, SLOPE);
+  }
+  appendStraight(plan.draw, cx, cz, bufs, roads, plan.docks);
+  appendDiag(plan.draw, cx, cz, bufs, roads, plan.docks);
   appendCorners(plan.draw, cx, cz, bufs, roads);
   appendWallCorners(plan.draw, cx, cz, bufs);
   appendBridges(plan.bridges || BRIDGES, cx, cz, bufs);

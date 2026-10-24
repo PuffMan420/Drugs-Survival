@@ -163,12 +163,18 @@ export function planQuayDraw(segments) {
     if (!prev || !next || prev.shape === "diag" || next.shape === "diag") continue;
     const point = intersect(prev, next);
     if (!point) continue;
-    // A square sheet can stand in for a one-tile stair. If the extended
-    // neighbors meet a tile away from this diagonal, that sheet misses the
-    // bank and the diagonal is the piece that belongs there.
+    // A square sheet can stand in for a one-tile stair. If that sheet would
+    // land off the bank, keep the diagonal itself as the single edge.
+    // Dock joints stay on the original path: concrete sheets stay off the
+    // wooden pier, and the pier edge is unchanged.
     const midX = (seg.ax + seg.bx) / 2;
     const midZ = (seg.az + seg.bz) / 2;
-    if (westPatrol(midX, midZ) && distanceToSegment(point[0], point[1], seg) > 0.65) continue;
+    const onPier = seg.dock || prev.dock || next.dock;
+    if (!onPier && westPatrol(midX, midZ) && distanceToSegment(point[0], point[1], seg) > 0.65) {
+      suppressed.add(keyOf(seg.ax, seg.az));
+      suppressed.add(keyOf(seg.bx, seg.bz));
+      continue;
+    }
     const w1 = armAway(prev, point[0], point[1]);
     const w2 = armAway(next, point[0], point[1]);
     if (Math.abs(angleBetween(w1, w2) - 90) > 25) continue;

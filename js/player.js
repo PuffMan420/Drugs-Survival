@@ -1,11 +1,9 @@
 import {
   AnimationMixer,
-  AnimationUtils,
   Box3,
   CanvasTexture,
   DoubleSide,
   Group,
-  LoopOnce,
   Mesh,
   MeshBasicMaterial,
   MeshLambertMaterial,
@@ -24,8 +22,8 @@ const SCALE_BUMP = 1.15;
 // Tires sit at this height. His soles use the same ground.
 const FEET_Y = 0.6;
 const SHADOW_Y = 0.35;
-// Map jumps (keys 1-9) move hundreds of units in one frame. A shove never does.
-const JUMP_STEP = 200;
+// Keys 1–9 place him across the map in one frame. A step never does.
+const PLACE_STEP = 240;
 const FADE = 0.12;
 
 function shadowTexture() {
@@ -91,7 +89,7 @@ function clipNamed(animations, name) {
 
 export async function createPlayer() {
   const loader = new GLTFLoader();
-  const url = new URL("../assets/player/humanMaleA_v10.glb", import.meta.url).href;
+  const url = new URL("../assets/player/humanMaleA_v13.glb", import.meta.url).href;
   let gltf;
   try {
     gltf = await loader.loadAsync(url);
@@ -129,18 +127,13 @@ export async function createPlayer() {
   shadow.position.y = SHADOW_Y;
 
   const mixer = new AnimationMixer(model);
-  // The run clip's loop point is this skeleton's bind pose, arms straight out.
-  // Frames 5–13 (24 fps) are the stride itself: arms stay down, legs stay bent.
-  const runClip = AnimationUtils.subclip(clipNamed(gltf.animations, "run"), "run", 5, 13, 24);
+  // The file has idle, walk, and run. He only moves at SPEED, so a step plays
+  // the full run. Walk stays in the mixer so every clip is playing.
   const actions = {
     idle: mixer.clipAction(clipNamed(gltf.animations, "idle")),
-    run: mixer.clipAction(runClip),
-    jump: mixer.clipAction(clipNamed(gltf.animations, "jump")),
+    walk: mixer.clipAction(clipNamed(gltf.animations, "walk")),
+    run: mixer.clipAction(clipNamed(gltf.animations, "run")),
   };
-  actions.jump.setLoop(LoopOnce, 1);
-  // Leaving this false disables the action when the clip ends. A disabled
-  // action contributes no weight, and the mixer then writes the bind pose back.
-  actions.jump.clampWhenFinished = true;
 
   // webgl_animation_skinning_blending.html: every action stays playing, and a
   // change of clip is setWeight + crossFadeTo. crossFadeTo's fade-out sets
@@ -160,33 +153,23 @@ export async function createPlayer() {
   }
 
   setWeight(actions.idle, 1);
+  setWeight(actions.walk, 0);
   setWeight(actions.run, 0);
-  setWeight(actions.jump, 0);
   actions.idle.play();
+  actions.walk.play();
   actions.run.play();
-  actions.jump.play();
-  // LoopOnce would otherwise play the jump out while its weight is still 0.
-  actions.jump.paused = true;
   // Bones are still the bind T until the mixer writes. Do that before the
   // first paint, while idle is the only action with weight.
   mixer.update(0);
 
   let playing = "idle";
-  let moving = false;
   let then = performance.now();
 
   function show(name) {
     if (name === playing) return;
-    const next = actions[name];
-    if (name === "jump") next.reset();
-    crossFade(actions[playing], next);
+    crossFade(actions[playing], actions[name]);
     playing = name;
   }
-
-  mixer.addEventListener("finished", (event) => {
-    if (event.action !== actions.jump || playing !== "jump") return;
-    show(moving ? "run" : "idle");
-  });
 
   function face(dx, dz) {
     holder.rotation.y = Math.atan2(dx, dz);
@@ -206,14 +189,10 @@ export async function createPlayer() {
       const dt = Math.min((now - then) / 1000, 0.05);
       then = now;
       const dist = Math.hypot(dx, dz);
-      moving = dist > 0.001 && dist < JUMP_STEP;
-      if (dist >= JUMP_STEP) {
-        face(dx, dz);
-        show("jump");
-      } else if (moving) {
+      if (dist > 0.001 && dist < PLACE_STEP) {
         face(dx, dz);
         show("run");
-      } else if (playing !== "jump") {
+      } else if (dist < PLACE_STEP) {
         show("idle");
       }
       mixer.update(dt);

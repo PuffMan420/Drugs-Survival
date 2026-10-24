@@ -2,10 +2,11 @@
 // The piece is centered on the old sheet. Asphalt is the middle 60% of the
 // model, so each direction's lane sits 0.6 tiles off that center. Anything
 // the old road had beyond those 4 tiles is left as sidewalk.
-// A bend is a corner piece. A three-way meeting is a T. A four-way meeting
-// is a cross. Straights run up to that piece and stop. Pieces of one avenue
-// share a centerline, and a curb of sidewalk can sit under the piece so the
-// run is not capped by the sidewalk.
+// A bend is the curved turn tile (road-bend). A three-way meeting is a T.
+// A four-way meeting is a cross. The roundabout model is 3 by 3 of the same
+// module, so at this scale it would be a 12-tile circle and is not used.
+// Straights run up to the junction and stop. Pieces of one avenue share a
+// centerline, and a curb of sidewalk can sit under the piece.
 
 import { TILE } from "./constants.js";
 
@@ -145,6 +146,24 @@ export function planKenneyRoads(map) {
     return ground[z][x];
   };
   const westRoad = (x, z) => ROAD.has(at(x, z)) && westOfCanal(x, z);
+  // road: a west driving tile. soft: sidewalk, shoulder, or a bank tile
+  // between two west roads. block: Midtown, or anything else.
+  const columnKind = (horizontal, along, p0, p1) => {
+    let road = false;
+    let soft = false;
+    const pLo = Math.floor(p0);
+    const pHi = Math.ceil(p1);
+    for (let p = pLo; p <= pHi; p += 1) {
+      const xx = horizontal ? along : p;
+      const zz = horizontal ? p : along;
+      const cell = at(xx, zz);
+      if (westRoad(xx, zz)) road = true;
+      else if (cell === "~" || SHOULDER.has(cell) || WALK.has(cell)) soft = true;
+    }
+    if (road) return "road";
+    if (soft) return "soft";
+    return "block";
+  };
 
   const hBody = Array.from({ length: rows }, () => new Uint8Array(cols));
   const vBody = Array.from({ length: rows }, () => new Uint8Array(cols));
@@ -493,19 +512,12 @@ export function planKenneyRoads(map) {
       const a = Math.min(edge, along);
       const b = Math.max(edge, along);
       let open = true;
-      let walks = 0;
+      let soft = 0;
       for (let i = a; i <= b; i += 1) {
-        let road = false;
-        let walk = false;
-        for (let p = p0; p <= p1; p += 1) {
-          const xx = horizontal ? i : p;
-          const zz = horizontal ? p : i;
-          if (westRoad(xx, zz)) road = true;
-          else if (westOfCanal(xx, zz) && WALK.has(at(xx, zz))) walk = true;
-        }
-        if (road) continue;
-        if (walk && walks < 3) {
-          walks += 1;
+        const kind = columnKind(horizontal, i, p0, p1);
+        if (kind === "road") continue;
+        if (kind === "soft" && soft < 3) {
+          soft += 1;
           continue;
         }
         open = false;
@@ -537,7 +549,7 @@ export function planKenneyRoads(map) {
         // Closing that side puts the piece's sidewalk across the stub.
         return protrude(rib.a0, rib.a1, span0, span1, sign) >= 2;
       };
-      raw.push({
+      const box = {
         cx,
         cz,
         h,
@@ -546,7 +558,8 @@ export function planKenneyRoads(map) {
         east: arm(true, cx, h, v.p0, v.p1, 1),
         north: arm(false, cz, v, h.p0, h.p1, -1),
         south: arm(false, cz, v, h.p0, h.p1, 1),
-      });
+      };
+      raw.push(box);
     }
   }
 
@@ -587,19 +600,12 @@ export function planKenneyRoads(map) {
     const perp = Math.round(centerOf(rib));
     const a = Math.floor(Math.min(from, to));
     const b = Math.ceil(Math.max(from, to));
-    let walks = 0;
+    let soft = 0;
     for (let i = a; i <= b; i += 1) {
-      let road = false;
-      let walk = false;
-      for (let d = -1; d <= 1; d += 1) {
-        const xx = rib.horizontal ? i : perp + d;
-        const zz = rib.horizontal ? perp + d : i;
-        if (westRoad(xx, zz)) road = true;
-        else if (westOfCanal(xx, zz) && WALK.has(at(xx, zz))) walk = true;
-      }
-      if (road) continue;
-      if (walk && walks < 3) {
-        walks += 1;
+      const kind = columnKind(rib.horizontal, i, perp - 1, perp + 1);
+      if (kind === "road") continue;
+      if (kind === "soft" && soft < 3) {
+        soft += 1;
         continue;
       }
       return false;
@@ -679,6 +685,7 @@ export function planKenneyRoads(map) {
 
   const covered = new Uint8Array(cols * rows);
   const footprint = new Uint8Array(cols * rows);
+  const cornerCell = new Uint8Array(cols * rows);
   for (const item of placements) {
     const half = item.scale / 2;
     const x0 = Math.floor(item.x - half);
@@ -689,6 +696,7 @@ export function planKenneyRoads(map) {
       for (let x = x0; x <= x1; x += 1) {
         if (x < 0 || z < 0 || x >= cols || z >= rows) continue;
         footprint[z * cols + x] = 1;
+        if (item.piece === "corner") cornerCell[z * cols + x] = 1;
         if (!westRoad(x, z)) continue;
         const cx = x + 0.5;
         const cz = z + 0.5;
@@ -723,6 +731,8 @@ export function planKenneyRoads(map) {
     roadPaint(x, z) {
       if (!westOfCanal(x, z)) return "paint";
       const cell = at(x, z);
+      // The curved turn does not fill its square. The open corner is sidewalk.
+      if (cornerCell[z * cols + x] === 1 && (WALK.has(cell) || ROAD.has(cell))) return "walk";
       // A sidewalk tile under a west piece would show as a pale bar in any crack.
       if (WALK.has(cell)) return footprint[z * cols + x] === 1 ? "skip" : "paint";
       if (!ROAD.has(cell)) return "paint";
@@ -788,9 +798,17 @@ export function clearBuildingsFromRoads(map, plan) {
     }
     return true;
   };
-  const place = (building, x, z, half, allowShove) => {
+  const padHits = (b, piece, pad) => {
+    const ox = Math.min(b.x + b.w, piece.x + pad) - Math.max(b.x, piece.x - pad);
+    const oz = Math.min(b.z + b.d, piece.z + pad) - Math.max(b.z, piece.z - pad);
+    return ox > 0.05 && oz > 0.05;
+  };
+  // Off the driving asphalt everywhere, and a gap past the piece being left.
+  // Touching some other piece's outer sidewalk is allowed.
+  const place = (building, x, z, piece, allowShove) => {
     const trial = { ...building, x, z };
-    if (!groundOk(trial) || overlap(trial, half)) return false;
+    const clear = (b) => !overlap(b, 1.2) && !padHits(b, piece, ROAD_TILES / 2 + 0.75);
+    if (!groundOk(trial) || !clear(trial)) return false;
     const blockers = occupants(trial, building);
     if (blockers.length === 0) {
       building.x = x;
@@ -806,7 +824,7 @@ export function clearBuildingsFromRoads(map, plan) {
       let nx = blocker.x;
       let nz = blocker.z;
       let steps = 0;
-      while (steps < 4) {
+      while (steps < 8) {
         const moved = { ...blocker, x: nx, z: nz };
         const ox = Math.min(trial.x + trial.w, moved.x + moved.w) - Math.max(trial.x, moved.x);
         const oz = Math.min(trial.z + trial.d, moved.z + moved.d) - Math.max(trial.z, moved.z);
@@ -818,11 +836,20 @@ export function clearBuildingsFromRoads(map, plan) {
       const moved = { ...blocker, x: nx, z: nz };
       const still = Math.min(trial.x + trial.w, moved.x + moved.w) - Math.max(trial.x, moved.x);
       const stillZ = Math.min(trial.z + trial.d, moved.z + moved.d) - Math.max(trial.z, moved.z);
-      if (steps === 0 || still > 0 || stillZ > 0) return false;
-      if (!groundOk(moved) || overlap(moved, 1.2)) return false;
+      if (steps === 0 || (still > 0 && stillZ > 0)) return false;
+      if (!groundOk(moved) || !clear(moved)) return false;
       const extra = occupants(moved, blocker).filter((other) => other !== building && !blockers.includes(other));
       if (extra.length > 0) return false;
       shifts.push({ blocker, x: nx, z: nz });
+    }
+    for (let i = 0; i < shifts.length; i += 1) {
+      for (let j = i + 1; j < shifts.length; j += 1) {
+        const a = shifts[i];
+        const b = shifts[j];
+        const ox = Math.min(a.x + a.blocker.w, b.x + b.blocker.w) - Math.max(a.x, b.x);
+        const oz = Math.min(a.z + a.blocker.d, b.z + b.blocker.d) - Math.max(a.z, b.z);
+        if (ox > 0 && oz > 0) return false;
+      }
     }
     for (const shift of shifts) {
       shift.blocker.x = shift.x;
@@ -833,31 +860,38 @@ export function clearBuildingsFromRoads(map, plan) {
     return true;
   };
 
+  // Off the whole mesh first, with a small gap when a lot is open. A flush
+  // edge is accepted only when the block between two roads cannot hold a gap.
+  // Buildings that merely graze the outer sidewalk are left where they are.
+  const onRoad = (b) => {
+    const asphalt = overlap(b, 1.2);
+    if (asphalt) return asphalt;
+    const mesh = overlap(b, ROAD_TILES / 2);
+    if (mesh && Math.min(mesh.ox, mesh.oz) > 0.55) return mesh;
+    return null;
+  };
+  const slide = (building, hit, steps) => {
+    const awayX = building.x + building.w / 2 >= hit.piece.x ? 1 : -1;
+    const awayZ = building.z + building.d / 2 >= hit.piece.z ? 1 : -1;
+    const alongZ = hit.oz <= hit.ox;
+    const primary = alongZ ? [[0, awayZ], [0, -awayZ]] : [[awayX, 0], [-awayX, 0]];
+    const secondary = alongZ ? [[awayX, 0], [-awayX, 0]] : [[0, awayZ], [0, -awayZ]];
+    for (let step = 1; step <= steps; step += 1) {
+      for (const [dx, dz] of [...primary, ...secondary]) {
+        if (place(building, building.x + dx * step, building.z + dz * step, hit.piece, true)) return true;
+      }
+    }
+    return false;
+  };
+
   for (let pass = 0; pass < 24; pass += 1) {
     let moved = false;
-    const pending = map.buildings.filter((b) => westOfCanal(b.x, b.z) && overlap(b, 1.2));
-    pending.sort((a, b) => b.z - a.z || b.x - a.x);
+    const pending = map.buildings.filter((b) => westOfCanal(b.x, b.z) && onRoad(b));
+    pending.sort((a, b) => (b.w * b.d) - (a.w * a.d));
     for (const building of pending) {
-      const hit = overlap(building, 1.2);
+      const hit = onRoad(building);
       if (!hit) continue;
-      const awayX = building.x + building.w / 2 >= hit.piece.x ? 1 : -1;
-      const awayZ = building.z + building.d / 2 >= hit.piece.z ? 1 : -1;
-      const dirs = hit.oz <= hit.ox ? [[0, awayZ], [0, -awayZ]] : [[awayX, 0], [-awayX, 0]];
-      let done = false;
-      for (const half of [2, 1.2]) {
-        for (let step = 1; step <= 8 && !done; step += 1) {
-          for (const [dx, dz] of dirs) {
-            const tx = building.x + dx * step;
-            const tz = building.z + dz * step;
-            if (place(building, tx, tz, half, step <= 8)) {
-              moved = true;
-              done = true;
-              break;
-            }
-          }
-        }
-        if (done) break;
-      }
+      if (slide(building, hit, 12)) moved = true;
     }
     if (!moved) break;
   }

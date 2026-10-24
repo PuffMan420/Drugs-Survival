@@ -382,6 +382,24 @@ function addColoredBox(buf, x0, y0, z0, x1, y1, z1, color) {
   }
 }
 
+function treeHitsRoad(x, z, plan) {
+  if (!plan) return false;
+  const h = mixHash(x, z);
+  const ox = ((h % 5) - 2) * 4;
+  const oz = (((h >>> 4) % 5) - 2) * 4;
+  const canopy = 22 + (h % 3) * 4;
+  const cx = (x * TILE + TILE / 2 + ox) / TILE;
+  const cz = (z * TILE + TILE / 2 + oz) / TILE;
+  const reach = canopy / 2 / TILE;
+  for (const piece of plan.placements) {
+    const half = piece.scale / 2;
+    const overlapX = Math.min(cx + reach, piece.x + half) - Math.max(cx - reach, piece.x - half);
+    const overlapZ = Math.min(cz + reach, piece.z + half) - Math.max(cz - reach, piece.z - half);
+    if (overlapX > 0 && overlapZ > 0) return true;
+  }
+  return false;
+}
+
 function addTree(buf, x, z) {
   const h = mixHash(x, z);
   const ox = ((h % 5) - 2) * 4;
@@ -400,7 +418,7 @@ function addTree(buf, x, z) {
   addColoredBox(buf, cx - canopy / 2, gy, cz - canopy / 2, cx + canopy / 2, gy + canopy * 0.55, cz + canopy / 2, greens[h % 3]);
 }
 
-function buildChunk(map, cx, cz, materials, ground, quay) {
+function buildChunk(map, cx, cz, materials, ground, quay, plan) {
   const x1 = Math.min(map.cols, cx + CHUNK);
   const z1 = Math.min(map.rows, cz + CHUNK);
   const groundBufs = new Map();
@@ -423,7 +441,7 @@ function buildChunk(map, cx, cz, materials, ground, quay) {
     const row = map.ground[z];
     for (let x = cx; x < x1; x += 1) {
       const cell = row[x];
-      if (cell === "g" && mixHash(x, z) % 5 === 0) addTree(treeBuf, x, z);
+      if (cell === "g" && mixHash(x, z) % 5 === 0 && !treeHitsRoad(x, z, plan)) addTree(treeBuf, x, z);
       if (ground.covers(x, z)) {
         ground.paint(surfaceBufs, x, z);
         continue;
@@ -592,7 +610,7 @@ export async function buildCity(scene, map) {
   const chunks = [];
   for (let cz = 0; cz < map.rows; cz += CHUNK) {
     for (let cx = 0; cx < map.cols; cx += CHUNK) {
-      const chunk = buildChunk(map, cx, cz, materials, ground, quay);
+      const chunk = buildChunk(map, cx, cz, materials, ground, quay, kenneyPlan);
       scene.add(chunk.group);
       chunks.push(chunk);
     }

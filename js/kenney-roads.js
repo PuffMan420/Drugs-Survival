@@ -20,7 +20,8 @@ import { TILE } from "./constants.js";
 
 const FILES = {
   straight: "road-straight.glb",
-  corner: "road-bend-square.glb",
+  // Curved turn. The square bend draws a sidewalk L across the corner.
+  corner: "road-bend.glb",
   tee: "road-intersection.glb",
   cross: "road-crossroad.glb",
 };

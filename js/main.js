@@ -1,10 +1,14 @@
 import {
+  DirectionalLight,
+  HemisphereLight,
   LinearSRGBColorSpace,
   Mesh,
   MeshBasicMaterial,
+  MeshLambertMaterial,
   LinearFilter,
   NoToneMapping,
   OrthographicCamera,
+  PCFSoftShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
   SRGBColorSpace,
@@ -30,6 +34,17 @@ import { createPlayer } from "./player.js";
 
 const NEAR = 10;
 const FAR = 6000;
+// Lambert shades by irradiance / PI. These scales keep sunlit streets about as
+// bright as the old unlit materials, with the hemisphere doing most of the work.
+const LAMBERT = Math.PI;
+// Same northwest sun as the painted building shadows, so the real shadows
+// fall southeast, which is the lower right of this north-facing view.
+const SUN_X = -0.4;
+const SUN_Y = 1.25;
+const SUN_Z = -0.58;
+const SUN_DISTANCE = 1800;
+const sunLength = Math.hypot(SUN_X, SUN_Y, SUN_Z);
+const SUN_DIR = [SUN_X / sunLength, SUN_Y / sunLength, SUN_Z / sunLength];
 
 const canvas = document.getElementById("view");
 const fpsEl = document.getElementById("fps");
@@ -112,6 +127,133 @@ function fitDisplay(renderer) {
   renderer.setSize(width, height, false);
 }
 
+const litMaterials = new WeakMap();
+
+function litVersion(material) {
+  const cached = litMaterials.get(material);
+  if (cached) return cached;
+  const lit = new MeshLambertMaterial({
+    name: material.name,
+    map: material.map,
+    color: material.color.clone(),
+    vertexColors: material.vertexColors,
+    side: material.side,
+    transparent: material.transparent,
+    opacity: material.opacity,
+    alphaTest: material.alphaTest,
+    premultipliedAlpha: material.premultipliedAlpha,
+    depthWrite: material.depthWrite,
+    depthTest: material.depthTest,
+    fog: material.fog,
+    toneMapped: false,
+  });
+  litMaterials.set(material, lit);
+  return lit;
+}
+
+function risesAboveGround(mesh) {
+  const geometry = mesh.geometry;
+  if (!geometry) return false;
+  if (!geometry.boundingBox) geometry.computeBoundingBox();
+  const box = geometry.boundingBox;
+  if (!box) return false;
+  const height = box.max.y - box.min.y;
+  // Streets stay receivers. Walls, trees, and raised roofs cast.
+  return height >= 8 || box.min.y >= 6;
+}
+
+function lightMesh(mesh, options = {}) {
+  if (mesh.userData.lit !== true) {
+    mesh.userData.lit = true;
+    const source = mesh.material;
+    const list = Array.isArray(source) ? source : [source];
+    let changed = false;
+    const converted = list.map((material) => {
+      if (material && material.isMeshBasicMaterial) {
+        changed = true;
+        return litVersion(material);
+      }
+      return material;
+    });
+    if (changed) {
+      const lit = Array.isArray(source) ? converted : converted[0];
+      if (options.forwardMap && !Array.isArray(source) && lit !== source) {
+        // The walker still assigns frames on the material it created.
+        Object.defineProperty(source, "map", {
+          configurable: true,
+          get() {
+            return lit.map;
+          },
+          set(value) {
+            lit.map = value;
+          },
+        });
+      }
+      mesh.material = lit;
+      const geometry = mesh.geometry;
+      if (geometry && !geometry.getAttribute("normal")) {
+        const position = geometry.getAttribute("position");
+        if (position && position.count > 0) geometry.computeVertexNormals();
+      }
+    }
+    const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+    const shader = Boolean(material && material.isShaderMaterial);
+    const decal = Boolean(material && material.transparent && material.depthWrite === false);
+    mesh.userData.casts = options.cast === true || (!shader && !decal && risesAboveGround(mesh));
+    mesh.userData.receives = !shader;
+  }
+  mesh.castShadow = mesh.userData.casts === true;
+  mesh.receiveShadow = mesh.userData.receives === true;
+}
+
+function lightVisibleCity(chunks) {
+  for (const chunk of chunks) {
+    if (!chunk.group.visible) {
+      if (chunk.group.userData.wasLit !== true) continue;
+      chunk.group.traverse((obj) => {
+        if (obj.isMesh) obj.castShadow = false;
+      });
+      chunk.group.userData.wasLit = false;
+      continue;
+    }
+    chunk.group.traverse((obj) => {
+      if (obj.isMesh) lightMesh(obj);
+    });
+    chunk.group.userData.wasLit = true;
+  }
+}
+
+function createSun(scene) {
+  const hemi = new HemisphereLight(0xfff8f2, 0xe9eef3, LAMBERT * 1.02);
+  scene.add(hemi);
+  const sun = new DirectionalLight(0xffe2b5, LAMBERT * 0.24);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.bias = -0.0002;
+  sun.shadow.normalBias = 2;
+  sun.shadow.intensity = 1;
+  const extent = 1200;
+  sun.shadow.camera.near = 50;
+  sun.shadow.camera.far = 4200;
+  sun.shadow.camera.left = -extent;
+  sun.shadow.camera.right = extent;
+  sun.shadow.camera.top = extent;
+  sun.shadow.camera.bottom = -extent;
+  sun.shadow.camera.updateProjectionMatrix();
+  scene.add(sun);
+  scene.add(sun.target);
+  return sun;
+}
+
+function placeSun(sun, camX, camZ) {
+  sun.position.set(
+    camX + SUN_DIR[0] * SUN_DISTANCE,
+    SUN_DIR[1] * SUN_DISTANCE,
+    camZ + SUN_DIR[2] * SUN_DISTANCE,
+  );
+  sun.target.position.set(camX, 0, camZ);
+}
+
 function createPresenter(renderer) {
   // The canvas context has no depth buffer. The city is drawn into this
   // target, which does, so roofs cover the floors inside the buildings.
@@ -181,6 +323,8 @@ async function start() {
 
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = NoToneMapping;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = PCFSoftShadowMap;
   renderer.setClearColor(0x102028, 1);
   fitDisplay(renderer);
   window.addEventListener("resize", () => fitDisplay(renderer));
@@ -200,9 +344,12 @@ async function start() {
   for (const material of city.playerMesh.material) material.dispose();
   const playerSprite = await createPlayer();
   scene.add(playerSprite.shadow);
+  playerSprite.shadow.visible = false;
   scene.add(playerSprite.mesh);
+  lightMesh(playerSprite.mesh, { forwardMap: true, cast: true });
   const traffic = await createTraffic(scene, map);
   const glow = createGlow(scene, map);
+  const sun = createSun(scene);
   const minimap = createMinimap(map, JUMPS);
   const camera = new PerspectiveCamera(15, RENDER_W / RENDER_H, NEAR, FAR);
   const tiltUp = Math.sin(CAMERA_TILT);
@@ -280,6 +427,8 @@ async function start() {
     camera.position.set(camX, CAMERA_HEIGHT, camZ + cameraSouth);
     camera.lookAt(camX, 0, camZ);
     updateChunks(city.chunks, camX, camZ);
+    lightVisibleCity(city.chunks);
+    placeSun(sun, camX, camZ);
     presenter.render(scene, camera);
     minimap.draw(camX, camZ, player.x, player.z, TILE, GROUND_W / TILE, GROUND_H / TILE);
 

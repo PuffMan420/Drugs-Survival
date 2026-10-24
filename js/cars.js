@@ -1,14 +1,13 @@
 import {
-  CanvasTexture,
-  Color,
   DoubleSide,
   InstancedMesh,
   LinearFilter,
   LinearMipmapLinearFilter,
   LoadingManager,
-  MeshBasicMaterial,
+  MeshLambertMaterial,
   Object3D,
   SRGBColorSpace,
+  TextureLoader,
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -20,115 +19,39 @@ import { createSim, headingAngle, planCars } from "./routes.js";
 // w and h are the cropped sprite sizes the routes and the push test already use.
 // file is the Kenney Car Kit model that sits closest to that sprite.
 const CARS = [
-  { name: "ambulance", file: "ambulance", w: 38, h: 68, tint: 0x776a6b },
-  { name: "blue_sedan", file: "sedan", w: 37, h: 71, tint: 0x31558a },
-  { name: "box_truck", file: "truck", w: 38, h: 70, tint: 0x828280 },
-  { name: "delivery_van", file: "delivery", w: 36, h: 68, tint: 0x7a502f },
-  { name: "fire_truck", file: "firetruck", w: 41, h: 79, tint: 0x703836 },
-  { name: "garbage_truck", file: "garbage-truck", w: 38, h: 68, tint: 0x4b5935 },
-  { name: "green_hatch", file: "hatchback-sports", w: 35, h: 65, tint: 0x5c7641 },
-  { name: "icecream_van", file: "van", w: 40, h: 68, tint: 0x8f8883 },
-  { name: "junker", file: "sedan", w: 36, h: 67, tint: 0x59392a },
-  { name: "limo", file: "suv-luxury", w: 35, h: 79, tint: 0x7b7978 },
-  { name: "muscle_orange", file: "sedan-sports", w: 35, h: 68, tint: 0xa04821 },
-  { name: "pickup", file: "truck", w: 36, h: 66, tint: 0x5b643c },
-  { name: "pink_retro", file: "hatchback-sports", w: 37, h: 69, tint: 0xa7627b },
-  { name: "police", file: "police", w: 35, h: 69, tint: 0x5f5e61 },
-  { name: "purple_lowrider", file: "sedan", w: 33, h: 70, tint: 0x5b3d7f },
-  { name: "red_coupe", file: "sedan-sports", w: 35, h: 68, tint: 0x8b2725 },
-  { name: "school_bus", file: "van", w: 37, h: 70, tint: 0xb87d1f },
-  { name: "supercar", file: "sedan-sports", w: 39, h: 68, tint: 0x7c7c7e },
-  { name: "swat_van", file: "suv", w: 40, h: 77, tint: 0x37373b },
-  { name: "taco_truck", file: "delivery", w: 44, h: 70, tint: 0x816341 },
-  { name: "taxi", file: "taxi", w: 36, h: 69, tint: 0xad852a },
+  { name: "ambulance", file: "ambulance", w: 38, h: 68 },
+  { name: "blue_sedan", file: "sedan", w: 37, h: 71 },
+  { name: "box_truck", file: "truck", w: 38, h: 70 },
+  { name: "delivery_van", file: "delivery", w: 36, h: 68 },
+  { name: "fire_truck", file: "firetruck", w: 41, h: 79 },
+  { name: "garbage_truck", file: "garbage-truck", w: 38, h: 68 },
+  { name: "green_hatch", file: "hatchback-sports", w: 35, h: 65 },
+  { name: "icecream_van", file: "van", w: 40, h: 68 },
+  { name: "junker", file: "sedan", w: 36, h: 67 },
+  { name: "limo", file: "suv-luxury", w: 35, h: 79 },
+  { name: "muscle_orange", file: "sedan-sports", w: 35, h: 68 },
+  { name: "pickup", file: "truck", w: 36, h: 66 },
+  { name: "pink_retro", file: "hatchback-sports", w: 37, h: 69 },
+  { name: "police", file: "police", w: 35, h: 69 },
+  { name: "purple_lowrider", file: "sedan", w: 33, h: 70 },
+  { name: "red_coupe", file: "sedan-sports", w: 35, h: 68 },
+  { name: "school_bus", file: "van", w: 37, h: 70 },
+  { name: "supercar", file: "sedan-sports", w: 39, h: 68 },
+  { name: "swat_van", file: "suv", w: 40, h: 77 },
+  { name: "taco_truck", file: "delivery", w: 44, h: 70 },
+  { name: "taxi", file: "taxi", w: 36, h: 69 },
 ];
 
 const RARE = new Set(["police", "ambulance", "fire_truck"]);
-// These Kenney models already wear the right livery. Dust them, but do not
-// repaint them with the sprite colour or the markings disappear.
-const LIVERY = new Set(["police", "ambulance", "fire_truck", "taxi", "garbage_truck"]);
 const BUCKET = 96;
-// Tires sit just above the road. Depth is written on the old sprite plane so
-// the building shadow, which lives at y = 10, still covers the whole car.
+// Tires sit just above the road.
 const GROUND_Y = 0.6;
 const DEPTH_Y = 2.5;
 
-function loadImage(url) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`The car texture failed to load: ${url}`));
-    image.src = url;
-  });
-}
-
-function dustyTexture(image) {
-  const canvas = document.createElement("canvas");
-  canvas.width = image.width;
-  canvas.height = image.height;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  ctx.drawImage(image, 0, 0);
-  const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = pixels.data;
-  const width = canvas.width;
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-    const keep = 0.48;
-    let rr = lum + (r - lum) * keep;
-    let gg = lum + (g - lum) * keep;
-    let bb = lum + (b - lum) * keep;
-    rr *= 0.8;
-    gg *= 0.75;
-    bb *= 0.68;
-    const pixel = i / 4;
-    const x = pixel % width;
-    const y = (pixel / width) | 0;
-    let n = Math.imul(x, 374761393) ^ Math.imul(y, 668265263);
-    n = Math.imul(n ^ (n >>> 13), 1274126177);
-    if ((n >>> 0) % 1000 < 70) {
-      rr *= 0.72;
-      gg *= 0.7;
-      bb *= 0.66;
-    }
-    data[i] = rr;
-    data[i + 1] = gg;
-    data[i + 2] = bb;
-  }
-  ctx.putImageData(pixels, 0, 0);
-  const texture = new CanvasTexture(canvas);
-  // glTF uvs already match a top-left image. CanvasTexture flips by default.
-  texture.flipY = false;
-  texture.colorSpace = SRGBColorSpace;
-  texture.magFilter = LinearFilter;
-  texture.minFilter = LinearMipmapLinearFilter;
-  texture.generateMipmaps = true;
-  texture.needsUpdate = true;
-  return texture;
-}
-
-function wornColor(hex) {
-  const sr = ((hex >> 16) & 255) / 255;
-  const sg = ((hex >> 8) & 255) / 255;
-  const sb = (hex & 255) / 255;
-  const lum = 0.299 * sr + 0.587 * sg + 0.114 * sb;
-  const keep = 0.62;
-  let r = lum + (sr - lum) * keep;
-  let g = lum + (sg - lum) * keep;
-  let b = lum + (sb - lum) * keep;
-  r = r * 0.78 + 0.08;
-  g = g * 0.74 + 0.07;
-  b = b * 0.68 + 0.05;
-  const color = new Color();
-  color.setRGB(Math.min(1, r), Math.min(1, g), Math.min(1, b), SRGBColorSpace);
-  return color;
-}
-
-function compileCar(material, paint) {
-  const paintMix = paint.toFixed(2);
-  material.customProgramCacheKey = () => `dusty-car-${paintMix}`;
+function flattenCarDepth(material) {
+  // The painted building shadow sits at y = 10. Flattening the car's depth
+  // keeps that shadow over the whole body instead of only the roof.
+  material.customProgramCacheKey = () => "kenney-car-depth";
   material.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader.replace(
       "#include <project_vertex>",
@@ -140,17 +63,6 @@ function compileCar(material, paint) {
       flatPos.y = ${DEPTH_Y.toFixed(1)};
       vec4 flatClip = projectionMatrix * modelViewMatrix * flatPos;
       gl_Position.z = flatClip.z / flatClip.w * gl_Position.w;`,
-    );
-    shader.fragmentShader = shader.fragmentShader.replace(
-      "#include <map_fragment>",
-      `#ifdef USE_MAP
-        vec4 sampledDiffuseColor = texture2D(map, vMapUv);
-        vec3 worn = sampledDiffuseColor.rgb;
-        float shade = dot(worn, vec3(0.299, 0.587, 0.114));
-        vec3 painted = diffuse * (0.42 + shade * 1.35);
-        worn = mix(worn, painted, ${paintMix});
-        diffuseColor = vec4(worn, diffuseColor.a);
-      #endif`,
     );
   };
 }
@@ -199,8 +111,14 @@ export async function createTraffic(scene, map) {
   const manager = new LoadingManager();
   manager.setURLModifier((url) => (url.includes("colormap.png") ? colormapUrl : url));
   const loader = new GLTFLoader(manager);
-  const image = await loadImage(colormapUrl);
-  const mapTexture = dustyTexture(image);
+  const mapTexture = await new TextureLoader(manager).loadAsync(colormapUrl);
+  // glTF uvs already match a top-left image. TextureLoader flips by default.
+  mapTexture.flipY = false;
+  mapTexture.colorSpace = SRGBColorSpace;
+  mapTexture.magFilter = LinearFilter;
+  mapTexture.minFilter = LinearMipmapLinearFilter;
+  mapTexture.generateMipmaps = true;
+  mapTexture.needsUpdate = true;
 
   const geometries = new Map();
   const files = [...new Set(CARS.map((car) => car.file))];
@@ -225,8 +143,6 @@ export async function createTraffic(scene, map) {
       ...car,
       geometry,
       weight: RARE.has(car.name) ? 1 : 6,
-      tint: wornColor(car.tint),
-      paint: LIVERY.has(car.name) ? 0 : 0.62,
       scaleX: car.w / width,
       scaleY: car.h / length,
       scaleZ: car.h / length,
@@ -262,20 +178,22 @@ export async function createTraffic(scene, map) {
   const parkedBodies = [];
   const buckets = new Map();
   const groups = [];
+  const material = new MeshLambertMaterial({
+    map: mapTexture,
+    color: 0xffffff,
+    toneMapped: false,
+    side: DoubleSide,
+  });
+  flattenCarDepth(material);
 
   for (let modelIndex = 0; modelIndex < models.length; modelIndex += 1) {
     const model = models[modelIndex];
     const parkedHere = parked.filter((car) => car.model === modelIndex);
     const capacity = parkedHere.length + 32;
     if (capacity === 0) continue;
-    const material = new MeshBasicMaterial({
-      map: mapTexture,
-      toneMapped: false,
-      side: DoubleSide,
-      color: model.tint,
-    });
-    compileCar(material, model.paint);
     const mesh = new InstancedMesh(model.geometry, material, capacity);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
     mesh.frustumCulled = false;
     mesh.renderOrder = 1;
     mesh.matrixAutoUpdate = false;

@@ -2,6 +2,8 @@
 // The piece is centered on the old sheet. Asphalt is the middle 60% of the
 // model, so each direction's lane sits 0.6 tiles off that center. Anything
 // the old road had beyond those 4 tiles is left as sidewalk.
+// A bend is a corner piece. A three-way meeting is a T. A four-way meeting
+// is a cross. Straights run up to that piece and stop.
 
 import { TILE } from "./constants.js";
 
@@ -288,6 +290,10 @@ export function planKenneyRoads(map) {
       rib.p1 = right[mid];
     }
     for (const rib of active) {
+      // The run before it steps through a crossing. A short run that sits
+      // inside another road is a lane marker, not its own street.
+      rib.coreA0 = rib.a0;
+      rib.coreA1 = rib.a1;
       let guard = 0;
       while (rib.a0 > 0 && guard < MAX_GAP) {
         const next = rib.a0 - 1;
@@ -316,6 +322,8 @@ export function planKenneyRoads(map) {
       p1: rib.p1,
       a0: rib.a0,
       a1: rib.a1,
+      coreA0: rib.coreA0,
+      coreA1: rib.coreA1,
     }));
     let changed = true;
     while (changed) {
@@ -332,6 +340,8 @@ export function planKenneyRoads(map) {
           a.p1 = Math.max(a.p1, b.p1);
           a.a0 = Math.min(a.a0, b.a0);
           a.a1 = Math.max(a.a1, b.a1);
+          a.coreA0 = Math.min(a.coreA0, b.coreA0);
+          a.coreA1 = Math.max(a.coreA1, b.coreA1);
           items.splice(j, 1);
           changed = true;
           break;
@@ -344,29 +354,88 @@ export function planKenneyRoads(map) {
 
   const hRibbons = mergeRibbons(ribbonsFor(true));
   const vRibbons = mergeRibbons(ribbonsFor(false));
+  // How far two road ends may sit apart and still share a corner, T, or cross.
+  const JOIN = 2.5;
+  const half = ROAD_TILES / 2;
+  const intervalGap = (a0, a1, b0, b1) => {
+    if (a1 < b0) return b0 - a1;
+    if (b1 < a0) return a0 - b1;
+    return 0;
+  };
+  // An arm is a lane seed of this road, past the junction, with road tiles
+  // all the way there. Seeds of a neighboring street do not count.
+  const seedPast = (horizontal, crossAt, p0, p1, sign) => {
+    const seeds = horizontal ? H_SEED : V_SEED;
+    const start = Math.round(crossAt + sign * (half + 2));
+    const edge = Math.round(crossAt + sign * half);
+    for (let step = 0; step < 8; step += 1) {
+      const along = start + sign * step;
+      let found = false;
+      for (let p = p0; p <= p1; p += 1) {
+        const xx = horizontal ? along : p;
+        const zz = horizontal ? p : along;
+        if (seeds.has(at(xx, zz)) && westRoad(xx, zz)) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) continue;
+      const a = Math.min(edge, along);
+      const b = Math.max(edge, along);
+      let open = true;
+      for (let i = a; i <= b; i += 1) {
+        let road = false;
+        for (let p = p0; p <= p1; p += 1) {
+          const xx = horizontal ? i : p;
+          const zz = horizontal ? p : i;
+          if (westRoad(xx, zz)) {
+            road = true;
+            break;
+          }
+        }
+        if (!road) {
+          open = false;
+          break;
+        }
+      }
+      if (open) return true;
+    }
+    return false;
+  };
   const raw = [];
   for (const h of hRibbons) {
     for (const v of vRibbons) {
       const cx = centerOf(v);
       const cz = centerOf(h);
-      if (cx < h.a0 - 0.5 || cx > h.a1 + 1.5) continue;
-      if (cz < v.a0 - 0.5 || cz > v.a1 + 1.5) continue;
+      const gX = intervalGap(h.a0, h.a1 + 1, cx - half, cx + half);
+      const gZ = intervalGap(v.a0, v.a1 + 1, cz - half, cz + half);
+      if (gX > JOIN || gZ > JOIN) continue;
+      // Tiles of this road that sit outside the crossing road. A lane marker
+      // inside the crossing is not its own arm.
+      const protrude = (core0, core1, span0, span1, sign) => {
+        if (sign < 0) return Math.max(0, Math.min(core1, span0 - 1) - core0 + 1);
+        return Math.max(0, core1 - Math.max(core0, span1 + 1) + 1);
+      };
+      const arm = (horizontal, crossAt, rib, span0, span1, sign) => {
+        if (!seedPast(horizontal, crossAt, rib.p0, rib.p1, sign)) return false;
+        return protrude(rib.a0, rib.a1, span0, span1, sign) >= 4;
+      };
       raw.push({
         cx,
         cz,
         h,
         v,
-        west: h.a0 < cx - ROAD_TILES / 2,
-        east: h.a1 + 1 > cx + ROAD_TILES / 2,
-        north: v.a0 < cz - ROAD_TILES / 2,
-        south: v.a1 + 1 > cz + ROAD_TILES / 2,
+        west: arm(true, cx, h, v.p0, v.p1, -1),
+        east: arm(true, cx, h, v.p0, v.p1, 1),
+        north: arm(false, cz, v, h.p0, h.p1, -1),
+        south: arm(false, cz, v, h.p0, h.p1, 1),
       });
     }
   }
 
   const junctions = [];
   for (const box of raw) {
-    const hit = junctions.find((item) => Math.abs(item.cx - box.cx) < 2.5 && Math.abs(item.cz - box.cz) < 2.5);
+    const hit = junctions.find((item) => Math.abs(item.cx - box.cx) < 3 && Math.abs(item.cz - box.cz) < 3);
     if (!hit) {
       junctions.push({ ...box });
       continue;
@@ -393,14 +462,37 @@ export function planKenneyRoads(map) {
     liveJunctions.push(box);
   }
 
+  // A ribbon's a0/a1 walk through a crossing so the roads can meet. The
+  // straight has to cover that walk too, and stop on the junction piece.
+  // coreA0/coreA1 skip the walk, which left a gap in front of the corner.
+  const REACH = 6;
+  const centerlineOpen = (rib, from, to) => {
+    const perp = Math.round(centerOf(rib));
+    const a = Math.floor(Math.min(from, to));
+    const b = Math.ceil(Math.max(from, to));
+    for (let i = a; i <= b; i += 1) {
+      let open = false;
+      for (let d = -1; d <= 1; d += 1) {
+        const xx = rib.horizontal ? i : perp + d;
+        const zz = rib.horizontal ? perp + d : i;
+        if (westRoad(xx, zz)) {
+          open = true;
+          break;
+        }
+      }
+      if (!open) return false;
+    }
+    return true;
+  };
   const blocksFor = (rib) => {
     const blocks = [];
     const perp = centerOf(rib);
     for (const box of liveJunctions) {
       const along = rib.horizontal ? box.cx : box.cz;
       const other = rib.horizontal ? box.cz : box.cx;
-      if (Math.abs(other - perp) > 1.25) continue;
-      if (along < rib.a0 - 2 || along > rib.a1 + 3) continue;
+      if (Math.abs(other - perp) > 2.5) continue;
+      if (along < rib.a0 - REACH || along > rib.a1 + 1 + REACH) continue;
+      if ((along < rib.a0 || along > rib.a1 + 1) && !centerlineOpen(rib, along, along < rib.a0 ? rib.a0 : rib.a1)) continue;
       const half = ROAD_TILES / 2;
       blocks.push({
         lo: along - half + SEAM,
@@ -411,9 +503,33 @@ export function planKenneyRoads(map) {
     return blocks;
   };
 
-  const addStraights = (rib) => {
+  const buriedInCrossing = (rib) => {
+    const length = rib.coreA1 - rib.coreA0 + 1;
+    if (length <= 0 || length >= 10) return false;
+    const others = rib.horizontal ? vRibbons : hRibbons;
     const perp = centerOf(rib);
-    const parts = subtractRange(rib.a0, rib.a1 + 1, blocksFor(rib));
+    let inside = 0;
+    for (let i = rib.coreA0; i <= rib.coreA1; i += 1) {
+      const hit = others.some((other) => i >= other.p0 && i <= other.p1 && perp >= other.a0 - 2 && perp <= other.a1 + 2);
+      if (hit) inside += 1;
+    }
+    return inside * 2 >= length;
+  };
+  const addStraights = (rib) => {
+    if (buriedInCrossing(rib)) return;
+    const perp = centerOf(rib);
+    let lo = rib.a0;
+    let hi = rib.a1 + 1;
+    const blocks = blocksFor(rib);
+    let growLo = null;
+    let growHi = null;
+    for (const block of blocks) {
+      if (block.lo >= hi && block.lo - hi <= REACH && centerlineOpen(rib, hi, block.lo) && (growHi == null || block.lo < growHi)) growHi = block.lo;
+      if (block.hi <= lo && lo - block.hi <= REACH && centerlineOpen(rib, block.hi, lo) && (growLo == null || block.hi > growLo)) growLo = block.hi;
+    }
+    if (growHi != null) hi = growHi;
+    if (growLo != null) lo = growLo;
+    const parts = subtractRange(lo, hi, blocks);
     for (const part of parts) {
       const centers = placeRun(part.lo, part.hi, ROAD_TILES, part.slackLo, part.slackHi);
       centers.forEach((center, index) => {
@@ -443,7 +559,7 @@ export function planKenneyRoads(map) {
       const along = item.turn === 0 ? "x" : "z";
       const perp = item.turn === 0 ? "z" : "x";
       if (Math.abs(item[perp] - other[perp]) > 0.3) return false;
-      return Math.abs(item[along] - other[along]) < 2;
+      return Math.abs(item[along] - other[along]) < 0.75;
     });
     if (!clash) kept.push(item);
   }

@@ -273,7 +273,37 @@ function addRoofBox(buf, x0, z0, x1, z1, y0, y1, top, side) {
   addQuad(buf, [[x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0]], side);
 }
 
-function addRoofDetails(buf, building) {
+// The northeast tile of this block is the corner that hangs over the straight
+// water wall. The block keeps every other tile.
+function quayNotch(building) {
+  return building.x === 69 && building.z === 173 && building.w === 2
+    && building.d === 5 && building.h === 4 && building.style === "mid";
+}
+
+function addNotchLedge(buf, building) {
+  const x0 = building.x * TILE;
+  const z0 = building.z * TILE;
+  const xW = x0 + TILE;
+  const x1 = x0 + building.w * TILE;
+  const zN = z0 + TILE;
+  const z1 = z0 + building.d * TILE;
+  const y = building.h * TILE;
+  const y1 = y + 12;
+  const lip = 8;
+  const ledge = [0.82, 0.78, 0.66];
+  const side = [0.48, 0.45, 0.36];
+  addRoofPad(buf, x0, z0, xW, z0 + lip, y1, ledge);
+  addRoofPad(buf, xW - lip, z0 + lip, xW, zN + lip, y1, ledge);
+  addRoofPad(buf, xW, zN, x1, zN + lip, y1, ledge);
+  addRoofPad(buf, x1 - lip, zN + lip, x1, z1 - lip, y1, ledge);
+  addRoofPad(buf, x0, z1 - lip, x1, z1, y1, ledge);
+  addRoofPad(buf, x0, z0 + lip, x0 + lip, z1 - lip, y1, ledge);
+  addQuad(buf, [[x0, y, z1], [x1, y, z1], [x1, y1, z1], [x0, y1, z1]], side);
+  addQuad(buf, [[x1, y, zN], [x1, y, z1], [x1, y1, z1], [x1, y1, zN]], side);
+  addQuad(buf, [[xW, y, z0], [xW, y, zN], [xW, y1, zN], [xW, y1, z0]], side);
+}
+
+function addRoofDetails(buf, building, withLedge = true) {
   const x0 = building.x * TILE;
   const z0 = building.z * TILE;
   const x1 = x0 + building.w * TILE;
@@ -282,7 +312,7 @@ function addRoofDetails(buf, building) {
   const ledge = [0.82, 0.78, 0.66];
   const ledgeSide = [0.48, 0.45, 0.36];
   const lip = 8;
-  if (x1 - x0 > lip * 2 && z1 - z0 > lip * 2) {
+  if (withLedge && x1 - x0 > lip * 2 && z1 - z0 > lip * 2) {
     const y1 = y + 12;
     addRoofPad(buf, x0, z1 - lip, x1, z1, y1, ledge);
     addRoofPad(buf, x0, z0, x1, z0 + lip, y1, ledge);
@@ -436,33 +466,48 @@ function buildChunk(map, cx, cz, materials, ground, quay) {
 
   for (const building of map.buildings) {
     if (building.x < cx || building.x >= x1 || building.z < cz || building.z >= z1) continue;
-    const width = building.w * TILE;
-    const depth = building.d * TILE;
-    const height = building.h * TILE;
-    const box = new BoxGeometry(width, height, depth);
-    box.translate((building.x + building.w / 2) * TILE, height / 2, (building.z + building.d / 2) * TILE);
-    const groups = box.groups;
+    const notch = quayNotch(building);
+    // The stub overlaps the main block by two units so the shared face stays shut.
+    const parts = notch
+      ? [
+        { ...building, w: 1, d: 1 + 2 / TILE },
+        { ...building, z: building.z + 1, d: building.d - 1 },
+      ]
+      : [building];
     const style = materials.walls[building.style] ? building.style : "house";
     let walls = wallBufs.get(style);
     if (!walls) {
       walls = { pos: [], uv: [], idx: [] };
       wallBufs.set(style, walls);
     }
-    // Facade art is two floors tall, so it repeats once per two tiles. Shed stripes stay one tile tall.
-    const vScale = style === "shed" ? building.h : building.h * 0.5;
-    // Box face order: +X, -X, +Y, -Y, +Z, -Z.
-    appendFace(walls, box, groups[0], building.d, vScale);
-    appendFace(walls, box, groups[1], building.d, vScale);
-    appendFace(roofBuf, box, groups[2], 1, 1, hexRgb(building.roof));
-    appendFace(walls, box, groups[4], building.w, vScale);
-    appendFace(walls, box, groups[5], building.w, vScale);
-    box.dispose();
-    addRoofDetails(roofBuf, building);
+    let height = 0;
+    for (const part of parts) {
+      const width = part.w * TILE;
+      const depth = part.d * TILE;
+      height = part.h * TILE;
+      const box = new BoxGeometry(width, height, depth);
+      box.translate((part.x + part.w / 2) * TILE, height / 2, (part.z + part.d / 2) * TILE);
+      const groups = box.groups;
+      // Facade art is two floors tall, so it repeats once per two tiles. Shed stripes stay one tile tall.
+      const vScale = style === "shed" ? part.h : part.h * 0.5;
+      // Box face order: +X, -X, +Y, -Y, +Z, -Z.
+      appendFace(walls, box, groups[0], part.d, vScale);
+      appendFace(walls, box, groups[1], part.d, vScale);
+      appendFace(roofBuf, box, groups[2], 1, 1, hexRgb(part.roof));
+      appendFace(walls, box, groups[4], part.w, vScale);
+      appendFace(walls, box, groups[5], part.w, vScale);
+      box.dispose();
+    }
+    if (notch) addNotchLedge(roofBuf, building);
+    addRoofDetails(roofBuf, building, !notch);
     const bx = building.x * TILE;
     const bz = building.z * TILE;
     const bw = building.w * TILE;
     const bd = building.d * TILE;
-    const cast = addBuildingShadow(shadowBuf, bx, bz, bx + bw, bz + bd, height);
+    const cast = notch
+      ? addBuildingShadow(shadowBuf, bx, bz + TILE, bx + bw, bz + bd, height)
+      : addBuildingShadow(shadowBuf, bx, bz, bx + bw, bz + bd, height);
+    if (notch) addBuildingShadow(shadowBuf, bx, bz, bx + TILE, bz + TILE, height);
     minX = Math.min(minX, bx);
     maxX = Math.max(maxX, bx + bw + cast.sx + SHADOW_FEATHER);
     minZ = Math.min(minZ, bz);

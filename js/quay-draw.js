@@ -208,7 +208,11 @@ export function planQuayDraw(segments) {
     if (turn > 70 && turn < 110) placed = orient(["outer90", "inner90"], w1, n1, w2, n2);
     else if (turn > 115 && turn < 155) placed = orient(["outer", "inner"], w1, n1, w2, n2);
     if (!placed) continue;
-    corners.push({ x, z, trim: 0.85, ...placed });
+    // This jog is two tiles wide. The sheets on the road step sit on top of
+    // the one bend where the diagonal meets the straight quay.
+    if (Math.hypot(x - 67, z - 170.5) < 0.3 || Math.hypot(x - 67, z - 169) < 0.3) continue;
+    const trim = Math.hypot(x - 69.5, z - 170.5) < 0.3 ? 1.9 : 0.85;
+    corners.push({ x, z, trim, ...placed });
   }
 
   const trimFor = (x, z) => {

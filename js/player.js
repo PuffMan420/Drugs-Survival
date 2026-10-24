@@ -8,18 +8,17 @@ import {
   Mesh,
   MeshBasicMaterial,
   PlaneGeometry,
-  Quaternion,
   SRGBColorSpace,
-  Vector3,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 // Brisk walk. The live speed stays here; constants.js mirrors it.
 const SPEED = 80;
 // Blue sedan footprint in js/cars.js (assets/cars3d/sedan.glb): 37 wide, 71 long.
-// He stands about a third of that length. Shoulders on this model are about
-// a quarter of his height, so they stay well inside the sedan's width.
+// A real height is a third of that length. He is drawn a bit larger than that
+// so he reads clearly beside the cars. Shoulders stay inside the sedan's width.
 const SEDAN_LENGTH = 71;
+const SCALE_BUMP = 1.15;
 // Tires sit at this height. His soles use the same ground.
 const FEET_Y = 0.6;
 const SHADOW_Y = 0.35;
@@ -87,57 +86,6 @@ function clipNamed(animations, name) {
   return clip;
 }
 
-// Idle only sways on the T-pose. The upper-arm bone points along its local +Y,
-// and the two arms are not the same twist, so each one takes the shortest swing
-// that aims that axis down. No extra roll, so the shoulder blend and the sleeve
-// stay on the bone. The forearm then bends a little toward the front. Hands are
-// left on the forearm. The same turns apply to every key, and the sway stays.
-const ARM_OUT = 0.14;
-const ELBOW_FORWARD = 0.1;
-
-function premultiplyTrack(clip, boneName, extra) {
-  const track = clip.tracks.find((item) => item.name === `${boneName}.quaternion`);
-  if (!track) return;
-  const turn = new Quaternion();
-  const values = track.values;
-  for (let i = 0; i < values.length; i += 4) {
-    turn.fromArray(values, i).premultiply(extra);
-    turn.toArray(values, i);
-  }
-}
-
-function aimBone(bone, direction) {
-  const parentQ = bone.parent.getWorldQuaternion(new Quaternion());
-  const worldQ = bone.getWorldQuaternion(new Quaternion());
-  const from = new Vector3(0, 1, 0).applyQuaternion(worldQ).normalize();
-  const align = new Quaternion().setFromUnitVectors(from, direction.clone().normalize());
-  bone.quaternion.copy(parentQ.clone().invert().multiply(align.multiply(worldQ)));
-  bone.updateMatrixWorld(true);
-}
-
-function standingIdle(model, clip) {
-  const edited = clip.clone();
-  model.updateMatrixWorld(true);
-  const posed = ["LeftArm", "RightArm", "LeftForeArm", "RightForeArm"];
-  const bind = new Map(posed.map((name) => [name, model.getObjectByName(name).quaternion.clone()]));
-  for (const side of ["Left", "Right"]) {
-    const sign = side === "Left" ? 1 : -1;
-    const arm = model.getObjectByName(`${side}Arm`);
-    aimBone(arm, new Vector3(sign * ARM_OUT, -1, 0));
-    const fore = model.getObjectByName(`${side}ForeArm`);
-    const foreDir = new Vector3(0, 1, 0).applyQuaternion(fore.getWorldQuaternion(new Quaternion()));
-    aimBone(fore, foreDir.add(new Vector3(0, 0, ELBOW_FORWARD)));
-  }
-  for (const name of posed) {
-    const bone = model.getObjectByName(name);
-    const extra = bone.quaternion.clone().multiply(bind.get(name).clone().invert());
-    premultiplyTrack(edited, name, extra);
-    bone.quaternion.copy(bind.get(name));
-  }
-  model.updateMatrixWorld(true);
-  return edited;
-}
-
 export async function createPlayer() {
   const loader = new GLTFLoader();
   const url = new URL("../assets/player/humanMaleA_v8.glb", import.meta.url).href;
@@ -153,7 +101,7 @@ export async function createPlayer() {
   // The figure faces +Z. atan2(east, south) turns that axis toward travel.
   const bounds = new Box3().setFromObject(model);
   const height = Math.max(0.001, bounds.max.y - bounds.min.y);
-  const scale = (SEDAN_LENGTH / 3) / height;
+  const scale = (SEDAN_LENGTH / 3) * SCALE_BUMP / height;
   model.scale.setScalar(scale);
   model.updateMatrixWorld(true);
   const fitted = new Box3().setFromObject(model);
@@ -179,7 +127,7 @@ export async function createPlayer() {
 
   const mixer = new AnimationMixer(model);
   const actions = {
-    idle: mixer.clipAction(standingIdle(model, clipNamed(gltf.animations, "idle"))),
+    idle: mixer.clipAction(clipNamed(gltf.animations, "idle")),
     run: mixer.clipAction(clipNamed(gltf.animations, "run")),
     jump: mixer.clipAction(clipNamed(gltf.animations, "jump")),
   };
@@ -195,8 +143,7 @@ export async function createPlayer() {
     if (name === playing) return;
     const next = actions[name];
     const prev = actions[playing];
-    // A finished fade-out disables the action. play() does not turn it back on,
-    // so returning to idle (or leaving it) would freeze on the T-pose bind.
+    // A finished fade-out disables the action. play() does not turn it back on.
     if (name === "jump") next.reset();
     next.enabled = true;
     next.paused = false;

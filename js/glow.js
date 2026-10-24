@@ -1,3 +1,4 @@
+import { westOfCanal } from "./kenney-road-plan.js";
 import {
   AdditiveBlending,
   CanvasTexture,
@@ -87,6 +88,7 @@ function collectLights(map) {
 
   for (let z = 1; z < rows - 1; z += 1) {
     for (let x = 1; x < cols - 1; x += 1) {
+      if (westOfCanal(x, z)) continue;
       const cell = at(x, z);
       if (cell === "s") {
         let facesRoad = false;

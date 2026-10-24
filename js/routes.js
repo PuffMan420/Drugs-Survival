@@ -5,6 +5,8 @@
 // 1 (west), 2 (east), 5 (south) and 6 (north) are driven as marked.
 // Medians 4 and 8 are never driven.
 
+import { planKenneyRoads, westOfCanal } from "./kenney-road-plan.js";
+
 const CENTER_H = new Set(["H", "h"]);
 const CENTER_V = new Set(["V", "v"]);
 const DIRS = [
@@ -123,6 +125,12 @@ function lerpAngle(from, to, t) {
 export function planCars(map) {
   const { cols, rows, ground, tile } = map;
   const span = tile || 48;
+  const roads = planKenneyRoads(map);
+  const worldAt = (tx, tz, dx, dz) => {
+    const shifted = roads.lanePoint(tx, tz, dx, dz);
+    if (shifted) return shifted;
+    return { x: (tx + 0.5) * span, z: (tz + 0.5) * span };
+  };
   const at = (x, z) => {
     if (x < 0 || z < 0 || x >= cols || z >= rows) return "~";
     return ground[z][x];
@@ -180,6 +188,7 @@ export function planCars(map) {
   for (let z = 1; z < rows - 1; z += 1) {
     for (let x = 1; x < cols - 1; x += 1) {
       if (parked.length >= 220) break;
+      if (westOfCanal(x, z)) continue;
       const cell = at(x, z);
       if (cell !== "+" && cell !== "X") continue;
       if (clear.has(key(x, z))) continue;
@@ -243,8 +252,7 @@ export function planCars(map) {
         tz: z,
         dx,
         dz,
-        x: (x + 0.5) * span,
-        z: (z + 0.5) * span,
+        ...worldAt(x, z, dx, dz),
         exits: [],
       });
       nodeAt.set(`${id},${i}`, index);
@@ -326,7 +334,8 @@ export function planCars(map) {
   }
 
   function roadAt(x, z) {
-    return isRoad(at(Math.floor(x / span), Math.floor(z / span)));
+    if (isRoad(at(Math.floor(x / span), Math.floor(z / span)))) return true;
+    return roads.contains(x, z);
   }
 
   // The longest sprite is about 44 by 80. Its nose reaches the next tile, so a
@@ -468,12 +477,21 @@ export function planCars(map) {
     if (dest == null || dest === node.index) return;
     if (node.exits.some((exit) => exit.to === dest)) return;
     const raw = [];
-    for (const [tx, tz] of found.path) {
-      const x = (tx + 0.5) * span;
-      const z = (tz + 0.5) * span;
+    for (let i = 0; i < found.path.length; i += 1) {
+      const [tx, tz] = found.path[i];
+      let stepX = node.dx;
+      let stepZ = node.dz;
+      if (i + 1 < found.path.length) {
+        stepX = Math.sign(found.path[i + 1][0] - tx) || stepX;
+        stepZ = Math.sign(found.path[i + 1][1] - tz) || stepZ;
+      } else if (i > 0) {
+        stepX = Math.sign(tx - found.path[i - 1][0]) || stepX;
+        stepZ = Math.sign(tz - found.path[i - 1][1]) || stepZ;
+      }
+      const point = worldAt(tx, tz, stepX, stepZ);
       const last = raw[raw.length - 1];
-      if (last && last.x === x && last.z === z) continue;
-      raw.push({ x, z });
+      if (last && last.x === point.x && last.z === point.z) continue;
+      raw.push(point);
     }
     if (raw.length < 2) return;
     let pts = raw;

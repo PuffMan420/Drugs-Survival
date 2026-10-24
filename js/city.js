@@ -11,6 +11,8 @@ import {
 } from "three";
 import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
 import { createGround } from "./ground.js";
+import { addKenneyRoads, createKenneyRoads } from "./kenney-roads.js";
+import { clearBuildingsFromRoads, planKenneyRoads, westOfCanal } from "./kenney-road-plan.js";
 import { appendQuay, createQuayMaterials, emptyQuayBuffers, PIER_Y, quayPlan, WATER_Y } from "./quay.js";
 import { createTextures } from "./textures.js";
 
@@ -380,6 +382,24 @@ function addColoredBox(buf, x0, y0, z0, x1, y1, z1, color) {
   }
 }
 
+function treeHitsRoad(x, z, plan) {
+  if (!plan) return false;
+  const h = mixHash(x, z);
+  const ox = ((h % 5) - 2) * 4;
+  const oz = (((h >>> 4) % 5) - 2) * 4;
+  const canopy = 22 + (h % 3) * 4;
+  const cx = (x * TILE + TILE / 2 + ox) / TILE;
+  const cz = (z * TILE + TILE / 2 + oz) / TILE;
+  const reach = canopy / 2 / TILE;
+  for (const piece of plan.placements) {
+    const half = piece.scale / 2;
+    const overlapX = Math.min(cx + reach, piece.x + half) - Math.max(cx - reach, piece.x - half);
+    const overlapZ = Math.min(cz + reach, piece.z + half) - Math.max(cz - reach, piece.z - half);
+    if (overlapX > 0 && overlapZ > 0) return true;
+  }
+  return false;
+}
+
 function addTree(buf, x, z) {
   const h = mixHash(x, z);
   const ox = ((h % 5) - 2) * 4;
@@ -398,7 +418,7 @@ function addTree(buf, x, z) {
   addColoredBox(buf, cx - canopy / 2, gy, cz - canopy / 2, cx + canopy / 2, gy + canopy * 0.55, cz + canopy / 2, greens[h % 3]);
 }
 
-function buildChunk(map, cx, cz, materials, ground, quay) {
+function buildChunk(map, cx, cz, materials, ground, quay, plan) {
   const x1 = Math.min(map.cols, cx + CHUNK);
   const z1 = Math.min(map.rows, cz + CHUNK);
   const groundBufs = new Map();
@@ -421,7 +441,22 @@ function buildChunk(map, cx, cz, materials, ground, quay) {
     const row = map.ground[z];
     for (let x = cx; x < x1; x += 1) {
       const cell = row[x];
-      if (cell === "g" && mixHash(x, z) % 5 === 0) addTree(treeBuf, x, z);
+      // West of the canal is empty ground, plus water and the pier decks.
+      // Kenney roads and the quay walls are drawn separately.
+      if (westOfCanal(x, z) && cell !== "~" && cell !== "d") {
+        let buf = groundBufs.get("y");
+        if (!buf) {
+          buf = { pos: [], uv: [], idx: [] };
+          groundBufs.set("y", buf);
+        }
+        const u0 = (x * TILE) / 128;
+        const u1 = ((x + 1) * TILE) / 128;
+        const vAtZ0 = (z * TILE) / 128;
+        const vAtZ1 = ((z + 1) * TILE) / 128;
+        addGroundQuad(buf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, u0, vAtZ1, u1, vAtZ0, 0);
+        continue;
+      }
+      if (cell === "g" && mixHash(x, z) % 5 === 0 && !treeHitsRoad(x, z, plan)) addTree(treeBuf, x, z);
       if (ground.covers(x, z)) {
         ground.paint(surfaceBufs, x, z);
         continue;
@@ -577,19 +612,31 @@ function makePlayer() {
 }
 
 export async function buildCity(scene, map) {
+  // The west bank keeps its ground, water, piers, and quay. Houses are not built there.
+  map.buildings = map.buildings.filter((building) => {
+    const cx = building.x + building.w / 2;
+    const cz = building.z + building.d / 2;
+    return !westOfCanal(cx, cz);
+  });
+  const kenneyPlan = planKenneyRoads(map);
+  clearBuildingsFromRoads(map, kenneyPlan);
   const textures = await createTextures();
   const materials = createMaterials(textures);
   materials.quay = await createQuayMaterials();
-  const ground = await createGround(map);
+  const [ground, kenneyKit] = await Promise.all([
+    createGround(map, (x, z) => kenneyPlan.roadPaint(x, z)),
+    createKenneyRoads(),
+  ]);
   const quay = quayPlan(map);
   const chunks = [];
   for (let cz = 0; cz < map.rows; cz += CHUNK) {
     for (let cx = 0; cx < map.cols; cx += CHUNK) {
-      const chunk = buildChunk(map, cx, cz, materials, ground, quay);
+      const chunk = buildChunk(map, cx, cz, materials, ground, quay, kenneyPlan);
       scene.add(chunk.group);
       chunks.push(chunk);
     }
   }
+  addKenneyRoads(scene, kenneyPlan, kenneyKit);
   const playerMesh = makePlayer();
   scene.add(playerMesh);
   return {

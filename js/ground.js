@@ -620,6 +620,10 @@ export async function createGround(map, skipRoad = () => false) {
     },
     paint(buffers, x, z) {
       const cell = at(x, z);
+      if (WALK.has(cell)) {
+        const mode = skipRoad(x, z);
+        if (mode === true || mode === "skip") return;
+      }
       if (ROAD.has(cell)) {
         const mode = skipRoad(x, z);
         if (mode === true || mode === "skip") return;

@@ -12,7 +12,7 @@ import {
 import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
 import { createGround } from "./ground.js";
 import { addKenneyRoads, createKenneyRoads } from "./kenney-roads.js";
-import { planKenneyRoads } from "./kenney-road-plan.js";
+import { clearBuildingsFromRoads, planKenneyRoads } from "./kenney-road-plan.js";
 import { appendQuay, createQuayMaterials, emptyQuayBuffers, PIER_Y, quayPlan, WATER_Y } from "./quay.js";
 import { createTextures } from "./textures.js";
 
@@ -580,6 +580,7 @@ function makePlayer() {
 
 export async function buildCity(scene, map) {
   const kenneyPlan = planKenneyRoads(map);
+  clearBuildingsFromRoads(map, kenneyPlan);
   const textures = await createTextures();
   const materials = createMaterials(textures);
   materials.quay = await createQuayMaterials();

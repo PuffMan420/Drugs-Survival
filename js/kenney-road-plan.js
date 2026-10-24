@@ -3,7 +3,9 @@
 // model, so each direction's lane sits 0.6 tiles off that center. Anything
 // the old road had beyond those 4 tiles is left as sidewalk.
 // A bend is a corner piece. A three-way meeting is a T. A four-way meeting
-// is a cross. Straights run up to that piece and stop.
+// is a cross. Straights run up to that piece and stop. Pieces of one avenue
+// share a centerline, and a curb of sidewalk can sit under the piece so the
+// run is not capped by the sidewalk.
 
 import { TILE } from "./constants.js";
 
@@ -32,7 +34,8 @@ const JUNCTION_Y = 0.004;
 // The model's sidewalk is the outer 10% (0.4 tiles). A deeper tuck lets the
 // straight's sidewalk run across the other road's mouth.
 const SEAM = 0.04;
-const JUNCTION_TUCK = 0.25;
+const JUNCTION_TUCK = 0.08;
+const WALK = new Set(["s", "n", "p", "c", "l"]);
 
 function riverX(z) {
   if (z <= RIVER[0][1]) return RIVER[0][0];
@@ -315,6 +318,18 @@ export function planKenneyRoads(map) {
   }
 
   const centerOf = (rib) => (rib.p0 + rib.p1 + 1) / 2;
+  // A short ribbon that lives inside a crossing is a lane marker, not a street.
+  function isLaneMarker(rib, others) {
+    const length = rib.coreA1 - rib.coreA0 + 1;
+    if (length <= 0 || length >= 10) return false;
+    const perp = centerOf(rib);
+    let inside = 0;
+    for (let i = rib.coreA0; i <= rib.coreA1; i += 1) {
+      const hit = others.some((other) => i >= other.p0 && i <= other.p1 && perp >= other.a0 - 2 && perp <= other.a1 + 2);
+      if (hit) inside += 1;
+    }
+    return inside * 2 >= length;
+  }
   function mergeRibbons(list) {
     const items = list.map((rib) => ({
       horizontal: rib.horizontal,
@@ -352,10 +367,105 @@ export function planKenneyRoads(map) {
     return items;
   }
 
-  const hRibbons = mergeRibbons(ribbonsFor(true));
-  const vRibbons = mergeRibbons(ribbonsFor(false));
+  // Two pieces of one avenue often sit a fraction of a tile apart, or stop
+  // with a curb of sidewalk between them. Share one centerline so a sidewalk
+  // cannot cut across the mouth. A real crossing keeps the two approaches as
+  // separate runs; a curb with no crossing becomes one run.
+  function alongGap(a, b) {
+    if (a.a1 < b.a0) return { gap: b.a0 - a.a1 - 1, lo: a.a1 + 1, hi: b.a0 - 1 };
+    if (b.a1 < a.a0) return { gap: a.a0 - b.a1 - 1, lo: b.a1 + 1, hi: a.a0 - 1 };
+    return { gap: -1, lo: 0, hi: -1 };
+  }
+  function gapPassable(a, b) {
+    const { gap, lo, hi } = alongGap(a, b);
+    if (gap < 0) return false;
+    if (gap === 0) return true;
+    const p0 = Math.min(a.p0, b.p0);
+    const p1 = Math.max(a.p1, b.p1);
+    let walks = 0;
+    for (let i = lo; i <= hi; i += 1) {
+      let road = false;
+      let walk = false;
+      for (let p = p0; p <= p1; p += 1) {
+        const xx = a.horizontal ? i : p;
+        const zz = a.horizontal ? p : i;
+        if (westRoad(xx, zz)) road = true;
+        else if (westOfCanal(xx, zz) && WALK.has(at(xx, zz))) walk = true;
+      }
+      if (road) continue;
+      if (walk) {
+        walks += 1;
+        continue;
+      }
+      return false;
+    }
+    return walks <= 3;
+  }
+  function crossingBetween(a, b, perp) {
+    const { lo, hi } = alongGap(a, b);
+    const mid = (centerOf(a) + centerOf(b)) / 2;
+    return perp.some((other) => {
+      const pc = centerOf(other);
+      if (pc < lo - 1 || pc > hi + 1) return false;
+      return mid >= other.a0 - 2 && mid <= other.a1 + 3;
+    });
+  }
+  function stitchRibbons(list, perp) {
+    const items = list.map((rib) => ({ ...rib, origin: centerOf(rib) }));
+    let guard = 0;
+    let changed = true;
+    while (changed && guard < 8) {
+      changed = false;
+      guard += 1;
+      for (let i = 0; i < items.length; i += 1) {
+        for (let j = i + 1; j < items.length; j += 1) {
+          const a = items[i];
+          const b = items[j];
+          const { gap } = alongGap(a, b);
+          if (gap < 0 || gap > 8) continue;
+          const apart = Math.abs(centerOf(a) - centerOf(b));
+          const spanGap = Math.max(a.p0, b.p0) - Math.min(a.p1, b.p1);
+          if (spanGap > 2 || apart > 1.5) continue;
+          if (isLaneMarker(a, perp) || isLaneMarker(b, perp)) continue;
+          const crossing = crossingBetween(a, b, perp);
+          const p0 = Math.min(a.p0, b.p0);
+          const p1 = Math.max(a.p1, b.p1);
+          const next = (p0 + p1 + 1) / 2;
+          if (Math.abs(next - a.origin) > 1.25 || Math.abs(next - b.origin) > 1.25) continue;
+          if (crossing) {
+            if (a.p0 === p0 && a.p1 === p1 && b.p0 === p0 && b.p1 === p1) continue;
+            a.p0 = p0;
+            a.p1 = p1;
+            b.p0 = p0;
+            b.p1 = p1;
+            changed = true;
+            continue;
+          }
+          if (apart <= 1.0 && gap <= 4 && gapPassable(a, b)) {
+            a.p0 = p0;
+            a.p1 = p1;
+            a.a0 = Math.min(a.a0, b.a0);
+            a.a1 = Math.max(a.a1, b.a1);
+            a.coreA0 = Math.min(a.coreA0, b.coreA0);
+            a.coreA1 = Math.max(a.coreA1, b.coreA1);
+            items.splice(j, 1);
+            changed = true;
+            break;
+          }
+        }
+        if (changed) break;
+      }
+    }
+    return items;
+  }
+
+  const hMerged = mergeRibbons(ribbonsFor(true));
+  const vMerged = mergeRibbons(ribbonsFor(false));
+  const hRibbons = stitchRibbons(hMerged, vMerged);
+  const vRibbons = stitchRibbons(vMerged, hRibbons);
   // How far two road ends may sit apart and still share a corner, T, or cross.
-  const JOIN = 2.5;
+  // A 4-tile piece can touch another road whose ribbon ends a piece-width away.
+  const JOIN = 4;
   const half = ROAD_TILES / 2;
   const intervalGap = (a0, a1, b0, b1) => {
     if (a1 < b0) return b0 - a1;
@@ -383,20 +493,23 @@ export function planKenneyRoads(map) {
       const a = Math.min(edge, along);
       const b = Math.max(edge, along);
       let open = true;
+      let walks = 0;
       for (let i = a; i <= b; i += 1) {
         let road = false;
+        let walk = false;
         for (let p = p0; p <= p1; p += 1) {
           const xx = horizontal ? i : p;
           const zz = horizontal ? p : i;
-          if (westRoad(xx, zz)) {
-            road = true;
-            break;
-          }
+          if (westRoad(xx, zz)) road = true;
+          else if (westOfCanal(xx, zz) && WALK.has(at(xx, zz))) walk = true;
         }
-        if (!road) {
-          open = false;
-          break;
+        if (road) continue;
+        if (walk && walks < 3) {
+          walks += 1;
+          continue;
         }
+        open = false;
+        break;
       }
       if (open) return true;
     }
@@ -417,8 +530,12 @@ export function planKenneyRoads(map) {
         return Math.max(0, core1 - Math.max(core0, span1 + 1) + 1);
       };
       const arm = (horizontal, crossAt, rib, span0, span1, sign) => {
+        const others = horizontal ? vRibbons : hRibbons;
+        if (isLaneMarker(rib, others)) return false;
         if (!seedPast(horizontal, crossAt, rib.p0, rib.p1, sign)) return false;
-        return protrude(rib.a0, rib.a1, span0, span1, sign) >= 4;
+        // A stub of two tiles still has a straight drawn up to the piece.
+        // Closing that side puts the piece's sidewalk across the stub.
+        return protrude(rib.a0, rib.a1, span0, span1, sign) >= 2;
       };
       raw.push({
         cx,
@@ -470,17 +587,22 @@ export function planKenneyRoads(map) {
     const perp = Math.round(centerOf(rib));
     const a = Math.floor(Math.min(from, to));
     const b = Math.ceil(Math.max(from, to));
+    let walks = 0;
     for (let i = a; i <= b; i += 1) {
-      let open = false;
+      let road = false;
+      let walk = false;
       for (let d = -1; d <= 1; d += 1) {
         const xx = rib.horizontal ? i : perp + d;
         const zz = rib.horizontal ? perp + d : i;
-        if (westRoad(xx, zz)) {
-          open = true;
-          break;
-        }
+        if (westRoad(xx, zz)) road = true;
+        else if (westOfCanal(xx, zz) && WALK.has(at(xx, zz))) walk = true;
       }
-      if (!open) return false;
+      if (road) continue;
+      if (walk && walks < 3) {
+        walks += 1;
+        continue;
+      }
+      return false;
     }
     return true;
   };
@@ -503,18 +625,7 @@ export function planKenneyRoads(map) {
     return blocks;
   };
 
-  const buriedInCrossing = (rib) => {
-    const length = rib.coreA1 - rib.coreA0 + 1;
-    if (length <= 0 || length >= 10) return false;
-    const others = rib.horizontal ? vRibbons : hRibbons;
-    const perp = centerOf(rib);
-    let inside = 0;
-    for (let i = rib.coreA0; i <= rib.coreA1; i += 1) {
-      const hit = others.some((other) => i >= other.p0 && i <= other.p1 && perp >= other.a0 - 2 && perp <= other.a1 + 2);
-      if (hit) inside += 1;
-    }
-    return inside * 2 >= length;
-  };
+  const buriedInCrossing = (rib) => isLaneMarker(rib, rib.horizontal ? vRibbons : hRibbons);
   const addStraights = (rib) => {
     if (buriedInCrossing(rib)) return;
     const perp = centerOf(rib);
@@ -610,7 +721,11 @@ export function planKenneyRoads(map) {
       return covered[z * cols + x] === 1;
     },
     roadPaint(x, z) {
-      if (!westOfCanal(x, z) || !ROAD.has(at(x, z))) return "paint";
+      if (!westOfCanal(x, z)) return "paint";
+      const cell = at(x, z);
+      // A sidewalk tile under a west piece would show as a pale bar in any crack.
+      if (WALK.has(cell)) return footprint[z * cols + x] === 1 ? "skip" : "paint";
+      if (!ROAD.has(cell)) return "paint";
       return covered[z * cols + x] === 1 ? "skip" : "walk";
     },
     contains(x, z) {
@@ -635,4 +750,115 @@ export function planKenneyRoads(map) {
       return { x: center + sign * offset, z: (tz + 0.5) * TILE };
     },
   };
+}
+
+// A building whose footprint sits on the asphalt is moved off the piece.
+// Houses that only meet the outer sidewalk stay where they are. A neighbor
+// is shoved one tile when that is what gets the building off the asphalt.
+export function clearBuildingsFromRoads(map, plan) {
+  const pieces = plan.placements;
+  const at = (x, z) => {
+    if (x < 0 || z < 0 || x >= map.cols || z >= map.rows) return "~";
+    return map.ground[z][x];
+  };
+  const overlap = (b, half) => {
+    let best = null;
+    for (const piece of pieces) {
+      const ox = Math.min(b.x + b.w, piece.x + half) - Math.max(b.x, piece.x - half);
+      const oz = Math.min(b.z + b.d, piece.z + half) - Math.max(b.z, piece.z - half);
+      if (ox <= 0.05 || oz <= 0.05) continue;
+      const area = ox * oz;
+      if (!best || area > best.area) best = { piece, ox, oz, area };
+    }
+    return best;
+  };
+  const occupants = (b, ignore) => map.buildings.filter((other) => {
+    if (other === ignore) return false;
+    const ox = Math.min(b.x + b.w, other.x + other.w) - Math.max(b.x, other.x);
+    const oz = Math.min(b.z + b.d, other.z + other.d) - Math.max(b.z, other.z);
+    return ox > 0 && oz > 0;
+  });
+  const groundOk = (b) => {
+    if (b.x < 0 || b.z < 0 || b.x + b.w > map.cols || b.z + b.d > map.rows) return false;
+    if (!westOfCanal(b.x + b.w / 2, b.z + b.d / 2)) return false;
+    for (let z = Math.floor(b.z); z < b.z + b.d; z += 1) {
+      for (let x = Math.floor(b.x); x < b.x + b.w; x += 1) {
+        if (at(x, z) === "~") return false;
+      }
+    }
+    return true;
+  };
+  const place = (building, x, z, half, allowShove) => {
+    const trial = { ...building, x, z };
+    if (!groundOk(trial) || overlap(trial, half)) return false;
+    const blockers = occupants(trial, building);
+    if (blockers.length === 0) {
+      building.x = x;
+      building.z = z;
+      return true;
+    }
+    if (!allowShove || blockers.length > 2) return false;
+    const dx = Math.sign(x - building.x);
+    const dz = Math.sign(z - building.z);
+    if (dx !== 0 && dz !== 0) return false;
+    const shifts = [];
+    for (const blocker of blockers) {
+      let nx = blocker.x;
+      let nz = blocker.z;
+      let steps = 0;
+      while (steps < 4) {
+        const moved = { ...blocker, x: nx, z: nz };
+        const ox = Math.min(trial.x + trial.w, moved.x + moved.w) - Math.max(trial.x, moved.x);
+        const oz = Math.min(trial.z + trial.d, moved.z + moved.d) - Math.max(trial.z, moved.z);
+        if (ox <= 0 || oz <= 0) break;
+        nx += dx;
+        nz += dz;
+        steps += 1;
+      }
+      const moved = { ...blocker, x: nx, z: nz };
+      const still = Math.min(trial.x + trial.w, moved.x + moved.w) - Math.max(trial.x, moved.x);
+      const stillZ = Math.min(trial.z + trial.d, moved.z + moved.d) - Math.max(trial.z, moved.z);
+      if (steps === 0 || still > 0 || stillZ > 0) return false;
+      if (!groundOk(moved) || overlap(moved, 1.2)) return false;
+      const extra = occupants(moved, blocker).filter((other) => other !== building && !blockers.includes(other));
+      if (extra.length > 0) return false;
+      shifts.push({ blocker, x: nx, z: nz });
+    }
+    for (const shift of shifts) {
+      shift.blocker.x = shift.x;
+      shift.blocker.z = shift.z;
+    }
+    building.x = x;
+    building.z = z;
+    return true;
+  };
+
+  for (let pass = 0; pass < 24; pass += 1) {
+    let moved = false;
+    const pending = map.buildings.filter((b) => westOfCanal(b.x, b.z) && overlap(b, 1.2));
+    pending.sort((a, b) => b.z - a.z || b.x - a.x);
+    for (const building of pending) {
+      const hit = overlap(building, 1.2);
+      if (!hit) continue;
+      const awayX = building.x + building.w / 2 >= hit.piece.x ? 1 : -1;
+      const awayZ = building.z + building.d / 2 >= hit.piece.z ? 1 : -1;
+      const dirs = hit.oz <= hit.ox ? [[0, awayZ], [0, -awayZ]] : [[awayX, 0], [-awayX, 0]];
+      let done = false;
+      for (const half of [2, 1.2]) {
+        for (let step = 1; step <= 8 && !done; step += 1) {
+          for (const [dx, dz] of dirs) {
+            const tx = building.x + dx * step;
+            const tz = building.z + dz * step;
+            if (place(building, tx, tz, half, step <= 8)) {
+              moved = true;
+              done = true;
+              break;
+            }
+          }
+        }
+        if (done) break;
+      }
+    }
+    if (!moved) break;
+  }
 }

@@ -88,7 +88,7 @@ function clipNamed(animations, name) {
 
 export async function createPlayer() {
   const loader = new GLTFLoader();
-  const url = new URL("../assets/player/humanMaleA_v8.glb", import.meta.url).href;
+  const url = new URL("../assets/player/humanMaleA_v9.glb", import.meta.url).href;
   let gltf;
   try {
     gltf = await loader.loadAsync(url);

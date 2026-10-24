@@ -9,7 +9,7 @@ import {
   Vector3,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { TILE } from "./constants.js";
+import { AO_SKIP_LAYER, TILE } from "./constants.js";
 import { KITS } from "./kenney-city-catalog.js";
 import { roadKey, roadRecord } from "./kenney-roads.js";
 
@@ -102,6 +102,8 @@ function ghost(root) {
     obj.material = Array.isArray(obj.material) ? next : next[0];
     obj.castShadow = false;
     obj.receiveShadow = false;
+    // The preview is transparent. The occlusion pass would otherwise treat it as solid.
+    obj.layers.set(AO_SKIP_LAYER);
   });
 }
 

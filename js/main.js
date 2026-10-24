@@ -1,5 +1,7 @@
 import {
+  AdditiveBlending,
   DirectionalLight,
+  DoubleSide,
   HemisphereLight,
   MeshLambertMaterial,
   NoToneMapping,
@@ -10,7 +12,12 @@ import {
   Vector3,
   WebGLRenderer,
 } from "three";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { SSAOPass } from "three/addons/postprocessing/SSAOPass.js";
 import {
+  AO_SKIP_LAYER,
   CAMERA_ANGLE,
   CAMERA_RADIUS,
   GROUND_H,
@@ -79,6 +86,8 @@ const session = {
   placeName: "Downtown",
 };
 
+let composer = null;
+
 function showError(message) {
   errorEl.hidden = false;
   errorEl.textContent = message;
@@ -111,7 +120,8 @@ function lockPixelProjection(camera) {
 
 function fitDisplay(renderer) {
   // Same 16:9 frame as the ground the camera shows. Draw it into the canvas
-  // at the window's own pixels, with devicePixelRatio capped at 2.
+  // at the window's own pixels, with devicePixelRatio capped at 2. The
+  // occlusion targets use this same drawing-buffer size.
   const unit = Math.min(window.innerWidth / 16, window.innerHeight / 9);
   const width = Math.max(1, Math.round(unit * 16));
   const height = Math.max(1, Math.round(width * 9 / 16));
@@ -120,6 +130,10 @@ function fitDisplay(renderer) {
   canvas.style.height = `${height}px`;
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(width, height, false);
+  if (composer) {
+    composer.setPixelRatio(pixelRatio);
+    composer.setSize(width, height);
+  }
 }
 
 const litMaterials = new WeakMap();
@@ -249,6 +263,83 @@ function placeSun(sun, camX, camZ) {
   sun.target.position.set(camX, 0, camZ);
 }
 
+function skipsAmbientOcclusion(material) {
+  if (!material) return false;
+  if (material.isShaderMaterial) return true;
+  if (material.blending === AdditiveBlending) return true;
+  return material.transparent === true && material.depthWrite === false;
+}
+
+function omitFromAmbientOcclusion(root) {
+  root.traverse((obj) => {
+    if (!obj.isMesh) return;
+    const source = obj.material;
+    const list = Array.isArray(source) ? source : [source];
+    if (list.some(skipsAmbientOcclusion)) obj.layers.set(AO_SKIP_LAYER);
+  });
+}
+
+function createAmbientOcclusion(renderer, scene, camera) {
+  // The beauty pass sees light cards and shadow sheets. The occlusion camera
+  // does not, or those flat cards would read as solid geometry.
+  camera.layers.enable(AO_SKIP_LAYER);
+  const view = camera.clone();
+  view.layers.set(0);
+  view.updateProjectionMatrix = () => {
+    view.projectionMatrix.copy(camera.projectionMatrix);
+    view.projectionMatrixInverse.copy(camera.projectionMatrixInverse);
+  };
+  view.updateProjectionMatrix();
+
+  const chain = new EffectComposer(renderer);
+  const gl = renderer.getContext();
+  const maxSamples = gl.MAX_SAMPLES ? gl.getParameter(gl.MAX_SAMPLES) : 0;
+  const samples = maxSamples >= 2 ? Math.min(4, maxSamples) : 0;
+  if (samples > 0) {
+    // Context antialiasing does not cover the composer's targets. Match it
+    // so Kenney edges stay as smooth as the direct render was.
+    chain.renderTarget1.samples = samples;
+    chain.renderTarget2.samples = samples;
+  }
+
+  chain.addPass(new RenderPass(scene, camera));
+
+  const ssao = new SSAOPass(scene, view);
+  // three.js's SSAO example uses kernelRadius 8, minDistance 0.005, and
+  // maxDistance 0.1 across a near/far span of 600. Those distances are
+  // fractions of the span. This camera's span is FAR - NEAR, so the same
+  // world distances stay moderate: a few units of depth noise ignored, and
+  // occluders beyond about 60 units ignored. The radius is in world units,
+  // about a third of a block, enough to crease a wall base or a wheel.
+  const exampleSpan = 600;
+  const span = FAR - NEAR;
+  ssao.kernelRadius = 16;
+  ssao.minDistance = 0.005 * exampleSpan / span;
+  ssao.maxDistance = 0.1 * exampleSpan / span;
+  // Streets are wound downward and drawn double-sided. The normal material
+  // flips a back face only when its side is DoubleSide, so the hemisphere
+  // stays above the ground instead of darkening every street.
+  ssao.normalMaterial.side = DoubleSide;
+  chain.addPass(ssao);
+  chain.addPass(new OutputPass());
+
+  return {
+    composer: chain,
+    render() {
+      view.position.copy(camera.position);
+      view.quaternion.copy(camera.quaternion);
+      view.up.copy(camera.up);
+      view.updateProjectionMatrix();
+      view.updateMatrixWorld();
+      const projection = ssao.ssaoMaterial.uniforms.cameraProjectionMatrix.value;
+      const inverse = ssao.ssaoMaterial.uniforms.cameraInverseProjectionMatrix.value;
+      projection.copy(camera.projectionMatrix);
+      inverse.copy(camera.projectionMatrixInverse);
+      chain.render();
+    },
+  };
+}
+
 function blocked(map, x, z) {
   // The square's corners have to stay off water and off building footprints.
   // Roads, sidewalks, parks, docks, and plazas stay open.
@@ -291,6 +382,9 @@ async function start() {
   renderer.toneMapping = NoToneMapping;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFSoftShadowMap;
+  // The occlusion pass renders the scene again for normals. Shadows are
+  // already current after the beauty pass, so that second render skips them.
+  renderer.shadowMap.autoUpdate = false;
   renderer.setClearColor(0x102028, 1);
   fitDisplay(renderer);
   window.addEventListener("resize", () => fitDisplay(renderer));
@@ -348,6 +442,11 @@ async function start() {
     saved: savedLayout,
     roads: city.roads,
   });
+
+  omitFromAmbientOcclusion(scene);
+  const ambient = createAmbientOcclusion(renderer, scene, camera);
+  composer = ambient.composer;
+  fitDisplay(renderer);
 
   session.ready = true;
   session.map = map;
@@ -419,7 +518,8 @@ async function start() {
     updateChunks(city.chunks, camX, camZ);
     lightVisibleCity(city.chunks);
     placeSun(sun, camX, camZ);
-    renderer.render(scene, camera);
+    renderer.shadowMap.needsUpdate = true;
+    ambient.render();
     minimap.draw(camX, camZ, player.x, player.z, TILE, GROUND_W / TILE, GROUND_H / TILE);
 
     const instant = 1 / Math.max(dt, 1 / 240);

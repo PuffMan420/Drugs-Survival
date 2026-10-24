@@ -17,3 +17,6 @@ export const PLAYER_SIZE = 32;
 // The live speed is player.js SPEED: a brisk 80 units per second.
 export const PLAYER_SPEED = 80;
 export const CHUNK = 20;
+// The main camera draws this layer. Ambient occlusion only reads layer 0,
+// so light cards, flat shadow sheets, and the build preview do not darken the ground.
+export const AO_SKIP_LAYER = 1;

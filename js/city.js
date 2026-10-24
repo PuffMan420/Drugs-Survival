@@ -12,7 +12,7 @@ import {
 import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
 import { createGround } from "./ground.js";
 import { addKenneyRoads, createKenneyRoads } from "./kenney-roads.js";
-import { clearBuildingsFromRoads, planKenneyRoads } from "./kenney-road-plan.js";
+import { clearBuildingsFromRoads, planKenneyRoads, westOfCanal } from "./kenney-road-plan.js";
 import { appendQuay, createQuayMaterials, emptyQuayBuffers, PIER_Y, quayPlan, WATER_Y } from "./quay.js";
 import { createTextures } from "./textures.js";
 
@@ -597,6 +597,12 @@ function makePlayer() {
 }
 
 export async function buildCity(scene, map) {
+  // Houses west of the canal are not built. East buildings stay.
+  map.buildings = map.buildings.filter((building) => {
+    const cx = building.x + building.w / 2;
+    const cz = building.z + building.d / 2;
+    return !westOfCanal(cx, cz);
+  });
   const kenneyPlan = planKenneyRoads(map);
   clearBuildingsFromRoads(map, kenneyPlan);
   const textures = await createTextures();

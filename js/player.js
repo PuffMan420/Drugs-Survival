@@ -1,5 +1,6 @@
 import {
   AnimationMixer,
+  AnimationUtils,
   Box3,
   CanvasTexture,
   DoubleSide,
@@ -128,35 +129,63 @@ export async function createPlayer() {
   shadow.position.y = SHADOW_Y;
 
   const mixer = new AnimationMixer(model);
+  // The run clip's loop point is this skeleton's bind pose, arms straight out.
+  // Frames 5–13 (24 fps) are the stride itself: arms stay down, legs stay bent.
+  const runClip = AnimationUtils.subclip(clipNamed(gltf.animations, "run"), "run", 5, 13, 24);
   const actions = {
     idle: mixer.clipAction(clipNamed(gltf.animations, "idle")),
-    run: mixer.clipAction(clipNamed(gltf.animations, "run")),
+    run: mixer.clipAction(runClip),
     jump: mixer.clipAction(clipNamed(gltf.animations, "jump")),
   };
   actions.jump.setLoop(LoopOnce, 1);
+  // Leaving this false disables the action when the clip ends. A disabled
+  // action contributes no weight, and the mixer then writes the bind pose back.
   actions.jump.clampWhenFinished = true;
+
+  // webgl_animation_skinning_blending.html: every action stays playing, and a
+  // change of clip is setWeight + crossFadeTo. crossFadeTo's fade-out sets
+  // enabled to false and warps timeScale, so the next blend has to turn the
+  // incoming action back on and clear that warp before it fades.
+  function setWeight(action, weight) {
+    action.enabled = true;
+    action.setEffectiveTimeScale(1);
+    action.setEffectiveWeight(weight);
+  }
+
+  function crossFade(from, to) {
+    to.paused = false;
+    setWeight(to, 1);
+    to.time = 0;
+    from.crossFadeTo(to, FADE, true);
+  }
+
+  setWeight(actions.idle, 1);
+  setWeight(actions.run, 0);
+  setWeight(actions.jump, 0);
   actions.idle.play();
+  actions.run.play();
+  actions.jump.play();
+  // LoopOnce would otherwise play the jump out while its weight is still 0.
+  actions.jump.paused = true;
+  // Bones are still the bind T until the mixer writes. Do that before the
+  // first paint, while idle is the only action with weight.
+  mixer.update(0);
 
   let playing = "idle";
   let moving = false;
   let then = performance.now();
 
-  function play(name) {
+  function show(name) {
     if (name === playing) return;
     const next = actions[name];
-    const prev = actions[playing];
-    // A finished fade-out disables the action. play() does not turn it back on.
     if (name === "jump") next.reset();
-    next.enabled = true;
-    next.paused = false;
-    next.fadeIn(FADE).play();
-    prev.fadeOut(FADE);
+    crossFade(actions[playing], next);
     playing = name;
   }
 
   mixer.addEventListener("finished", (event) => {
     if (event.action !== actions.jump || playing !== "jump") return;
-    play(moving ? "run" : "idle");
+    show(moving ? "run" : "idle");
   });
 
   function face(dx, dz) {
@@ -180,12 +209,12 @@ export async function createPlayer() {
       moving = dist > 0.001 && dist < JUMP_STEP;
       if (dist >= JUMP_STEP) {
         face(dx, dz);
-        play("jump");
+        show("jump");
       } else if (moving) {
         face(dx, dz);
-        play("run");
+        show("run");
       } else if (playing !== "jump") {
-        play("idle");
+        show("idle");
       }
       mixer.update(dt);
       place(x, z);

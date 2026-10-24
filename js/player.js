@@ -87,14 +87,13 @@ function clipNamed(animations, name) {
   return clip;
 }
 
-// Idle only sways on the T-pose. These aim the whole arm just outside the torso
-// and point the fingers down beside the thigh. The same turn is applied to every
-// key, so that sway stays. Run and jump are not edited.
-const ARM_OUT = 0.35;
-const ARM_AHEAD = 0.02;
-const ARM_TWIST = -135 * Math.PI / 180;
-const FINGER_OUT = 0.1;
-const THUMB_ROLL = -150 * Math.PI / 180;
+// Idle only sways on the T-pose. The upper-arm bone points along its local +Y,
+// and the two arms are not the same twist, so each one takes the shortest swing
+// that aims that axis down. No extra roll, so the shoulder blend and the sleeve
+// stay on the bone. The forearm then bends a little toward the front. Hands are
+// left on the forearm. The same turns apply to every key, and the sway stays.
+const ARM_OUT = 0.14;
+const ELBOW_FORWARD = 0.1;
 
 function premultiplyTrack(clip, boneName, extra) {
   const track = clip.tracks.find((item) => item.name === `${boneName}.quaternion`);
@@ -107,44 +106,27 @@ function premultiplyTrack(clip, boneName, extra) {
   }
 }
 
-function fingerDirection(model, side) {
-  const hand = model.getObjectByName(`${side}Hand`);
-  const tip = model.getObjectByName(`${side}HandIndex3_end`);
-  const local = tip.getWorldPosition(new Vector3()).sub(hand.getWorldPosition(new Vector3()));
-  local.applyQuaternion(hand.getWorldQuaternion(new Quaternion()).invert());
-  return local.normalize();
+function aimBone(bone, direction) {
+  const parentQ = bone.parent.getWorldQuaternion(new Quaternion());
+  const worldQ = bone.getWorldQuaternion(new Quaternion());
+  const from = new Vector3(0, 1, 0).applyQuaternion(worldQ).normalize();
+  const align = new Quaternion().setFromUnitVectors(from, direction.clone().normalize());
+  bone.quaternion.copy(parentQ.clone().invert().multiply(align.multiply(worldQ)));
+  bone.updateMatrixWorld(true);
 }
 
 function standingIdle(model, clip) {
   const edited = clip.clone();
   model.updateMatrixWorld(true);
-  const posed = ["LeftArm", "RightArm", "LeftHand", "RightHand"];
+  const posed = ["LeftArm", "RightArm", "LeftForeArm", "RightForeArm"];
   const bind = new Map(posed.map((name) => [name, model.getObjectByName(name).quaternion.clone()]));
-  const fingers = {
-    Left: fingerDirection(model, "Left"),
-    Right: fingerDirection(model, "Right"),
-  };
   for (const side of ["Left", "Right"]) {
     const sign = side === "Left" ? 1 : -1;
     const arm = model.getObjectByName(`${side}Arm`);
-    const parentQ = arm.parent.getWorldQuaternion(new Quaternion());
-    const armQ = arm.getWorldQuaternion(new Quaternion());
-    const from = new Vector3(0, 1, 0).applyQuaternion(armQ).normalize();
-    const to = new Vector3(sign * ARM_OUT, -1, ARM_AHEAD).normalize();
-    const align = new Quaternion().setFromUnitVectors(from, to);
-    const twist = new Quaternion().setFromAxisAngle(to, ARM_TWIST * sign);
-    arm.quaternion.copy(parentQ.clone().invert().multiply(twist.clone().multiply(align).multiply(armQ)));
-    arm.updateMatrixWorld(true);
-
-    const hand = model.getObjectByName(`${side}Hand`);
-    const handParentQ = hand.parent.getWorldQuaternion(new Quaternion());
-    const current = hand.getWorldQuaternion(new Quaternion());
-    const indexWorld = fingers[side].clone().applyQuaternion(current).normalize();
-    const want = new Vector3(sign * FINGER_OUT, -1, 0).normalize();
-    const aim = new Quaternion().setFromUnitVectors(indexWorld, want);
-    const roll = new Quaternion().setFromAxisAngle(want, THUMB_ROLL * sign);
-    hand.quaternion.copy(handParentQ.clone().invert().multiply(roll.clone().multiply(aim).multiply(current)));
-    hand.updateMatrixWorld(true);
+    aimBone(arm, new Vector3(sign * ARM_OUT, -1, 0));
+    const fore = model.getObjectByName(`${side}ForeArm`);
+    const foreDir = new Vector3(0, 1, 0).applyQuaternion(fore.getWorldQuaternion(new Quaternion()));
+    aimBone(fore, foreDir.add(new Vector3(0, 0, ELBOW_FORWARD)));
   }
   for (const name of posed) {
     const bone = model.getObjectByName(name);

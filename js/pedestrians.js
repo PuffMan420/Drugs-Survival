@@ -15,9 +15,9 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { GROUND_H, GROUND_W, TILE } from "./constants.js";
 
-// Same height fit as the player, including his extra 10%, so these figures stand with him.
+// Same height fit as the player, including both extra 10% bumps, so these figures stand with him.
 const SEDAN_LENGTH = 71;
-const SCALE_BUMP = 1.15 * 1.1;
+const SCALE_BUMP = 1.15 * 1.1 * 1.1;
 const FEET_Y = 0.6;
 const FADE = 0.12;
 // A walk covers a little under one sidewalk tile per cycle. Run is twice that.

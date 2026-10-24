@@ -16,10 +16,11 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 const SPEED = 80;
 // Blue sedan footprint in js/cars.js (assets/cars3d/sedan.glb): 37 wide, 71 long.
 // A real height is a third of that length. He is drawn a bit larger than that
-// so he reads clearly beside the cars, then another 10%. Pedestrians use this
-// same bump, so they stand at his height. Shoulders stay inside the sedan's width.
+// so he reads clearly beside the cars, then another 10%, and another 10% on
+// top of that. Pedestrians use this same bump, so they stand at his height.
+// Shoulders stay inside the sedan's width.
 const SEDAN_LENGTH = 71;
-const SCALE_BUMP = 1.15 * 1.1;
+const SCALE_BUMP = 1.15 * 1.1 * 1.1;
 // Tires sit at this height. His soles use the same ground.
 const FEET_Y = 0.6;
 const SHADOW_Y = 0.35;

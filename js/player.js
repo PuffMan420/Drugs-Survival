@@ -4,7 +4,6 @@ import {
   CanvasTexture,
   DoubleSide,
   Group,
-  LoopOnce,
   Mesh,
   MeshBasicMaterial,
   MeshLambertMaterial,
@@ -23,8 +22,8 @@ const SCALE_BUMP = 1.15;
 // Tires sit at this height. His soles use the same ground.
 const FEET_Y = 0.6;
 const SHADOW_Y = 0.35;
-// Map jumps (keys 1-9) move hundreds of units in one frame. A shove never does.
-const JUMP_STEP = 200;
+// Keys 1–9 place him across the map in one frame. A step never does.
+const PLACE_STEP = 240;
 const FADE = 0.12;
 
 function shadowTexture() {
@@ -90,7 +89,7 @@ function clipNamed(animations, name) {
 
 export async function createPlayer() {
   const loader = new GLTFLoader();
-  const url = new URL("../assets/player/humanMaleA_v10.glb", import.meta.url).href;
+  const url = new URL("../assets/player/humanMaleA_v13.glb", import.meta.url).href;
   let gltf;
   try {
     gltf = await loader.loadAsync(url);
@@ -128,36 +127,49 @@ export async function createPlayer() {
   shadow.position.y = SHADOW_Y;
 
   const mixer = new AnimationMixer(model);
+  // The file has idle, walk, and run. He only moves at SPEED, so a step plays
+  // the full run. Walk stays in the mixer so every clip is playing.
   const actions = {
     idle: mixer.clipAction(clipNamed(gltf.animations, "idle")),
+    walk: mixer.clipAction(clipNamed(gltf.animations, "walk")),
     run: mixer.clipAction(clipNamed(gltf.animations, "run")),
-    jump: mixer.clipAction(clipNamed(gltf.animations, "jump")),
   };
-  actions.jump.setLoop(LoopOnce, 1);
-  actions.jump.clampWhenFinished = true;
-  actions.idle.play();
 
-  let playing = "idle";
-  let moving = false;
-  let then = performance.now();
-
-  function play(name) {
-    if (name === playing) return;
-    const next = actions[name];
-    const prev = actions[playing];
-    // A finished fade-out disables the action. play() does not turn it back on.
-    if (name === "jump") next.reset();
-    next.enabled = true;
-    next.paused = false;
-    next.fadeIn(FADE).play();
-    prev.fadeOut(FADE);
-    playing = name;
+  // webgl_animation_skinning_blending.html: every action stays playing, and a
+  // change of clip is setWeight + crossFadeTo. crossFadeTo's fade-out sets
+  // enabled to false and warps timeScale, so the next blend has to turn the
+  // incoming action back on and clear that warp before it fades.
+  function setWeight(action, weight) {
+    action.enabled = true;
+    action.setEffectiveTimeScale(1);
+    action.setEffectiveWeight(weight);
   }
 
-  mixer.addEventListener("finished", (event) => {
-    if (event.action !== actions.jump || playing !== "jump") return;
-    play(moving ? "run" : "idle");
-  });
+  function crossFade(from, to) {
+    to.paused = false;
+    setWeight(to, 1);
+    to.time = 0;
+    from.crossFadeTo(to, FADE, true);
+  }
+
+  setWeight(actions.idle, 1);
+  setWeight(actions.walk, 0);
+  setWeight(actions.run, 0);
+  actions.idle.play();
+  actions.walk.play();
+  actions.run.play();
+  // Bones are still the bind T until the mixer writes. Do that before the
+  // first paint, while idle is the only action with weight.
+  mixer.update(0);
+
+  let playing = "idle";
+  let then = performance.now();
+
+  function show(name) {
+    if (name === playing) return;
+    crossFade(actions[playing], actions[name]);
+    playing = name;
+  }
 
   function face(dx, dz) {
     holder.rotation.y = Math.atan2(dx, dz);
@@ -177,15 +189,11 @@ export async function createPlayer() {
       const dt = Math.min((now - then) / 1000, 0.05);
       then = now;
       const dist = Math.hypot(dx, dz);
-      moving = dist > 0.001 && dist < JUMP_STEP;
-      if (dist >= JUMP_STEP) {
+      if (dist > 0.001 && dist < PLACE_STEP) {
         face(dx, dz);
-        play("jump");
-      } else if (moving) {
-        face(dx, dz);
-        play("run");
-      } else if (playing !== "jump") {
-        play("idle");
+        show("run");
+      } else if (dist < PLACE_STEP) {
+        show("idle");
       }
       mixer.update(dt);
       place(x, z);

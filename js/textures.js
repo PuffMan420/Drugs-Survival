@@ -1,7 +1,8 @@
 import {
   CanvasTexture,
   ClampToEdgeWrapping,
-  NearestFilter,
+  LinearFilter,
+  LinearMipmapLinearFilter,
   RepeatWrapping,
   SRGBColorSpace,
   Texture,
@@ -21,11 +22,11 @@ function canvas2d(width = 48, height = width) {
   return { canvas, ctx };
 }
 
-function pixelTexture(canvas, repeat) {
+function pixelTexture(canvas, repeat, mipmaps = true) {
   const texture = new CanvasTexture(canvas);
-  texture.magFilter = NearestFilter;
-  texture.minFilter = NearestFilter;
-  texture.generateMipmaps = false;
+  texture.magFilter = LinearFilter;
+  texture.minFilter = mipmaps ? LinearMipmapLinearFilter : LinearFilter;
+  texture.generateMipmaps = mipmaps;
   texture.wrapS = repeat ? RepeatWrapping : ClampToEdgeWrapping;
   texture.wrapT = repeat ? RepeatWrapping : ClampToEdgeWrapping;
   texture.colorSpace = SRGBColorSpace;
@@ -37,9 +38,9 @@ function grassTileTexture(image) {
   const texture = new Texture(image);
   texture.flipY = false;
   texture.colorSpace = SRGBColorSpace;
-  texture.magFilter = NearestFilter;
-  texture.minFilter = NearestFilter;
-  texture.generateMipmaps = false;
+  texture.magFilter = LinearFilter;
+  texture.minFilter = LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
   // The 128×128 tile is seamless. One texel is one world unit, so it repeats
   // across a courtyard without stretching.
   texture.wrapS = RepeatWrapping;
@@ -52,9 +53,9 @@ function pierDeckTexture(image) {
   const texture = new Texture(image);
   texture.flipY = false;
   texture.colorSpace = SRGBColorSpace;
-  texture.magFilter = NearestFilter;
-  texture.minFilter = NearestFilter;
-  texture.generateMipmaps = false;
+  texture.magFilter = LinearFilter;
+  texture.minFilter = LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
   // 240 px is one tile along the pier and repeats. 720 px is the full width.
   texture.wrapS = RepeatWrapping;
   texture.wrapT = ClampToEdgeWrapping;
@@ -402,7 +403,8 @@ function roadAtlas() {
     const row = Math.floor(pat / ROAD_COLS);
     paintRoadCell(ctx, col * 48, row * 48, pat);
   }
-  return pixelTexture(canvas, false);
+  // Cells sit side by side. Mipmaps would blend one marking into the next.
+  return pixelTexture(canvas, false, false);
 }
 
 function loadImage(url) {
@@ -557,7 +559,7 @@ function sidewalkAtlas(src) {
   ctx.drawImage(sidewalkCorner(plain, 3), 0, 48);
   ctx.drawImage(sidewalkCorner(plain, 4), 48, 48);
   ctx.drawImage(sidewalkCorner(plain, 5), 96, 48);
-  return pixelTexture(canvas, false);
+  return pixelTexture(canvas, false, false);
 }
 
 function plainGround() {

@@ -4,7 +4,6 @@ import {
   LinearFilter,
   Mesh,
   MeshBasicMaterial,
-  NearestFilter,
   PlaneGeometry,
   SRGBColorSpace,
 } from "three";
@@ -72,9 +71,9 @@ function loadImage(url) {
 
 function textureOf(canvas, smooth) {
   const texture = new CanvasTexture(canvas);
-  const filter = smooth ? LinearFilter : NearestFilter;
-  texture.magFilter = filter;
-  texture.minFilter = filter;
+  // Frames are tiny and premultiplied. Mipmaps would fringe the clear edge.
+  texture.magFilter = LinearFilter;
+  texture.minFilter = LinearFilter;
   texture.generateMipmaps = false;
   // Smooth sampling mixes in the clear texels. Premultiply so that black
   // stays out of the edge and the shrink looks even instead of fringed.

@@ -1,15 +1,8 @@
 import {
-  LinearSRGBColorSpace,
-  Mesh,
-  MeshBasicMaterial,
-  LinearFilter,
   NoToneMapping,
-  OrthographicCamera,
   PerspectiveCamera,
-  PlaneGeometry,
   SRGBColorSpace,
   Scene,
-  WebGLRenderTarget,
   WebGLRenderer,
 } from "three";
 import {
@@ -18,8 +11,6 @@ import {
   GROUND_H,
   GROUND_W,
   PLAYER_SIZE,
-  RENDER_H,
-  RENDER_W,
   TILE,
 } from "./constants.js";
 import { createTraffic } from "./cars.js";
@@ -100,52 +91,16 @@ function lockPixelProjection(camera) {
 }
 
 function fitDisplay(renderer) {
-  // Fill the window with the same 16:9 frame. The city is drawn at the
-  // render-target size; this buffer is the screen, so the copy below can
-  // scale that picture smoothly instead of by whole pixels.
+  // Same 16:9 frame as the ground the camera shows. Draw it into the canvas
+  // at the window's own pixels, with devicePixelRatio capped at 2.
   const unit = Math.min(window.innerWidth / 16, window.innerHeight / 9);
   const width = Math.max(1, Math.round(unit * 16));
   const height = Math.max(1, Math.round(width * 9 / 16));
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
-  renderer.setPixelRatio(1);
+  renderer.setPixelRatio(pixelRatio);
   renderer.setSize(width, height, false);
-}
-
-function createPresenter(renderer) {
-  // The canvas context has no depth buffer. The city is drawn into this
-  // target, which does, so roofs cover the floors inside the buildings.
-  // The target is then linearly scaled onto the screen.
-  const target = new WebGLRenderTarget(RENDER_W, RENDER_H, {
-    minFilter: LinearFilter,
-    magFilter: LinearFilter,
-    generateMipmaps: false,
-    depthBuffer: true,
-    stencilBuffer: false,
-  });
-  target.texture.minFilter = LinearFilter;
-  target.texture.magFilter = LinearFilter;
-  target.texture.generateMipmaps = false;
-  target.texture.colorSpace = LinearSRGBColorSpace;
-
-  const screenScene = new Scene();
-  const screenCamera = new OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
-  screenCamera.position.z = 1;
-  screenScene.add(new Mesh(new PlaneGeometry(2, 2), new MeshBasicMaterial({
-    map: target.texture,
-    toneMapped: false,
-    depthTest: false,
-    depthWrite: false,
-  })));
-
-  return {
-    render(scene, camera) {
-      renderer.setRenderTarget(target);
-      renderer.render(scene, camera);
-      renderer.setRenderTarget(null);
-      renderer.render(screenScene, screenCamera);
-    },
-  };
 }
 
 function blocked(map, x, z) {
@@ -170,7 +125,7 @@ async function start() {
     canvas,
     antialias: false,
     alpha: false,
-    depth: false,
+    depth: true,
     stencil: false,
     powerPreference: "high-performance",
   });
@@ -204,13 +159,12 @@ async function start() {
   const traffic = await createTraffic(scene, map);
   const glow = createGlow(scene, map);
   const minimap = createMinimap(map, JUMPS);
-  const camera = new PerspectiveCamera(15, RENDER_W / RENDER_H, NEAR, FAR);
+  const camera = new PerspectiveCamera(15, GROUND_W / GROUND_H, NEAR, FAR);
   const tiltUp = Math.sin(CAMERA_TILT);
   const tiltNorth = Math.cos(CAMERA_TILT);
   camera.up.set(0, tiltUp, -tiltNorth);
   lockPixelProjection(camera);
   const cameraSouth = Math.round(CAMERA_HEIGHT * Math.tan(CAMERA_TILT));
-  const presenter = createPresenter(renderer);
   const origin = tileCenter(map.spawn.x, map.spawn.z);
   const player = { x: origin.x, z: origin.z };
   const half = PLAYER_SIZE / 2;
@@ -280,7 +234,7 @@ async function start() {
     camera.position.set(camX, CAMERA_HEIGHT, camZ + cameraSouth);
     camera.lookAt(camX, 0, camZ);
     updateChunks(city.chunks, camX, camZ);
-    presenter.render(scene, camera);
+    renderer.render(scene, camera);
     minimap.draw(camX, camZ, player.x, player.z, TILE, GROUND_W / TILE, GROUND_H / TILE);
 
     const instant = 1 / Math.max(dt, 1 / 240);

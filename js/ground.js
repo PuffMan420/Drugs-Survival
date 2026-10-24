@@ -2,8 +2,9 @@ import {
   CanvasTexture,
   ClampToEdgeWrapping,
   DoubleSide,
+  LinearFilter,
+  LinearMipmapLinearFilter,
   MeshBasicMaterial,
-  NearestFilter,
   RepeatWrapping,
   SRGBColorSpace,
 } from "three";
@@ -11,8 +12,7 @@ import { TILE } from "./constants.js";
 
 // Ted's street strips are 1280×720. Rows 0–103 sidewalk, 104–124 curb,
 // 125–602 asphalt (478 px, yellow dashes in the middle), 603–622 curb,
-// 623–719 sidewalk. One texel becomes one world unit so the nearest
-// upscale stays crisp and does not shimmer.
+// 623–719 sidewalk. One texel becomes one world unit.
 
 const ASPHALT_ROW = 125;
 const ASPHALT_PX = 478;
@@ -61,9 +61,9 @@ function pickVariant(h) {
 function makeTexture(canvas, repeatT) {
   const texture = new CanvasTexture(canvas);
   texture.flipY = false;
-  texture.magFilter = NearestFilter;
-  texture.minFilter = NearestFilter;
-  texture.generateMipmaps = false;
+  texture.magFilter = LinearFilter;
+  texture.minFilter = LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
   texture.wrapS = RepeatWrapping;
   texture.wrapT = repeatT ? RepeatWrapping : ClampToEdgeWrapping;
   texture.colorSpace = SRGBColorSpace;

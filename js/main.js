@@ -265,7 +265,7 @@ function blocked(map, x, z) {
 async function start() {
   const renderer = new WebGLRenderer({
     canvas,
-    antialias: false,
+    antialias: true,
     alpha: false,
     depth: true,
     stencil: false,

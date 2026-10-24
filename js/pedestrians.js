@@ -58,6 +58,26 @@ const CLOTHES = [
   0x5c5c5c, // dark grey
   0x3f2c22, // dark brown
   0x6a2a2a, // dark red
+  0x4a6b5c, // teal grey
+  0x7a5c7a, // dusty purple
+  0x3a2e4a, // dark plum
+  0xa65f4a, // terracotta
+  0x5f7a4a, // moss green
+  0x9a8a5a, // sand
+  0x4a5a7a, // slate blue
+  0xb07a5a, // camel
+  0x7a3a4a, // burgundy
+  0x5a7a8a, // steel blue
+  0xd0b890, // tan
+  0x2a3a3a, // dark teal
+  0x8a6a8a, // mauve
+  0x6a7a5a, // sage
+  0xa04030, // brick red
+  0x305070, // petrol blue
+  0xc08040, // ochre
+  0x50405a, // aubergine
+  0x90a0a8, // pale steel
+  0x1e2a40, // midnight blue
 ];
 
 // One atlas, one material. These bones own the shirt, pants, and shoe islands.

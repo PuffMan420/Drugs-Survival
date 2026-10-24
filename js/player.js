@@ -8,7 +8,9 @@ import {
   Mesh,
   MeshBasicMaterial,
   PlaneGeometry,
+  Quaternion,
   SRGBColorSpace,
+  Vector3,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
@@ -85,6 +87,30 @@ function clipNamed(animations, name) {
   return clip;
 }
 
+// The idle clip is a small sway on the T-pose bind, so standing reads as frozen
+// with the arms straight out. Fold the upper arms down in that clip. The sway
+// stays, and run and jump keep the poses they were authored with.
+function standingIdle(clip) {
+  const edited = clip.clone();
+  const leftArm = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), -Math.PI / 2);
+  const rightArm = leftArm.clone().invert();
+  const turn = new Quaternion();
+  for (const track of edited.tracks) {
+    const extra = track.name.startsWith("LeftArm.")
+      ? leftArm
+      : track.name.startsWith("RightArm.")
+        ? rightArm
+        : null;
+    if (!extra || !track.name.endsWith(".quaternion")) continue;
+    const values = track.values;
+    for (let i = 0; i < values.length; i += 4) {
+      turn.fromArray(values, i).premultiply(extra);
+      turn.toArray(values, i);
+    }
+  }
+  return edited;
+}
+
 export async function createPlayer() {
   const loader = new GLTFLoader();
   const url = new URL("../assets/player/humanMaleA_v7.glb", import.meta.url).href;
@@ -126,7 +152,7 @@ export async function createPlayer() {
 
   const mixer = new AnimationMixer(model);
   const actions = {
-    idle: mixer.clipAction(clipNamed(gltf.animations, "idle")),
+    idle: mixer.clipAction(standingIdle(clipNamed(gltf.animations, "idle"))),
     run: mixer.clipAction(clipNamed(gltf.animations, "run")),
     jump: mixer.clipAction(clipNamed(gltf.animations, "jump")),
   };
@@ -142,7 +168,11 @@ export async function createPlayer() {
     if (name === playing) return;
     const next = actions[name];
     const prev = actions[playing];
+    // A finished fade-out disables the action. play() does not turn it back on,
+    // so returning to idle (or leaving it) would freeze on the T-pose bind.
     if (name === "jump") next.reset();
+    next.enabled = true;
+    next.paused = false;
     next.fadeIn(FADE).play();
     prev.fadeOut(FADE);
     playing = name;

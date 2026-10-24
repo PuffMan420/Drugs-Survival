@@ -89,7 +89,7 @@ function clipNamed(animations, name) {
 
 export async function createPlayer() {
   const loader = new GLTFLoader();
-  const url = new URL("../assets/player/humanMaleA_v14.glb", import.meta.url).href;
+  const url = new URL("../assets/player/humanMaleA_v15.glb", import.meta.url).href;
   let gltf;
   try {
     gltf = await loader.loadAsync(url);
@@ -102,9 +102,11 @@ export async function createPlayer() {
   // The figure faces +Z. atan2(east, south) turns that axis toward travel.
   // The sedan fit divides out the file's root scale. v13 was root 1.05, so
   // measure there and put this file's scale back. 1.134 / 1.05 is the 8%.
+  // v14 stored that 1.134 on Root. v15's root is 1.0, so measure at
+  // 1.05 / 1.134 and the restored scale still lands on the same height.
   const root = model.getObjectByName("Root");
   const fileScale = root ? root.scale.x : 1;
-  if (root) root.scale.setScalar(1.05);
+  if (root) root.scale.setScalar(1.05 / 1.134);
   model.updateMatrixWorld(true);
   const bounds = new Box3().setFromObject(model);
   const height = Math.max(0.001, bounds.max.y - bounds.min.y);

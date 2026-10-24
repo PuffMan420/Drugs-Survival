@@ -283,10 +283,6 @@ export function fitCornerSheets(draw, dockIds, half, coping, slope) {
   }
   for (let i = 0; i < parts.length; i += 1) {
     if (!parts[i]) continue;
-    // The diagonal into the southwest bend is the bank this sheet continues.
-    // Cutting the sheet along that diagonal slices the bend in two.
-    const corner = draw.corners[i];
-    if (Math.hypot(corner.x - 69.5, corner.z - 170.5) < 0.3) continue;
     for (const diag of diags) {
       const next = [];
       for (const poly of parts[i]) {

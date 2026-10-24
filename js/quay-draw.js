@@ -133,8 +133,59 @@ function angleBetween(a, b) {
   return Math.acos(dot) * 180 / Math.PI;
 }
 
+// The southwest quay notch turns through two tiles. That turn is not drawn.
+// One straight wall runs across it, the way a straight bank is already drawn.
+function acrossSouthwestNotch(segments) {
+  const notch = [
+    [77, 178, 69.5, 170.5],
+    [69.5, 170.5, 67, 170.5],
+    [67, 170.5, 67, 169],
+    [67, 169, 64.5, 166.5],
+    [64.5, 166.5, 62.5, 164.5],
+  ];
+  const isNotch = (seg) => notch.some(([ax, az, bx, bz]) => (
+    Math.hypot(seg.ax - ax, seg.az - az) < 0.15
+    && Math.hypot(seg.bx - bx, seg.bz - bz) < 0.15
+  ));
+  const kept = [];
+  let found = 0;
+  for (const seg of segments) {
+    if (isNotch(seg)) {
+      found += 1;
+      continue;
+    }
+    kept.push(seg);
+  }
+  if (found !== notch.length) return segments;
+  const ax = 77;
+  const az = 178;
+  const bx = 62.5;
+  const bz = 164.5;
+  const dx = bx - ax;
+  const dz = bz - az;
+  const len = Math.hypot(dx, dz);
+  let nx = dz / len;
+  let nz = -dx / len;
+  if (nx * -0.71 + nz * 0.71 < 0) {
+    nx = -nx;
+    nz = -nz;
+  }
+  kept.push({
+    ax,
+    az,
+    bx,
+    bz,
+    nx,
+    nz,
+    soft: true,
+    dock: false,
+    straightWall: true,
+  });
+  return kept;
+}
+
 export function planQuayDraw(segments) {
-  const tagged = segments.map((seg) => ({
+  const tagged = acrossSouthwestNotch(segments).map((seg) => ({
     ...seg,
     len: Math.hypot(seg.bx - seg.ax, seg.bz - seg.az),
     shape: segmentKind(seg),
@@ -208,11 +259,7 @@ export function planQuayDraw(segments) {
     if (turn > 70 && turn < 110) placed = orient(["outer90", "inner90"], w1, n1, w2, n2);
     else if (turn > 115 && turn < 155) placed = orient(["outer", "inner"], w1, n1, w2, n2);
     if (!placed) continue;
-    // This jog is two tiles wide. The sheets on the road step sit on top of
-    // the one bend where the diagonal meets the straight quay.
-    if (Math.hypot(x - 67, z - 170.5) < 0.3 || Math.hypot(x - 67, z - 169) < 0.3) continue;
-    const trim = Math.hypot(x - 69.5, z - 170.5) < 0.3 ? 1.9 : 0.85;
-    corners.push({ x, z, trim, ...placed });
+    corners.push({ x, z, trim: 0.85, ...placed });
   }
 
   const trimFor = (x, z) => {
@@ -227,7 +274,7 @@ export function planQuayDraw(segments) {
   const diags = [];
   for (const seg of tagged) {
     if (seg.skip || seg.len < 0.08) continue;
-    const keepDiag = seg.shape === "diag" && seg.soft;
+    const keepDiag = seg.shape === "diag" && seg.soft && !seg.straightWall;
     const aTrim = trimFor(seg.ax, seg.az);
     const bTrim = trimFor(seg.bx, seg.bz);
     if (aTrim + bTrim + 0.2 >= seg.len) continue;

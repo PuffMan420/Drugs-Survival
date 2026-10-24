@@ -1,0 +1,46 @@
+{
+  "pieces": [
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 49,
+      "z": 43,
+      "turn": 0
+    },
+    {
+      "kit": "commercial",
+      "file": "building-a.glb",
+      "x": 44,
+      "z": 38,
+      "turn": 0
+    },
+    {
+      "kit": "suburban",
+      "file": "building-type-a.glb",
+      "x": 48,
+      "z": 42,
+      "turn": 1
+    },
+    {
+      "kit": "industrial",
+      "file": "building-a.glb",
+      "x": 50,
+      "z": 36,
+      "turn": 0
+    },
+    {
+      "kit": "retro",
+      "file": "wall-a.glb",
+      "x": 45,
+      "z": 40,
+      "turn": 0
+    },
+    {
+      "kit": "commercial",
+      "file": "detail-awning.glb",
+      "x": 44,
+      "z": 42,
+      "turn": 2
+    }
+  ]
+}

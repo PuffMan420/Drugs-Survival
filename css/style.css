@@ -89,6 +89,66 @@ canvas {
   background: transparent;
 }
 
+#build-panel {
+  position: fixed;
+  z-index: 3;
+  top: 48px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  max-height: calc(100vh - 64px);
+  box-sizing: border-box;
+  padding: 8px;
+  background: #000;
+  color: #fff;
+  outline: 2px solid #fff;
+  font: 14px/1.3 ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+}
+
+#build-panel[hidden] {
+  display: none;
+}
+
+#build-help {
+  margin: 0 0 8px;
+  color: #fff;
+  background: #000;
+  font: inherit;
+}
+
+#build-kits {
+  overflow: auto;
+}
+
+#build-kits h2 {
+  position: sticky;
+  top: 0;
+  margin: 10px 0 4px;
+  background: #000;
+  color: #ffe14a;
+  font: inherit;
+  font-weight: 700;
+}
+
+#build-kits button {
+  display: block;
+  width: 100%;
+  margin: 0 0 2px;
+  padding: 3px 6px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+#build-kits button.is-selected {
+  background: #ffe14a;
+  color: #000;
+}
+
 #boot-error {
   position: fixed;
   left: 50%;

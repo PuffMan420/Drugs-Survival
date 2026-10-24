@@ -259,6 +259,8 @@ export function planQuayDraw(segments) {
     if (turn > 70 && turn < 110) placed = orient(["outer90", "inner90"], w1, n1, w2, n2);
     else if (turn > 115 && turn < 155) placed = orient(["outer", "inner"], w1, n1, w2, n2);
     if (!placed) continue;
+    // This sheet sits on the end of the straight wall and stacks on it.
+    if (Math.hypot(x - 62.5, z - 164.5) < 0.3) continue;
     corners.push({ x, z, trim: 0.85, ...placed });
   }
 
@@ -289,6 +291,7 @@ export function planQuayDraw(segments) {
       nz: seg.nz,
       soft: seg.soft,
       dock: seg.dock,
+      straightWall: Boolean(seg.straightWall),
     };
     if (keepDiag) diags.push(drawn);
     else strips.push(drawn);

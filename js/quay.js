@@ -291,6 +291,7 @@ function piecesOf(segment) {
       nz: segment.nz,
       soft: segment.soft,
       dock: segment.dock,
+      straightWall: Boolean(segment.straightWall),
       u0: t0 * len,
       u1: t1 * len,
     });
@@ -346,6 +347,17 @@ function appendStraight(draw, cx, cz, bufs, roads, docks) {
       if (!piece.soft) continue;
       const ox = piece.nx * COPING;
       const oz = piece.nz * COPING;
+      // The straight wall stays one edge. Cutting it into road cells stacks
+      // those pieces on the bank.
+      if (piece.straightWall) {
+        pushQuad(bufs.coping, [
+          [ax + ox, LIP, az + oz],
+          [bx + ox, LIP, bz + oz],
+          [bx, LIP, bz],
+          [ax, LIP, az],
+        ], [[u0, COPING_V0], [u1, COPING_V0], [u1, 1], [u0, 1]]);
+        continue;
+      }
       pushFitted(bufs.coping, [
         { x: ax + ox, z: az + oz, u: u0, v: COPING_V0 },
         { x: bx + ox, z: bz + oz, u: u1, v: COPING_V0 },

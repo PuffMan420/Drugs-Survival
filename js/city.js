@@ -11,6 +11,8 @@ import {
 } from "three";
 import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
 import { createGround } from "./ground.js";
+import { addKenneyRoads, createKenneyRoads } from "./kenney-roads.js";
+import { planKenneyRoads } from "./kenney-road-plan.js";
 import { appendQuay, createQuayMaterials, emptyQuayBuffers, PIER_Y, quayPlan, WATER_Y } from "./quay.js";
 import { createTextures } from "./textures.js";
 
@@ -532,10 +534,14 @@ function makePlayer() {
 }
 
 export async function buildCity(scene, map) {
+  const kenneyPlan = planKenneyRoads(map);
   const textures = await createTextures();
   const materials = createMaterials(textures);
   materials.quay = await createQuayMaterials();
-  const ground = await createGround(map);
+  const [ground, kenneyKit] = await Promise.all([
+    createGround(map, (x, z) => kenneyPlan.roadPaint(x, z)),
+    createKenneyRoads(),
+  ]);
   const quay = quayPlan(map);
   const chunks = [];
   for (let cz = 0; cz < map.rows; cz += CHUNK) {
@@ -545,6 +551,7 @@ export async function buildCity(scene, map) {
       chunks.push(chunk);
     }
   }
+  addKenneyRoads(scene, kenneyPlan, kenneyKit);
   const playerMesh = makePlayer();
   scene.add(playerMesh);
   return {

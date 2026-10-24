@@ -104,7 +104,7 @@ function texWidth(roadW) {
   return Math.max(1, Math.round((STRIP_W * roadW) / ASPHALT_PX));
 }
 
-export async function createGround(map) {
+export async function createGround(map, skipRoad = () => false) {
   const { cols, rows, ground } = map;
   const images = new Map();
   const jobs = [];
@@ -556,8 +556,16 @@ export async function createGround(map) {
     },
     paint(buffers, x, z) {
       const cell = at(x, z);
-      if (ROAD.has(cell)) paintRoad(buffers, x, z);
-      else paintWalk(buffers, x, z, cell);
+      if (ROAD.has(cell)) {
+        const mode = skipRoad(x, z);
+        if (mode === true || mode === "skip") return;
+        if (mode === "walk") {
+          const zone = zoneOf(x, z, ringDist[z][x] <= 2);
+          paintPlainWalk(buffers, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, { zone, tiles: 2 });
+          return;
+        }
+        paintRoad(buffers, x, z);
+      } else paintWalk(buffers, x, z, cell);
     },
     material(key) {
       return materials.get(key);

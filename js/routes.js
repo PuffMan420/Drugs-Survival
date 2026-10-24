@@ -149,6 +149,8 @@ export function planCars(map) {
   }
 
   function isDrive(x, z, dx, dz) {
+    // The west bank is a build site. Cars do not drive there.
+    if (westOfCanal(x, z)) return false;
     const cell = at(x, z);
     if (dx === 1 && dz === 0 && cell === "2") return true;
     if (dx === -1 && dz === 0 && cell === "1") return true;
@@ -234,6 +236,7 @@ export function planCars(map) {
   }
 
   function open(x, z) {
+    if (westOfCanal(x, z)) return false;
     if (parkedTiles.has(key(x, z))) return false;
     return isRoad(at(x, z));
   }

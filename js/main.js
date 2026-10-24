@@ -24,7 +24,9 @@ import { createPedestrians } from "./pedestrians.js";
 import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
 import { createPlayer } from "./player.js";
-import { createBuildMode } from "./build-mode.js";
+import { createBuildMode, loadWestMap } from "./build-mode.js";
+import { roadKey } from "./kenney-roads.js";
+import { westOfCanal } from "./kenney-road-plan.js";
 
 const NEAR = 10;
 const FAR = 6000;
@@ -250,6 +252,8 @@ function placeSun(sun, camX, camZ) {
 function blocked(map, x, z) {
   // The square's corners have to stay off water and off building footprints.
   // Roads, sidewalks, parks, docks, and plazas stay open.
+  // West of the canal the houses are not built. A "b" tile there is grass
+  // with no wall, so it does not stop the player. Water still does.
   const reach = PLAYER_SIZE / 2 - 0.01;
   const samples = [
     [x - reach, z - reach],
@@ -259,7 +263,12 @@ function blocked(map, x, z) {
   ];
   for (const [sx, sz] of samples) {
     const tile = tileAt(map, sx, sz);
-    if (tile === "~" || tile === "b") return true;
+    if (tile === "~") return true;
+    if (tile !== "b") continue;
+    const tx = Math.floor(sx / TILE);
+    const tz = Math.floor(sz / TILE);
+    if (westOfCanal(tx, tz)) continue;
+    return true;
   }
   return false;
 }
@@ -291,11 +300,18 @@ async function start() {
     if (!response.ok) throw new Error("The city map failed to load.");
     return response.json();
   });
+  fpsEl.textContent = "Loading saved layout…";
+  const savedLayout = await loadWestMap();
+  const removedRoadKeys = new Set();
+  for (const item of savedLayout.removedRoads) {
+    const key = roadKey(item);
+    if (key) removedRoadKeys.add(key);
+  }
   fpsEl.textContent = "Building city…";
   await new Promise((resolve) => requestAnimationFrame(resolve));
 
   const scene = new Scene();
-  const city = await buildCity(scene, map);
+  const city = await buildCity(scene, map, removedRoadKeys);
   city.playerMesh.removeFromParent();
   city.playerMesh.geometry.dispose();
   for (const material of city.playerMesh.material) material.dispose();
@@ -324,8 +340,14 @@ async function start() {
   const player = { x: origin.x, z: origin.z };
   const half = PLAYER_SIZE / 2;
 
-  fpsEl.textContent = "Loading saved layout…";
-  await createBuildMode({ scene, camera, canvas, map });
+  await createBuildMode({
+    scene,
+    camera,
+    canvas,
+    map,
+    saved: savedLayout,
+    roads: city.roads,
+  });
 
   session.ready = true;
   session.map = map;

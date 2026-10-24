@@ -5,42 +5,49 @@
       "file": "road-straight.glb",
       "x": 49,
       "z": 43,
-      "turn": 0
+      "turn": 0,
+      "scale": 1
     },
     {
       "kit": "commercial",
       "file": "building-a.glb",
       "x": 44,
       "z": 38,
-      "turn": 0
+      "turn": 0,
+      "scale": 1
     },
     {
       "kit": "suburban",
       "file": "building-type-a.glb",
       "x": 48,
       "z": 42,
-      "turn": 1
+      "turn": 1,
+      "scale": 1
     },
     {
       "kit": "industrial",
       "file": "building-a.glb",
       "x": 50,
       "z": 36,
-      "turn": 0
+      "turn": 0,
+      "scale": 1
     },
     {
       "kit": "retro",
       "file": "wall-a.glb",
       "x": 45,
       "z": 40,
-      "turn": 0
+      "turn": 0,
+      "scale": 1
     },
     {
       "kit": "commercial",
       "file": "detail-awning.glb",
       "x": 44,
       "z": 42,
-      "turn": 2
+      "turn": 2,
+      "scale": 1
     }
-  ]
+  ],
+  "removedRoads": []
 }

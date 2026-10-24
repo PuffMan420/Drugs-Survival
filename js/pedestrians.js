@@ -1,14 +1,18 @@
 import {
   AnimationMixer,
   Box3,
+  CanvasTexture,
+  Color,
   DoubleSide,
   Group,
   LinearFilter,
   LinearMipmapLinearFilter,
   MeshLambertMaterial,
+  NoColorSpace,
   SRGBColorSpace,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { TILE } from "./constants.js";
 
 // Same height fit as the player, so these figures stand with him.
@@ -21,15 +25,70 @@ const WALK_SPEED = 36;
 const RUN_SPEED = 72;
 const NAMES = ["idle", "walk", "run"];
 
-// Sidewalk tiles inside the opening downtown view, one model each.
-const STARTS = [
-  { file: "ped_criminalMaleA.glb", tx: 121, tz: 91, dx: 0, dz: 1 },
-  { file: "ped_humanFemaleA.glb", tx: 121, tz: 97, dx: 0, dz: -1 },
-  { file: "ped_skaterFemaleA.glb", tx: 124, tz: 96, dx: 0, dz: -1 },
-  { file: "ped_skaterMaleA.glb", tx: 126, tz: 92, dx: 0, dz: 1 },
-  { file: "ped_survivorFemaleA.glb", tx: 126, tz: 98, dx: 0, dz: -1 },
-  { file: "ped_survivorMaleB.glb", tx: 130, tz: 94, dx: 0, dz: -1 },
+// Each file is loaded once. The crowd is cloned from these six.
+const FILES = [
+  "ped_criminalMaleA.glb",
+  "ped_humanFemaleA.glb",
+  "ped_skaterFemaleA.glb",
+  "ped_skaterMaleA.glb",
+  "ped_survivorFemaleA.glb",
+  "ped_survivorMaleB.glb",
 ];
+const CROWD = 60;
+const BLOCK = 32;
+
+// Muted clothing colors. Shirt, pants, and shoes are picked independently.
+const CLOTHES = [
+  0x8a8a8a, // grey
+  0xc4b49a, // beige
+  0x2c3e5a, // navy
+  0x6b4a32, // brown
+  0x6b6a3e, // olive
+  0x232323, // black
+  0x2f4a34, // dark green
+  0x6e2e3c, // wine red
+  0x8eafc4, // light blue
+  0xe6dcc8, // cream
+  0xb5a36a, // khaki
+  0x3e4246, // charcoal
+  0x8d4b32, // rust
+  0x3d5270, // denim blue
+  0xb89a45, // mustard
+  0xc5c5c2, // light grey
+  0x5c5c5c, // dark grey
+  0x3f2c22, // dark brown
+  0x6a2a2a, // dark red
+];
+
+// One atlas, one material. These bones own the shirt, pants, and shoe islands.
+const SHIRT_BONES = new Set([
+  "Chest", "UpperChest", "Spine",
+  "LeftArm", "RightArm", "LeftShoulder", "RightShoulder",
+  "LeftForeArm", "RightForeArm",
+]);
+const PANTS_BONES = new Set([
+  "Hips", "LeftUpLeg", "RightUpLeg", "LeftLeg", "RightLeg",
+]);
+const SHOE_BONES = new Set([
+  "LeftFoot", "RightFoot", "LeftToes", "RightToes",
+]);
+
+const CLOTH_UNIFORMS = `
+uniform vec3 pedShirtColor;
+uniform vec3 pedPantsColor;
+uniform vec3 pedShoeColor;
+uniform sampler2D pedClothMask;
+`;
+const CLOTH_TINT = `
+{
+  vec3 pedMask = texture2D(pedClothMask, vMapUv).rgb;
+  float pedAmount = clamp(pedMask.r + pedMask.g + pedMask.b, 0.0, 1.0);
+  float pedLuma = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+  float pedShade = clamp(pedLuma / 0.45, 0.25, 1.35);
+  vec3 pedTint = pedShirtColor * pedMask.r + pedPantsColor * pedMask.g + pedShoeColor * pedMask.b;
+  diffuseColor.rgb = mix(diffuseColor.rgb, pedTint * pedShade, pedAmount);
+}
+`;
 
 const DIRS = [
   [1, 0],
@@ -43,6 +102,162 @@ function unitHash(n) {
   h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
   h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
   return (h >>> 0) / 4294967296;
+}
+
+function clothColor(salt) {
+  const index = Math.floor(unitHash(salt) * CLOTHES.length);
+  return new Color(CLOTHES[index]);
+}
+
+function boneGroup(name) {
+  if (SHIRT_BONES.has(name)) return 0;
+  if (PANTS_BONES.has(name)) return 1;
+  if (SHOE_BONES.has(name)) return 2;
+  return 3;
+}
+
+function skinnedMeshOf(root) {
+  let found = null;
+  root.traverse((obj) => {
+    if (!found && obj.isSkinnedMesh) found = obj;
+  });
+  return found;
+}
+
+function clothMask(root) {
+  const mesh = skinnedMeshOf(root);
+  const geometry = mesh.geometry;
+  const uv = geometry.attributes.uv;
+  const skinIndex = geometry.attributes.skinIndex;
+  const skinWeight = geometry.attributes.skinWeight;
+  const index = geometry.index;
+  const bones = mesh.skeleton.bones;
+  const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+  const image = source.map.image;
+  const canvas = document.createElement("canvas");
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const fills = ["rgb(255,0,0)", "rgb(0,255,0)", "rgb(0,0,255)"];
+  const width = canvas.width;
+  const height = canvas.height;
+  for (let triangle = 0; triangle < index.count; triangle += 3) {
+    const score = [0, 0, 0, 0];
+    const points = [];
+    for (let corner = 0; corner < 3; corner += 1) {
+      const vertex = index.getX(triangle + corner);
+      let bestChannel = 0;
+      for (let channel = 1; channel < 4; channel += 1) {
+        if (skinWeight.getComponent(vertex, channel) > skinWeight.getComponent(vertex, bestChannel)) {
+          bestChannel = channel;
+        }
+      }
+      const bone = bones[Math.round(skinIndex.getComponent(vertex, bestChannel))];
+      score[boneGroup(bone.name)] += skinWeight.getComponent(vertex, bestChannel);
+      points.push([
+        uv.getX(vertex) * width,
+        uv.getY(vertex) * height,
+      ]);
+    }
+    let group = 0;
+    for (let i = 1; i < 4; i += 1) if (score[i] > score[group]) group = i;
+    if (group > 2) continue;
+    ctx.fillStyle = fills[group];
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    ctx.lineTo(points[1][0], points[1][1]);
+    ctx.lineTo(points[2][0], points[2][1]);
+    ctx.closePath();
+    ctx.fill();
+  }
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = NoColorSpace;
+  texture.flipY = false;
+  texture.magFilter = LinearFilter;
+  texture.minFilter = LinearFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function paintClothes(root, mask, shirt, pants, shoes) {
+  root.traverse((obj) => {
+    if (!obj.isMesh || !obj.material) return;
+    const sources = Array.isArray(obj.material) ? obj.material : [obj.material];
+    const painted = sources.map((source) => {
+      const material = source.clone();
+      material.userData = Object.assign({}, source.userData, {
+        cloth: { shirt, pants, shoes },
+      });
+      material.onBeforeCompile = (shader) => {
+        const cloth = material.userData.cloth;
+        shader.uniforms.pedShirtColor = { value: cloth.shirt };
+        shader.uniforms.pedPantsColor = { value: cloth.pants };
+        shader.uniforms.pedShoeColor = { value: cloth.shoes };
+        shader.uniforms.pedClothMask = { value: mask };
+        shader.fragmentShader = CLOTH_UNIFORMS + shader.fragmentShader.replace(
+          "#include <map_fragment>",
+          `#include <map_fragment>\n${CLOTH_TINT}`,
+        );
+      };
+      material.customProgramCacheKey = () => "ped-cloth-1";
+      return material;
+    });
+    obj.material = painted.length === 1 ? painted[0] : painted;
+  });
+}
+
+function crowdTiles(cells, neighbors) {
+  const buckets = new Map();
+  for (const [x, z] of cells) {
+    const key = `${Math.floor(x / BLOCK)},${Math.floor(z / BLOCK)}`;
+    const bucket = buckets.get(key);
+    if (bucket) bucket.push([x, z]);
+    else buckets.set(key, [[x, z]]);
+  }
+  const keys = [...buckets.keys()].sort();
+  const skip = new Set();
+  const extra = keys.length - CROWD;
+  if (extra > 0) {
+    for (let i = 0; i < extra; i += 1) {
+      skip.add(keys[Math.round(((i + 1) * (keys.length - 1)) / (extra + 1))]);
+    }
+  }
+  const chosen = [];
+  const used = new Set();
+  function take(cell) {
+    const key = `${cell[0]},${cell[1]}`;
+    if (used.has(key)) return;
+    used.add(key);
+    chosen.push(cell);
+  }
+  for (const key of keys) {
+    if (skip.has(key) || chosen.length >= CROWD) continue;
+    const [gx, gz] = key.split(",").map(Number);
+    const bucket = buckets.get(key);
+    const cx = (gx + 0.5) * BLOCK;
+    const cz = (gz + 0.5) * BLOCK;
+    let best = null;
+    let bestDist = Infinity;
+    for (const [x, z] of bucket) {
+      if (neighbors(x, z).length === 0) continue;
+      const dist = (x + 0.5 - cx) ** 2 + (z + 0.5 - cz) ** 2;
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = [x, z];
+      }
+    }
+    if (best) take(best);
+  }
+  if (chosen.length < CROWD) {
+    for (const [x, z] of cells) {
+      if (chosen.length >= CROWD) break;
+      if (neighbors(x, z).length === 0) continue;
+      take([x, z]);
+    }
+  }
+  return chosen;
 }
 
 function litMaterials(model) {
@@ -98,11 +313,15 @@ function sidewalkGraph(map) {
   const { cols, rows, ground } = map;
   const span = map.tile || TILE;
   const cells = new Set();
+  const list = [];
   const key = (x, z) => x + z * cols;
   for (let z = 0; z < rows; z += 1) {
     const row = ground[z];
     for (let x = 0; x < cols; x += 1) {
-      if (row[x] === "s") cells.add(key(x, z));
+      if (row[x] === "s") {
+        cells.add(key(x, z));
+        list.push([x, z]);
+      }
     }
   }
   function neighbors(x, z) {
@@ -129,7 +348,7 @@ function sidewalkGraph(map) {
     }
     throw new Error("No sidewalk was found for a pedestrian.");
   }
-  return { span, neighbors, nearest };
+  return { span, neighbors, nearest, cells: list };
 }
 
 function centerOf(tx, tz, span) {
@@ -170,28 +389,44 @@ export async function createPedestrians(scene, map) {
     return clips;
   }
 
-  const people = [];
-  for (let index = 0; index < STARTS.length; index += 1) {
-    const start = STARTS[index];
-    const url = new URL(`../pedestrians_v15/${start.file}`, import.meta.url).href;
+  const prototypes = [];
+  for (const file of FILES) {
+    const url = new URL(`../pedestrians_v15/${file}`, import.meta.url).href;
     let gltf;
     try {
       gltf = await loader.loadAsync(url);
     } catch {
-      throw new Error(`The pedestrian model failed to load: ${start.file}`);
+      throw new Error(`The pedestrian model failed to load: ${file}`);
     }
     const clips = await clipsFor(gltf);
-    const model = gltf.scene;
-    litMaterials(model);
-    fitModel(model);
+    const template = gltf.scene;
+    const mask = clothMask(template);
+    litMaterials(template);
+    fitModel(template);
+    prototypes.push({ file, template, clips, mask });
+  }
+
+  const tiles = crowdTiles(graph.cells, graph.neighbors);
+  const people = [];
+  for (let index = 0; index < tiles.length; index += 1) {
+    const prototype = prototypes[index % prototypes.length];
+    const model = cloneSkeleton(prototype.template);
+    paintClothes(
+      model,
+      prototype.mask,
+      clothColor(index * 3 + 1),
+      clothColor(index * 3 + 2),
+      clothColor(index * 3 + 3),
+    );
 
     const holder = new Group();
-    holder.name = start.file;
+    holder.name = prototype.file;
     holder.frustumCulled = false;
     holder.add(model);
     scene.add(holder);
 
     const mixer = new AnimationMixer(model);
+    const { clips } = prototype;
     const actions = {
       idle: mixer.clipAction(clips.idle),
       walk: mixer.clipAction(clips.walk),
@@ -221,9 +456,9 @@ export async function createPedestrians(scene, map) {
     actions.walk.time = unitHash(index + 29) * clips.walk.duration;
     mixer.update(0);
 
-    const [tx, tz] = graph.nearest(start.tx, start.tz);
+    const [tx, tz] = tiles[index];
     const open = graph.neighbors(tx, tz);
-    const preferred = open.find(([dx, dz]) => dx === start.dx && dz === start.dz) || open[0] || [0, 0];
+    const preferred = open[Math.floor(unitHash(index + 7) * open.length)] || [0, 0];
     const home = centerOf(tx, tz, span);
     const ped = {
       holder,

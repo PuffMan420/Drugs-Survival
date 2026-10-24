@@ -7,11 +7,12 @@ import {
   PerspectiveCamera,
   SRGBColorSpace,
   Scene,
+  Vector3,
   WebGLRenderer,
 } from "three";
 import {
-  CAMERA_HEIGHT,
-  CAMERA_TILT,
+  CAMERA_ANGLE,
+  CAMERA_RADIUS,
   GROUND_H,
   GROUND_W,
   PLAYER_SIZE,
@@ -86,11 +87,10 @@ function clamp(value, min, max) {
 
 function lockPixelProjection(camera) {
   const apply = () => {
-    // The center ray meets the ground farther out than the camera's height,
-    // because the camera is tilted. Frame the smaller ground rectangle there
-    // so the 12.5% closer view stays even across the same 840×472.5 world.
-    const distance = CAMERA_HEIGHT / Math.cos(CAMERA_TILT);
-    const scale = camera.near / distance;
+    // The center ray is CAMERA_RADIUS long and meets the ground at the player.
+    // Frame the smaller ground rectangle there so the 12.5% closer view stays
+    // even across the same 840×472.5 world.
+    const scale = camera.near / CAMERA_RADIUS;
     camera.projectionMatrix.makePerspective(
       (-GROUND_W / 2) * scale,
       (GROUND_W / 2) * scale,
@@ -307,11 +307,15 @@ async function start() {
   const sun = createSun(scene);
   const minimap = createMinimap(map, JUMPS);
   const camera = new PerspectiveCamera(15, GROUND_W / GROUND_H, NEAR, FAR);
-  const tiltUp = Math.sin(CAMERA_TILT);
-  const tiltNorth = Math.cos(CAMERA_TILT);
+  // Screen up stays north. Spherical phi is measured from +Y, so this up is
+  // perpendicular to a view aimed CAMERA_ANGLE off straight down.
+  const tiltUp = Math.sin(CAMERA_ANGLE);
+  const tiltNorth = Math.cos(CAMERA_ANGLE);
   camera.up.set(0, tiltUp, -tiltNorth);
   lockPixelProjection(camera);
-  const cameraSouth = Math.round(CAMERA_HEIGHT * Math.tan(CAMERA_TILT));
+  // theta 0 is +Z, which is south. The camera does not orbit.
+  const cameraTheta = 0;
+  const cameraTarget = new Vector3();
   const origin = tileCenter(map.spawn.x, map.spawn.z);
   const player = { x: origin.x, z: origin.z };
   const half = PLAYER_SIZE / 2;
@@ -378,8 +382,10 @@ async function start() {
     camX = clamp(snappedX, GROUND_W / 2, city.mapW - GROUND_W / 2);
     camZ = clamp(snappedZ, GROUND_H / 2, city.mapH - GROUND_H / 2);
     glow.update(camX, camZ, traffic.lights(camX, camZ));
-    camera.position.set(camX, CAMERA_HEIGHT, camZ + cameraSouth);
-    camera.lookAt(camX, 0, camZ);
+    camera.position.setFromSphericalCoords(CAMERA_RADIUS, CAMERA_ANGLE, cameraTheta);
+    cameraTarget.set(camX, 0, camZ);
+    camera.position.add(cameraTarget);
+    camera.lookAt(cameraTarget);
     updateChunks(city.chunks, camX, camZ);
     lightVisibleCity(city.chunks);
     placeSun(sun, camX, camZ);

@@ -322,9 +322,9 @@ function createAmbientOcclusion(renderer, scene, camera) {
   // stays above the ground instead of darkening every street.
   ssao.normalMaterial.side = DoubleSide;
   // The pass multiplies its mask onto the picture and has no strength
-  // control. Open ground stays at 1. A crease of 0.8 becomes 0.6, so the
-  // darkening is about twice as deep.
-  const aoStrength = 2;
+  // control. Open ground stays at 1. A crease of 0.8 becomes 0.68: the
+  // doubled darkening, pulled back by 20%.
+  const aoStrength = 1.6;
   ssao.copyMaterial.uniforms.strength = { value: aoStrength };
   ssao.copyMaterial.fragmentShader = `
     uniform sampler2D tDiffuse;

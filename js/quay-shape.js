@@ -2,6 +2,8 @@
 // so the corner sheets can close every bend. Bridge decks cover the whole channel,
 // and the quay stops at each abutment.
 
+import { westOfCanal } from "./kenney-road-plan.js";
+
 const ROAD = new Set(["H", "h", "V", "v", "+", "X", "1", "2", "4", "5", "6", "8", "A", "E", "a", "e"]);
 const SOFT = new Set(["s", "c", "g", "q", "l", "p"]);
 
@@ -401,7 +403,9 @@ export function buildQuayPlan(map) {
   for (let z = 0; z < rows; z += 1) {
     const row = ground[z];
     for (let x = 0; x < cols; x += 1) {
-      if (ROAD.has(row[x])) roads.add(x + z * 1024);
+      // West-bank roads are not drawn. Leaving them in this set cuts the coping
+      // and the water shows through the gap.
+      if (ROAD.has(row[x]) && !westOfCanal(x, z)) roads.add(x + z * 1024);
       if (row[x] === "d") docks.add(x + z * 1024);
     }
   }

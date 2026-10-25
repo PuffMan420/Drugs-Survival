@@ -14,6 +14,7 @@ import {
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { GROUND_H, GROUND_W, TILE } from "./constants.js";
+import { westOfCanal } from "./kenney-road-plan.js";
 
 // Same height fit as the player, including both extra 10% bumps, so these figures stand with him.
 const SEDAN_LENGTH = 71;
@@ -364,7 +365,8 @@ function sidewalkGraph(map) {
   for (let z = 0; z < rows; z += 1) {
     const row = ground[z];
     for (let x = 0; x < cols; x += 1) {
-      if (row[x] === "s") {
+      // The west bank is empty grass. Old sidewalk cells there are not a path.
+      if (row[x] === "s" && !westOfCanal(x, z)) {
         cells.add(key(x, z));
         list.push([x, z]);
       }

@@ -20,6 +20,7 @@ import { roadKey, roadRecord } from "./kenney-roads.js";
 const UNIT = 4 * TILE;
 const GROUND_Y = 0.2;
 const MAP_URL = "./west-map.json";
+const STORAGE_KEY = "west-map";
 const SCALE_STEP = 0.25;
 const SCALE_MIN = 0.25;
 const SCALE_MAX = 4;
@@ -116,7 +117,28 @@ function disposeGhost(root) {
   root.removeFromParent();
 }
 
+function layoutFrom(data) {
+  return {
+    pieces: Array.isArray(data?.pieces) ? data.pieces : [],
+    removedRoads: Array.isArray(data?.removedRoads) ? data.removedRoads : [],
+  };
+}
+
+function readStoredLayout() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+    return layoutFrom(data);
+  } catch {
+    return null;
+  }
+}
+
 export async function loadWestMap() {
+  const stored = readStoredLayout();
+  if (stored) return stored;
   let data = null;
   try {
     const response = await fetch(MAP_URL);
@@ -124,10 +146,7 @@ export async function loadWestMap() {
   } catch {
     data = null;
   }
-  return {
-    pieces: Array.isArray(data?.pieces) ? data.pieces : [],
-    removedRoads: Array.isArray(data?.removedRoads) ? data.removedRoads : [],
-  };
+  return layoutFrom(data);
 }
 
 export async function createBuildMode({ scene, camera, canvas, map, saved = null, roads = null }) {
@@ -444,6 +463,11 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
 
   function download() {
     const body = `${JSON.stringify({ pieces, removedRoads }, null, 2)}\n`;
+    try {
+      localStorage.setItem(STORAGE_KEY, body);
+    } catch {
+      // The file download below still runs when storage is blocked.
+    }
     const blob = new Blob([body], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

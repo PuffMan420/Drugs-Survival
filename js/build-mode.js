@@ -48,7 +48,10 @@ const keys = {
   onX: () => {},
   onScale: () => {},
 };
+let searchInput = null;
 window.addEventListener("keydown", (event) => {
+  // Letters typed into the piece search must not walk, save, rotate, or resize.
+  if (searchInput && event.target === searchInput) return;
   if (event.repeat) return;
   if (event.code === "KeyB") {
     event.preventDefault();
@@ -174,11 +177,26 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   const panel = document.createElement("aside");
   panel.id = "build-panel";
   panel.hidden = true;
+  const info = document.createElement("p");
+  info.id = "build-info";
+  info.textContent = "Click places. X removes. R rotates. + and - resize. P saves. The search box filters this list.";
   const help = document.createElement("p");
   help.id = "build-help";
+  const search = document.createElement("input");
+  search.id = "build-search";
+  search.type = "search";
+  search.placeholder = "Search pieces";
+  search.autocomplete = "off";
+  search.spellcheck = false;
+  search.setAttribute("aria-label", "Search pieces");
+  searchInput = search;
+  search.addEventListener("keydown", (event) => {
+    event.stopPropagation();
+  });
+  search.addEventListener("input", () => filterPieces());
   const list = document.createElement("div");
   list.id = "build-kits";
-  panel.append(help, list);
+  panel.append(info, help, search, list);
   document.body.append(panel);
 
   for (const kit of KITS) {
@@ -196,6 +214,24 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       });
       list.append(button);
     }
+  }
+
+  function filterPieces() {
+    const query = search.value.trim().toLowerCase();
+    let heading = null;
+    let shown = 0;
+    for (const child of list.children) {
+      if (child.tagName === "H2") {
+        if (heading) heading.hidden = shown === 0;
+        heading = child;
+        shown = 0;
+        continue;
+      }
+      const match = query === "" || child.textContent.toLowerCase().includes(query);
+      child.hidden = !match;
+      if (match) shown += 1;
+    }
+    if (heading) heading.hidden = shown === 0;
   }
 
   function pieceCount() {

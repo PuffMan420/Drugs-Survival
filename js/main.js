@@ -98,12 +98,18 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function frameCenter(value, half, mapSize) {
+  if (!(half > 0) || mapSize <= half * 2) return mapSize / 2;
+  return clamp(value, half, mapSize - half);
+}
+
 function lockPixelProjection(camera) {
   const apply = () => {
     // The center ray is CAMERA_RADIUS long and meets the ground at the player.
     // Frame the smaller ground rectangle there so the 12.5% closer view stays
     // even across the same 840×472.5 world.
-    const scale = camera.near / CAMERA_RADIUS;
+    const view = camera.userData.viewScale > 0 ? camera.userData.viewScale : 1;
+    const scale = (camera.near / CAMERA_RADIUS) * view;
     camera.projectionMatrix.makePerspective(
       (-GROUND_W / 2) * scale,
       (GROUND_W / 2) * scale,
@@ -514,8 +520,11 @@ async function start() {
 
     let snappedX = Math.round(player.x);
     let snappedZ = Math.round(player.z);
-    let camX = clamp(snappedX, GROUND_W / 2, city.mapW - GROUND_W / 2);
-    let camZ = clamp(snappedZ, GROUND_H / 2, city.mapH - GROUND_H / 2);
+    const view = camera.userData.viewScale > 0 ? camera.userData.viewScale : 1;
+    const halfW = (GROUND_W * view) / 2;
+    const halfH = (GROUND_H * view) / 2;
+    let camX = frameCenter(snappedX, halfW, city.mapW);
+    let camZ = frameCenter(snappedZ, halfH, city.mapH);
     traffic.update(dt, camX, camZ, player.x, player.z);
     // A moving car can roll over the square after the step above.
     release();
@@ -525,19 +534,19 @@ async function start() {
     snappedZ = Math.round(player.z);
     playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ);
     pedestrians.update(dt, player.x, player.z);
-    camX = clamp(snappedX, GROUND_W / 2, city.mapW - GROUND_W / 2);
-    camZ = clamp(snappedZ, GROUND_H / 2, city.mapH - GROUND_H / 2);
+    camX = frameCenter(snappedX, halfW, city.mapW);
+    camZ = frameCenter(snappedZ, halfH, city.mapH);
     glow.update(camX, camZ, traffic.lights(camX, camZ));
     camera.position.setFromSphericalCoords(CAMERA_RADIUS, CAMERA_ANGLE, cameraTheta);
     cameraTarget.set(camX, 0, camZ);
     camera.position.add(cameraTarget);
     camera.lookAt(cameraTarget);
-    updateChunks(city.chunks, camX, camZ);
+    updateChunks(city.chunks, camX, camZ, view);
     lightVisibleCity(city.chunks);
     placeSun(sun, camX, camZ);
     renderer.shadowMap.needsUpdate = true;
     ambient.render();
-    minimap.draw(camX, camZ, player.x, player.z, TILE, GROUND_W / TILE, GROUND_H / TILE);
+    minimap.draw(camX, camZ, player.x, player.z, TILE, (GROUND_W * view) / TILE, (GROUND_H * view) / TILE);
 
     const instant = 1 / Math.max(dt, 1 / 240);
     fps = fps === 0 ? instant : fps + (instant - fps) * 0.1;

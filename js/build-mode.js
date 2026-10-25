@@ -24,6 +24,8 @@ const STORAGE_KEY = "west-map";
 const SCALE_STEP = 0.25;
 const SCALE_MIN = 0.25;
 const SCALE_MAX = 4;
+const VIEW_MIN = 0.5;
+const VIEW_MAX = 3;
 
 const catalog = new Map();
 for (const kit of KITS) {
@@ -33,10 +35,11 @@ for (const kit of KITS) {
 // Registered while this module loads, before main.js binds walking keys.
 // On window, capture and bubble listeners share one target, so this has to
 // run first and stop the event. S stays free so it can walk south.
+// Swedish layout: the + key grows the piece and 0 shrinks it.
 function brushScale(event) {
   if (event.ctrlKey || event.metaKey || event.altKey) return 0;
   if (event.key === "+" || event.code === "NumpadAdd") return 1;
-  if (event.key === "-" || event.code === "NumpadSubtract") return -1;
+  if (event.key === "0") return -1;
   return 0;
 }
 
@@ -173,6 +176,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   let mirror = false;
   let selection = null;
   let preview = null;
+  let carrying = null;
   let selectToken = 0;
   let hover = null;
   let pointerAt = null;
@@ -182,7 +186,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   panel.hidden = true;
   const info = document.createElement("p");
   info.id = "build-info";
-  info.textContent = "BUILD MODE\nClick = place\nX = remove\nR = rotate\n+ / - = bigger / smaller\nF = mirror\nP = save\nWASD = walk\nSearch = type to find pieces";
+  info.textContent = "BUILD MODE\nClick = place\nClick placed piece = move\nX = remove\nR = rotate\n+ / 0 = bigger / smaller\nF = mirror\nP = save\nWASD = walk\nSearch = type to find pieces\nMouse wheel = zoom";
   const search = document.createElement("input");
   search.id = "build-search";
   search.type = "search";
@@ -344,6 +348,41 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     preview = null;
   }
 
+  function clearSelection() {
+    selection = null;
+    for (const button of list.querySelectorAll("button")) button.classList.remove("is-selected");
+    selectToken += 1;
+    dropPreview();
+  }
+
+  function rootFor(record) {
+    for (const child of group.children) {
+      if (child.userData.piece === record) return child;
+    }
+    return null;
+  }
+
+  function moveCarried(cell) {
+    if (!carrying || !cell) return;
+    carrying.record.x = cell.x;
+    carrying.record.z = cell.z;
+    carrying.root.position.set((cell.x + 0.5) * TILE, GROUND_Y, (cell.z + 0.5) * TILE);
+  }
+
+  function dropCarried(cell) {
+    if (!carrying) return;
+    moveCarried(cell);
+    carrying = null;
+  }
+
+  function pickUp(record, cell) {
+    const root = rootFor(record);
+    if (!root) return;
+    carrying = { record, root };
+    if (preview) preview.visible = false;
+    moveCarried(cell);
+  }
+
   async function showPreview() {
     const token = selectToken;
     if (!enabled || !selection) {
@@ -361,6 +400,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   }
 
   function select(kit, file) {
+    if (carrying) dropCarried(hover);
     selection = { kit, file };
     for (const button of list.querySelectorAll("button")) {
       button.classList.toggle("is-selected", button.dataset.kit === kit && button.dataset.file === file);
@@ -389,8 +429,9 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
 
   function movePreview(cell) {
     hover = cell;
+    if (carrying) moveCarried(cell);
     if (!preview) return;
-    if (!cell) {
+    if (!cell || carrying) {
       preview.visible = false;
       return;
     }
@@ -406,6 +447,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     const placedScale = scale;
     const placedMirror = mirror;
     const token = selectToken;
+    clearSelection();
     let template = null;
     try {
       template = await loadTemplate(chosen.kit, chosen.file);
@@ -413,7 +455,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       status("That model failed to load.");
       return;
     }
-    if (!enabled || token !== selectToken || selection !== chosen) return;
+    if (!enabled || selectToken !== token + 1) return;
     addPiece({ ...chosen, x: cell.x, z: cell.z, turn: placedTurn, scale: placedScale, mirror: placedMirror }, template);
     status("Placed.");
   }
@@ -422,6 +464,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     const index = pieces.indexOf(record);
     if (index < 0) return false;
     pieces.splice(index, 1);
+    if (carrying?.record === record) carrying = null;
     for (const child of [...group.children]) {
       if (child.userData.piece === record) child.removeFromParent();
     }
@@ -515,12 +558,26 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     status("Downloaded west-map.json.");
   }
 
+  function setViewScale(next) {
+    const current = Number.isFinite(next) && next > 0 ? next : 1;
+    camera.userData.viewScale = Math.min(VIEW_MAX, Math.max(VIEW_MIN, current));
+    camera.updateProjectionMatrix();
+  }
+
+  function wheelPixels(event) {
+    if (event.deltaMode === 1) return event.deltaY * 16;
+    if (event.deltaMode === 2) return event.deltaY * window.innerHeight;
+    return event.deltaY;
+  }
+
   function setEnabled(next) {
     enabled = next;
     panel.hidden = !enabled;
     if (!enabled) {
+      dropCarried(hover);
       dropPreview();
       hover = null;
+      setViewScale(1);
       return;
     }
     status("Build mode.");
@@ -569,8 +626,28 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       removeAt(event);
       return;
     }
-    if (event.button === 0) place(cellAt(event));
+    if (event.button !== 0) return;
+    const cell = cellAt(event);
+    if (carrying) {
+      dropCarried(cell);
+      return;
+    }
+    if (!selection) {
+      const piece = pieceHit();
+      if (piece) {
+        pickUp(piece.record, cell);
+        return;
+      }
+    }
+    place(cell);
   });
+
+  canvas.addEventListener("wheel", (event) => {
+    if (!enabled) return;
+    event.preventDefault();
+    const current = camera.userData.viewScale > 0 ? camera.userData.viewScale : 1;
+    setViewScale(current * Math.exp(wheelPixels(event) * 0.0015));
+  }, { passive: false });
 
   canvas.addEventListener("contextmenu", (event) => {
     event.preventDefault();

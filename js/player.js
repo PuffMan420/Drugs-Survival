@@ -186,16 +186,17 @@ export async function createPlayer() {
     holder.rotation.y = Math.atan2(dx, dz);
   }
 
-  function place(x, z) {
-    holder.position.set(x, FEET_Y, z);
-    shadow.position.set(x, SHADOW_Y, z);
+  function place(x, z, y) {
+    const feet = y == null ? FEET_Y : y;
+    holder.position.set(x, feet, z);
+    shadow.position.set(x, feet - (FEET_Y - SHADOW_Y), z);
   }
 
   return {
     mesh: holder,
     shadow,
     speed: SPEED,
-    update(dx, dz, x, z) {
+    update(dx, dz, x, z, y) {
       const now = performance.now();
       const dt = Math.min((now - then) / 1000, 0.05);
       then = now;
@@ -207,7 +208,7 @@ export async function createPlayer() {
         show("idle");
       }
       mixer.update(dt);
-      place(x, z);
+      place(x, z, y);
     },
   };
 }

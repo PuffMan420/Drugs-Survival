@@ -568,7 +568,7 @@ export function planCars(map, pieces = []) {
     }
     list.push(node);
   }
-  return { parked, nodes, linked, buckets, span, cols, rows, at, isRoad, poseFits };
+  return { parked, nodes, linked, buckets, span, cols, rows, at, isRoad, poseFits, heightAt: built.heightAt };
 }
 
 function wrapAngle(delta) {
@@ -888,6 +888,7 @@ export function createSim(plan, models, pick) {
     step(dt, camX, camZ, playerX, playerZ) {
       for (let i = drivers.length - 1; i >= 0; i -= 1) {
         const driver = drivers[i];
+        if (driver.held) continue;
         const dist = Math.hypot(driver.x - camX, driver.z - camZ);
         const onScreen = Math.abs(driver.x - camX) < 560 && driver.z > camZ - 420 && driver.z < camZ + 560;
         if (driver.reap || dist > DESPAWN || (driver.wait > STUCK_TIME && !driver.blocked && !onScreen)) {
@@ -904,6 +905,7 @@ export function createSim(plan, models, pick) {
 
       const player = { x: playerX, z: playerZ, y: 0.6, angle: 0, w: 32, h: 32, speed: 0 };
       for (const driver of drivers) {
+        if (driver.held) continue;
         let limit = driver.cruise;
         let blocked = false;
         let backing = false;
@@ -950,8 +952,8 @@ export function createSim(plan, models, pick) {
           const body = {
             x: car.x,
             z: car.z,
-            y: 0.6,
-            angle: headingAngle(car.hx, car.hz),
+            y: car.y == null ? 0.6 : car.y,
+            angle: typeof car.angle === "number" ? car.angle : headingAngle(car.hx, car.hz),
             w: car.w || 40,
             h: car.h || 70,
           };

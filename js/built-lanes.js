@@ -140,14 +140,67 @@ function offsetLane(pts, lateral) {
   return out;
 }
 
-function distToSeg(x, z, a, b) {
+function closestPoint(x, z, a, b) {
   const dx = b.x - a.x;
   const dz = b.z - a.z;
   const len2 = dx * dx + dz * dz;
   let t = len2 > 0 ? ((x - a.x) * dx + (z - a.z) * dz) / len2 : 0;
   if (t < 0) t = 0;
   else if (t > 1) t = 1;
-  return Math.hypot(a.x + dx * t - x, a.z + dz * t - z);
+  return {
+    dist: Math.hypot(a.x + dx * t - x, a.z + dz * t - z),
+    y: a.y + (b.y - a.y) * t,
+  };
+}
+
+function distToSeg(x, z, a, b) {
+  return closestPoint(x, z, a, b).dist;
+}
+
+function extendEnds(pts, extra) {
+  if (pts.length < 2 || extra <= 0) return pts;
+  const first = pts[0];
+  const second = pts[1];
+  const last = pts[pts.length - 1];
+  const prev = pts[pts.length - 2];
+  return [stepOut(second, first, extra), ...pts, stepOut(prev, last, extra)];
+}
+
+function stepOut(from, to, extra) {
+  let dx = to.x - from.x;
+  let dy = to.y - from.y;
+  let dz = to.z - from.z;
+  const len = Math.hypot(dx, dy, dz) || 1;
+  dx /= len;
+  dy /= len;
+  dz /= len;
+  return { x: to.x + dx * extra, y: to.y + dy * extra, z: to.z + dz * extra };
+}
+
+// Driving surfaces for placed roads. Each strip is the asphalt centerline in
+// world space, wide enough for both lanes. The deck and the underpass are
+// separate strips, so a bridge does not fill the gap under it.
+export function builtRoadStrips(pieces) {
+  const strips = [];
+  const list = Array.isArray(pieces) ? pieces : [];
+  for (const piece of list) {
+    if (!piece || piece.kit !== "roads") continue;
+    const kind = KIND.get(piece.file);
+    if (!kind) continue;
+    if (!Number.isInteger(piece.x) || !Number.isInteger(piece.z)) continue;
+    const turn = Number(piece.turn);
+    if (!Number.isInteger(turn)) continue;
+    const scale = piece.scale == null ? 1 : Number(piece.scale);
+    if (!Number.isFinite(scale) || scale <= 0) continue;
+    const size = UNIT * scale;
+    const placed = { ...piece, mirror: piece.mirror === true, turn: ((turn % 4) + 4) % 4 };
+    for (const raw of centerlines(kind)) {
+      const pts = raw.map((point) => worldPoint(point, placed, size));
+      if (pts.length < 2) continue;
+      strips.push({ pts: extendEnds(pts, 8), half: 0.36 * size });
+    }
+  }
+  return strips;
 }
 
 export function planBuiltLanes(pieces) {
@@ -217,9 +270,34 @@ export function planBuiltLanes(pieces) {
     }
   }
 
+  function heightAt(x, z, y) {
+    const ix = Math.floor(x / CELL);
+    const iz = Math.floor(z / CELL);
+    const prefer = y == null ? 0 : y;
+    let best = null;
+    let bestScore = Infinity;
+    for (let dz = -1; dz <= 1; dz += 1) {
+      for (let dx = -1; dx <= 1; dx += 1) {
+        const bucket = grid.get(`${ix + dx},${iz + dz}`);
+        if (!bucket) continue;
+        for (let i = 0; i < bucket.length; i += 2) {
+          const hit = closestPoint(x, z, bucket[i], bucket[i + 1]);
+          if (hit.dist > 48) continue;
+          const score = hit.dist + Math.abs(hit.y - prefer) * 0.2;
+          if (score < bestScore) {
+            bestScore = score;
+            best = hit.y;
+          }
+        }
+      }
+    }
+    return best;
+  }
+
   return {
     lanes,
     next,
+    heightAt,
     near(x, z) {
       const ix = Math.floor(x / CELL);
       const iz = Math.floor(z / CELL);

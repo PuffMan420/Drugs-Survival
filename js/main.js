@@ -26,6 +26,7 @@ import {
   TILE,
 } from "./constants.js";
 import { createTraffic } from "./cars.js";
+import { createDrive } from "./drive.js";
 import { buildCity, tileAt, tileCenter, updateChunks } from "./city.js";
 import { createPedestrians } from "./pedestrians.js";
 import { createGlow } from "./glow.js";
@@ -437,7 +438,10 @@ async function start() {
   playerSprite.shadow.visible = false;
   scene.add(playerSprite.mesh);
   lightMesh(playerSprite.mesh, { forwardMap: true, cast: true });
-  const traffic = await createTraffic(scene, map);
+  const traffic = await createTraffic(scene, map, savedLayout.pieces);
+  const drive = await createDrive(map, savedLayout.pieces);
+  const hintEl = document.getElementById("hint");
+  const hintWalk = hintEl.textContent;
   const pedestrians = await createPedestrians(scene, map);
   window.pedestrians = pedestrians;
   const glow = createGlow(scene, map);
@@ -454,7 +458,7 @@ async function start() {
   const cameraTheta = 0;
   const cameraTarget = new Vector3();
   const origin = tileCenter(map.spawn.x, map.spawn.z);
-  const player = { x: origin.x, z: origin.z };
+  const player = { x: origin.x, z: origin.z, y: 0.6 };
   const half = PLAYER_SIZE / 2;
 
   const buildMode = await createBuildMode({
@@ -480,44 +484,79 @@ async function start() {
   let fps = 0;
   let last = performance.now();
 
+  session.use = () => {
+    if (buildMode.isOpen()) return;
+    if (drive.driving) {
+      const spot = drive.exit((x, z) => footBlocked(map, x, z, half));
+      if (!spot) return;
+      player.x = clamp(spot.x, half, city.mapW - half);
+      player.z = clamp(spot.z, half, city.mapH - half);
+      player.y = spot.y;
+      playerSprite.mesh.visible = true;
+      session.driving = false;
+      hintEl.textContent = hintWalk;
+      return;
+    }
+    if (!drive.enter(traffic.cars(), player.x, player.z)) return;
+    playerSprite.mesh.visible = false;
+    session.driving = true;
+    hintEl.textContent = "W drive · S brake · A D steer · E exit";
+  };
+
   function frame(now) {
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
     const previousX = player.x;
     const previousZ = player.z;
 
-    let moveX = 0;
-    let moveZ = 0;
-    if (held.has("KeyW") || held.has("ArrowUp")) moveZ -= 1;
-    if (held.has("KeyS") || held.has("ArrowDown")) moveZ += 1;
-    if (held.has("KeyA") || held.has("ArrowLeft")) moveX -= 1;
-    if (held.has("KeyD") || held.has("ArrowRight")) moveX += 1;
-    const radius = half + 0.75;
-    const stuck = (x, z) => footBlocked(map, x, z, half);
-    const release = () => {
-      const freed = traffic.shove(player.x, player.z, radius, stuck);
-      player.x = freed.x;
-      player.z = freed.z;
-    };
-    if (moveX !== 0 || moveZ !== 0) {
-      const length = Math.hypot(moveX, moveZ);
-      const pace = buildMode.isOpen() ? 3 : 1;
-      const stepX = (moveX / length) * playerSprite.speed * pace * dt;
-      const stepZ = (moveZ / length) * playerSprite.speed * pace * dt;
-      // Short slices so a fast step cannot hop through a narrow car.
-      const slices = Math.max(1, Math.ceil(Math.hypot(stepX, stepZ) / 8));
-      for (let slice = 0; slice < slices; slice += 1) {
-        const nextX = player.x + stepX / slices;
-        const nextZ = player.z + stepZ / slices;
-        if (!blocked(map, nextX, player.z)) player.x = nextX;
-        if (!blocked(map, player.x, nextZ)) player.z = nextZ;
-        release();
+    if (drive.driving) {
+      const pose = drive.update(dt, {
+        forward: held.has("KeyW"),
+        brake: held.has("KeyS"),
+        left: held.has("KeyA"),
+        right: held.has("KeyD"),
+      }, traffic.cars());
+      if (pose) {
+        player.x = pose.x;
+        player.z = pose.z;
+        player.y = pose.y;
       }
     } else {
-      release();
+      let moveX = 0;
+      let moveZ = 0;
+      if (held.has("KeyW") || held.has("ArrowUp")) moveZ -= 1;
+      if (held.has("KeyS") || held.has("ArrowDown")) moveZ += 1;
+      if (held.has("KeyA") || held.has("ArrowLeft")) moveX -= 1;
+      if (held.has("KeyD") || held.has("ArrowRight")) moveX += 1;
+      const radius = half + 0.75;
+      const stuck = (x, z) => footBlocked(map, x, z, half);
+      const release = () => {
+        const freed = traffic.shove(player.x, player.z, radius, stuck);
+        player.x = freed.x;
+        player.z = freed.z;
+      };
+      if (moveX !== 0 || moveZ !== 0) {
+        const length = Math.hypot(moveX, moveZ);
+        const pace = buildMode.isOpen() ? 3 : 1;
+        const stepX = (moveX / length) * playerSprite.speed * pace * dt;
+        const stepZ = (moveZ / length) * playerSprite.speed * pace * dt;
+        // Short slices so a fast step cannot hop through a narrow car.
+        const slices = Math.max(1, Math.ceil(Math.hypot(stepX, stepZ) / 8));
+        for (let slice = 0; slice < slices; slice += 1) {
+          const nextX = player.x + stepX / slices;
+          const nextZ = player.z + stepZ / slices;
+          if (!blocked(map, nextX, player.z)) player.x = nextX;
+          if (!blocked(map, player.x, nextZ)) player.z = nextZ;
+          release();
+        }
+      } else {
+        release();
+      }
+      player.x = clamp(player.x, half, city.mapW - half);
+      player.z = clamp(player.z, half, city.mapH - half);
+      const roadY = traffic.roadHeight(player.x, player.z, player.y);
+      player.y = roadY == null ? 0.6 : roadY;
     }
-    player.x = clamp(player.x, half, city.mapW - half);
-    player.z = clamp(player.z, half, city.mapH - half);
 
     let snappedX = Math.round(player.x);
     let snappedZ = Math.round(player.z);
@@ -528,12 +567,19 @@ async function start() {
     let camZ = frameCenter(snappedZ, halfH, city.mapH);
     traffic.update(dt, camX, camZ, player.x, player.z);
     // A moving car can roll over the square after the step above.
-    release();
-    player.x = clamp(player.x, half, city.mapW - half);
-    player.z = clamp(player.z, half, city.mapH - half);
+    if (!drive.driving) {
+      const freed = traffic.shove(player.x, player.z, half + 0.75, (x, z) => footBlocked(map, x, z, half));
+      player.x = freed.x;
+      player.z = freed.z;
+      player.x = clamp(player.x, half, city.mapW - half);
+      player.z = clamp(player.z, half, city.mapH - half);
+      const roadY = traffic.roadHeight(player.x, player.z, player.y);
+      player.y = roadY == null ? 0.6 : roadY;
+    }
     snappedX = Math.round(player.x);
     snappedZ = Math.round(player.z);
-    playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ);
+    playerSprite.mesh.visible = !drive.driving;
+    playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ, player.y);
     pedestrians.update(dt, player.x, player.z);
     camX = frameCenter(snappedX, halfW, city.mapW);
     camZ = frameCenter(snappedZ, halfH, city.mapH);
@@ -559,7 +605,7 @@ async function start() {
 }
 
 function jumpTo(index) {
-  if (!session.ready) return;
+  if (!session.ready || session.driving) return;
   const view = JUMPS[index];
   if (!view) return;
   const point = tileCenter(view.x, view.z);
@@ -575,6 +621,14 @@ function footBlocked(map, x, z, limit) {
 }
 
 window.addEventListener("keydown", (event) => {
+  if (event.code === "KeyE" && !event.repeat) {
+    const tag = event.target && event.target.tagName;
+    if (tag !== "INPUT" && tag !== "TEXTAREA") {
+      session.use?.();
+      event.preventDefault();
+    }
+    return;
+  }
   if (MOVE.has(event.code)) {
     held.add(event.code);
     event.preventDefault();

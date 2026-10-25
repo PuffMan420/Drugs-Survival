@@ -5,6 +5,7 @@
 // 1 (west), 2 (east), 5 (south) and 6 (north) are driven as marked.
 // Medians 4 and 8 are never driven.
 
+import { planBuiltLanes } from "./built-lanes.js";
 import { planKenneyRoads, westOfCanal } from "./kenney-road-plan.js";
 
 const CENTER_H = new Set(["H", "h"]);
@@ -122,7 +123,8 @@ function lerpAngle(from, to, t) {
   return from + delta * t;
 }
 
-export function planCars(map) {
+export function planCars(map, pieces = []) {
+  const built = planBuiltLanes(pieces);
   const { cols, rows, ground, tile } = map;
   const span = tile || 48;
   const roads = planKenneyRoads(map);
@@ -337,6 +339,7 @@ export function planCars(map) {
   }
 
   function roadAt(x, z) {
+    if (built.near(x, z)) return true;
     if (isRoad(at(Math.floor(x / span), Math.floor(z / span)))) return true;
     return roads.contains(x, z);
   }
@@ -521,6 +524,39 @@ export function planCars(map) {
     addExit(node, seekTurn(node, node.dz, -node.dx));
   }
 
+  const builtBase = nodes.length;
+  for (let i = 0; i < built.lanes.length; i += 1) {
+    const pts = built.lanes[i];
+    const dx = Math.sign(pts[1].x - pts[0].x);
+    const dz = Math.sign(pts[1].z - pts[0].z);
+    nodes.push({
+      index: builtBase + i,
+      tx: Math.floor(pts[0].x / span),
+      tz: Math.floor(pts[0].z / span),
+      dx,
+      dz,
+      x: pts[0].x,
+      z: pts[0].z,
+      y: pts[0].y,
+      built: true,
+      exits: [],
+    });
+  }
+  for (let i = 0; i < built.lanes.length; i += 1) {
+    const to = built.next[i];
+    if (to < 0) continue;
+    const pts = built.lanes[i];
+    const seg = [];
+    let len = 0;
+    for (let k = 0; k < pts.length - 1; k += 1) {
+      const step = Math.hypot(pts[k + 1].x - pts[k].x, pts[k + 1].z - pts[k].z);
+      seg.push(step);
+      len += step;
+    }
+    if (len < 8) continue;
+    nodes[builtBase + i].exits.push({ to: builtBase + to, pts, seg, len });
+  }
+
   const linked = nodes.filter((node) => node.exits.length > 0);
   const buckets = new Map();
   for (const node of linked) {
@@ -532,7 +568,7 @@ export function planCars(map) {
     }
     list.push(node);
   }
-  return { parked, nodes, linked, buckets, span, cols, rows, at, isRoad, poseFits };
+  return { parked, nodes, linked, buckets, span, cols, rows, at, isRoad, poseFits, heightAt: built.heightAt };
 }
 
 function wrapAngle(delta) {
@@ -552,6 +588,7 @@ function pointAlong(exit, dist, out) {
       const b = exit.pts[i + 1];
       out.x = a.x + (b.x - a.x) * t;
       out.z = a.z + (b.z - a.z) * t;
+      out.y = a.y == null && b.y == null ? null : (a.y ?? 0) + ((b.y ?? 0) - (a.y ?? 0)) * t;
       out.hx = b.x - a.x;
       out.hz = b.z - a.z;
       return out;
@@ -561,9 +598,15 @@ function pointAlong(exit, dist, out) {
   const last = exit.pts[exit.pts.length - 1];
   out.x = last.x;
   out.z = last.z;
+  out.y = last.y == null ? null : last.y;
   out.hx = 0;
   out.hz = -1;
   return out;
+}
+
+function sharesRoad(a, b) {
+  if (a.y == null || b.y == null) return true;
+  return Math.abs(a.y - b.y) < 36;
 }
 
 function obbOverlap(a, b, pad) {
@@ -637,6 +680,7 @@ export function createSim(plan, models, pick) {
     driver.x = scratch.x;
     driver.z = scratch.z;
     driver.angle = headingAngle(edge.pts[1].x - edge.pts[0].x, edge.pts[1].z - edge.pts[0].z);
+    driver.y = scratch.y;
     driver.speed = 0;
     driver.wait = 0;
     driver.arc = null;
@@ -645,10 +689,11 @@ export function createSim(plan, models, pick) {
     return true;
   }
 
-  function clearOf(x, z, self) {
+  function clearOf(x, z, y, self) {
     if (Math.hypot(x - self.px, z - self.pz) < 150) return false;
     for (const other of drivers) {
       if (!other.alive) continue;
+      if (!sharesRoad({ y }, other)) continue;
       if (Math.hypot(x - other.x, z - other.z) < 130) return false;
     }
     for (const car of plan.parked) {
@@ -675,12 +720,15 @@ export function createSim(plan, models, pick) {
       const dx = node.x - camX;
       const dz = node.z - camZ;
       const dist = Math.hypot(dx, dz);
-      if (dist < SPAWN_MIN || dist > SPAWN_MAX) continue;
-      if (Math.abs(dx) < 520 && dz > -380 && dz < 520) continue;
+      if (node.built) {
+        if (dist < 380 || dist > SPAWN_MAX) continue;
+        if (Math.abs(dx) < 460 && dz > -280 && dz < 300) continue;
+      } else if (dist < SPAWN_MIN || dist > SPAWN_MAX) continue;
+      else if (Math.abs(dx) < 520 && dz > -380 && dz < 520) continue;
       const exit = inwardExit(node, camX, camZ);
       if (exit < 0) continue;
       const probe = { px: playerX, pz: playerZ };
-      if (!clearOf(node.x, node.z, probe)) continue;
+      if (!clearOf(node.x, node.z, node.y, probe)) continue;
       const hash = tileHash(node.tx + spawnSerial, node.tz);
       spawnSerial += 1;
       const driver = {
@@ -697,6 +745,7 @@ export function createSim(plan, models, pick) {
         exit: 0,
         dist: 0,
         wait: 0,
+        y: null,
         alive: true,
         blocked: false,
         arc: null,
@@ -795,6 +844,24 @@ export function createSim(plan, models, pick) {
   function commitTurn(edge) {
     const dest = plan.nodes[edge.to];
     if (!dest || dest.exits.length === 0) return { exitIndex: -1, arc: null };
+    // A placed road already carries its own bend. A fillet has no height, so
+    // it would drop a car off the bridge.
+    if (edge.pts[0] && edge.pts[0].y != null) {
+      pointAlong(edge, Math.max(0, edge.len - 8), scratch);
+      const lane = headingAngle(scratch.hx, scratch.hz);
+      let best = 0;
+      let bestTurn = Infinity;
+      for (let index = 0; index < dest.exits.length; index += 1) {
+        const nx = dest.exits[index];
+        const ang = headingAngle(nx.pts[1].x - nx.pts[0].x, nx.pts[1].z - nx.pts[0].z);
+        const turn = Math.abs(wrapAngle(ang - lane));
+        if (turn < bestTurn) {
+          bestTurn = turn;
+          best = index;
+        }
+      }
+      return { exitIndex: best, arc: null };
+    }
     pointAlong(edge, Math.max(0, edge.len - 8), scratch);
     const lane = headingAngle(scratch.hx, scratch.hz);
     const options = [];
@@ -821,6 +888,7 @@ export function createSim(plan, models, pick) {
     step(dt, camX, camZ, playerX, playerZ) {
       for (let i = drivers.length - 1; i >= 0; i -= 1) {
         const driver = drivers[i];
+        if (driver.held) continue;
         const dist = Math.hypot(driver.x - camX, driver.z - camZ);
         const onScreen = Math.abs(driver.x - camX) < 560 && driver.z > camZ - 420 && driver.z < camZ + 560;
         if (driver.reap || dist > DESPAWN || (driver.wait > STUCK_TIME && !driver.blocked && !onScreen)) {
@@ -835,12 +903,13 @@ export function createSim(plan, models, pick) {
         drivers.push(born);
       }
 
-      const player = { x: playerX, z: playerZ, angle: 0, w: 32, h: 32, speed: 0 };
+      const player = { x: playerX, z: playerZ, y: 0.6, angle: 0, w: 32, h: 32, speed: 0 };
       for (const driver of drivers) {
+        if (driver.held) continue;
         let limit = driver.cruise;
         let blocked = false;
         let backing = false;
-        const seen = gapOf(driver, player);
+        const seen = sharesRoad(driver, player) ? gapOf(driver, player) : Infinity;
         if (seen < STOP_GAP) {
           limit = 0;
           blocked = true;
@@ -849,7 +918,7 @@ export function createSim(plan, models, pick) {
           blocked = true;
         }
         for (const other of drivers) {
-          if (other === driver) continue;
+          if (other === driver || !sharesRoad(driver, other)) continue;
           const turn = Math.abs(Math.atan2(Math.sin(other.angle - driver.angle), Math.cos(other.angle - driver.angle)));
           if (turn < 0.8) {
             const gap = gapOf(driver, other);
@@ -883,10 +952,12 @@ export function createSim(plan, models, pick) {
           const body = {
             x: car.x,
             z: car.z,
-            angle: headingAngle(car.hx, car.hz),
+            y: car.y == null ? 0.6 : car.y,
+            angle: typeof car.angle === "number" ? car.angle : headingAngle(car.hx, car.hz),
             w: car.w || 40,
             h: car.h || 70,
           };
+          if (!sharesRoad(driver, body)) continue;
           const gap = gapOf(driver, body);
           if (gap < STOP_GAP) {
             limit = 0;
@@ -1038,6 +1109,7 @@ export function createSim(plan, models, pick) {
         pointAlong(edge, riding ? riding.dist : driver.dist, scratch);
         driver.x = scratch.x;
         driver.z = scratch.z;
+        driver.y = scratch.y;
         const lane = headingAngle(scratch.hx, scratch.hz);
         const yawCap = (Math.max(driver.speed, 0) / TURN_RADIUS) * stepDt;
         let delta = driver.speed < 8 ? 0 : wrapAngle(lane - driver.angle);

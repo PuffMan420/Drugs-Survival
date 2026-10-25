@@ -215,7 +215,7 @@ function disposeModel(scene) {
   });
 }
 
-export async function createTraffic(scene, map) {
+export async function createTraffic(scene, map, pieces = []) {
   const colormapUrl = new URL("../assets/cars3d/colormap.png", import.meta.url).href;
   const manager = new LoadingManager();
   manager.setURLModifier((url) => (url.includes("colormap.png") ? colormapUrl : url));
@@ -267,19 +267,22 @@ export async function createTraffic(scene, map) {
     return 0;
   };
 
-  const plan = planCars(map);
+  const plan = planCars(map, pieces);
   for (const car of plan.parked) {
     car.model = pick(car.hash);
     car.w = models[car.model].w;
     car.h = models[car.model].h;
+    car.y = GROUND_Y;
+    car.angle = headingAngle(car.hx, car.hz);
     settleParked(car, map);
   }
   const parked = plan.parked;
   const sim = createSim(plan, models, pick);
   const dummy = new Object3D();
-  const matrixAt = (x, z, angle, model) => {
-    dummy.position.set(x, GROUND_Y, z);
-    dummy.rotation.set(0, angle, 0);
+  const matrixAt = (x, y, z, angle, model, quat) => {
+    dummy.position.set(x, y, z);
+    if (quat) dummy.quaternion.set(quat.x, quat.y, quat.z, quat.w);
+    else dummy.rotation.set(0, angle, 0);
     dummy.scale.set(model.scaleX, model.scaleY, model.scaleZ);
     dummy.updateMatrix();
     return dummy.matrix;
@@ -342,9 +345,11 @@ export async function createTraffic(scene, map) {
       const body = {
         x: car.x,
         z: car.z,
+        y: car.y,
         w: model.w,
         h: model.h,
-        angle: headingAngle(car.hx, car.hz),
+        angle: car.angle,
+        src: car,
       };
       parkedBodies.push(body);
       const id = `${Math.floor(car.x / BUCKET)},${Math.floor(car.z / BUCKET)}`;
@@ -367,9 +372,26 @@ export async function createTraffic(scene, map) {
 
   const inView = (x, z, camX, camZ) => x > camX - 560 && x < camX + 560 && z > camZ - 420 && z < camZ + 560;
 
+  function syncParked() {
+    for (const body of parkedBodies) {
+      const car = body.src;
+      body.x = car.x;
+      body.z = car.z;
+      body.y = car.y;
+      body.angle = car.angle;
+    }
+  }
+
   return {
+    cars() {
+      return parked.concat(sim.drivers);
+    },
+    roadHeight(x, z, y) {
+      return plan.heightAt ? plan.heightAt(x, z, y) : null;
+    },
     update(dt, camX, camZ, playerX, playerZ) {
       sim.step(dt, camX, camZ, playerX, playerZ);
+      syncParked();
       for (const group of groups) {
         let count = 0;
         const civilian = !SERVICE.has(group.model.name);
@@ -382,14 +404,14 @@ export async function createTraffic(scene, map) {
         };
         for (const car of group.parked) {
           if (!inView(car.x, car.z, camX, camZ)) continue;
-          group.mesh.setMatrixAt(count, matrixAt(car.x, car.z, headingAngle(car.hx, car.hz), group.model));
+          group.mesh.setMatrixAt(count, matrixAt(car.x, car.y == null ? GROUND_Y : car.y, car.z, car.angle, group.model, car.quat));
           stamp(car.hash);
           count += 1;
         }
         for (const car of sim.drivers) {
           if (car.model !== group.modelIndex) continue;
           if (!inView(car.x, car.z, camX, camZ)) continue;
-          group.mesh.setMatrixAt(count, matrixAt(car.x, car.z, car.angle, group.model));
+          group.mesh.setMatrixAt(count, matrixAt(car.x, car.y == null ? GROUND_Y : car.y, car.z, car.angle, group.model, car.quat));
           stamp(car.id);
           count += 1;
         }
@@ -411,23 +433,28 @@ export async function createTraffic(scene, map) {
         const nose = car.h * 0.4;
         const tail = car.h * 0.38;
         const side = Math.min(12, car.w * 0.22);
+        const y = car.y == null ? 4.2 : car.y + 3.6;
         out.push({
           kind: "head",
+          y,
           x: car.x + fx * nose + rx * side,
           z: car.z + fz * nose + rz * side,
         });
         out.push({
           kind: "head",
+          y,
           x: car.x + fx * nose - rx * side,
           z: car.z + fz * nose - rz * side,
         });
         out.push({
           kind: "tail",
+          y,
           x: car.x - fx * tail + rx * side,
           z: car.z - fz * tail + rz * side,
         });
         out.push({
           kind: "tail",
+          y,
           x: car.x - fx * tail - rx * side,
           z: car.z - fz * tail - rz * side,
         });
@@ -445,6 +472,7 @@ export async function createTraffic(scene, map) {
       return out;
     },
     shove(x, z, radius, blocked) {
+      syncParked();
       const bodies = [];
       const ix = Math.floor(x / BUCKET);
       const iz = Math.floor(z / BUCKET);
@@ -455,6 +483,7 @@ export async function createTraffic(scene, map) {
         }
       }
       for (const body of sim.drivers) {
+        if (body.y != null && Math.abs(body.y - GROUND_Y) > 36) continue;
         const ox = x - body.x;
         const oz = z - body.z;
         if (ox * ox + oz * oz > 280 * 280) continue;

@@ -457,7 +457,7 @@ async function start() {
   const player = { x: origin.x, z: origin.z };
   const half = PLAYER_SIZE / 2;
 
-  await createBuildMode({
+  const buildMode = await createBuildMode({
     scene,
     camera,
     canvas,
@@ -501,8 +501,9 @@ async function start() {
     };
     if (moveX !== 0 || moveZ !== 0) {
       const length = Math.hypot(moveX, moveZ);
-      const stepX = (moveX / length) * playerSprite.speed * dt;
-      const stepZ = (moveZ / length) * playerSprite.speed * dt;
+      const pace = buildMode.isOpen() ? 3 : 1;
+      const stepX = (moveX / length) * playerSprite.speed * pace * dt;
+      const stepZ = (moveZ / length) * playerSprite.speed * pace * dt;
       // Short slices so a fast step cannot hop through a narrow car.
       const slices = Math.max(1, Math.ceil(Math.hypot(stepX, stepZ) / 8));
       for (let slice = 0; slice < slices; slice += 1) {

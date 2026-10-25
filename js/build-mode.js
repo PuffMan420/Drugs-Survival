@@ -53,7 +53,9 @@ const keys = {
   onScale: () => {},
 };
 let searchInput = null;
+let leftShift = false;
 window.addEventListener("keydown", (event) => {
+  if (event.code === "ShiftLeft") leftShift = true;
   // Keys typed into the piece search must not walk, save, rotate, resize, or mirror.
   if (searchInput && event.target === searchInput) return;
   if (event.repeat) return;
@@ -74,6 +76,12 @@ window.addEventListener("keydown", (event) => {
   else if (event.code === "KeyF") keys.onF();
   else keys.onScale(direction);
 }, true);
+window.addEventListener("keyup", (event) => {
+  if (event.code === "ShiftLeft") leftShift = false;
+}, true);
+window.addEventListener("blur", () => {
+  leftShift = false;
+});
 
 function modelUrl(path) {
   return new URL(`../${path}`, import.meta.url).href;
@@ -186,7 +194,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   panel.hidden = true;
   const info = document.createElement("p");
   info.id = "build-info";
-  info.textContent = "BUILD MODE\nClick = place\nClick placed piece = move\nX = remove\nR = rotate\n+ / 0 = bigger / smaller\nF = mirror\nP = save\nWASD = walk\nSearch = type to find pieces\nMouse wheel = zoom";
+  info.textContent = "BUILD MODE\nClick = place\nShift + click = place many\nClick placed piece = move\nX = remove\nR = rotate\n+ / 0 = bigger / smaller\nF = mirror\nP = save\nWASD = walk\nSearch = type to find pieces\nMouse wheel = zoom";
   const search = document.createElement("input");
   search.id = "build-search";
   search.type = "search";
@@ -440,14 +448,14 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     preview.rotation.y = turn * Math.PI / 2;
   }
 
-  async function place(cell) {
+  async function place(cell, keep) {
     if (!enabled || !selection || !cell) return;
     const chosen = selection;
     const placedTurn = turn;
     const placedScale = scale;
     const placedMirror = mirror;
     const token = selectToken;
-    clearSelection();
+    if (!keep) clearSelection();
     let template = null;
     try {
       template = await loadTemplate(chosen.kit, chosen.file);
@@ -455,7 +463,10 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       status("That model failed to load.");
       return;
     }
-    if (!enabled || selectToken !== token + 1) return;
+    if (!enabled) return;
+    if (keep) {
+      if (selectToken !== token || selection !== chosen) return;
+    } else if (selectToken !== token + 1) return;
     addPiece({ ...chosen, x: cell.x, z: cell.z, turn: placedTurn, scale: placedScale, mirror: placedMirror }, template);
     status("Placed.");
   }
@@ -665,7 +676,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
         return;
       }
     }
-    place(cell);
+    place(cell, event.shiftKey && leftShift);
   });
 
   canvas.addEventListener("wheel", (event) => {

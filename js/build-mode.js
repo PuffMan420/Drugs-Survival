@@ -694,5 +694,5 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
 
   await loadSaved();
   status(enabled ? "Build mode." : "Press B for build mode.");
-  return { download, pieceCount: () => pieces.length };
+  return { download, pieceCount: () => pieces.length, isOpen: () => enabled };
 }

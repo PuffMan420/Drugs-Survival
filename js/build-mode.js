@@ -212,22 +212,66 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   panel.append(info, search, list);
   document.body.append(panel);
 
+  const thumbs = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const img = entry.target;
+      img.src = img.dataset.src;
+      thumbs.unobserve(img);
+    }
+  }, { root: list, rootMargin: "240px" });
+
   for (const kit of KITS) {
     const heading = document.createElement("h2");
     heading.textContent = kit.label;
     list.append(heading);
     for (const item of kit.files) {
+      const name = item.file.replace(/\.glb$/, "");
       const button = document.createElement("button");
       button.type = "button";
-      button.textContent = item.file.replace(/\.glb$/, "");
       button.dataset.kit = kit.id;
       button.dataset.file = item.file;
+      const thumb = document.createElement("img");
+      thumb.alt = "";
+      thumb.width = 48;
+      thumb.height = 48;
+      thumb.decoding = "async";
+      thumb.dataset.src = `./assets/previews/${kit.id}/${name}.png`;
+      thumb.addEventListener("error", () => thumb.remove());
+      button.append(thumb, document.createTextNode(name));
       button.addEventListener("click", () => {
         select(kit.id, item.file);
       });
       list.append(button);
     }
   }
+
+  function revealThumbs() {
+    if (panel.hidden) return;
+    const view = list.getBoundingClientRect();
+    if (view.width === 0 || view.height === 0) return;
+    const margin = 240;
+    const top = Math.max(view.top, 0) - margin;
+    const bottom = Math.min(view.bottom, window.innerHeight) + margin;
+    if (bottom <= top) return;
+    for (const img of list.querySelectorAll("img:not([src])")) {
+      if (img.parentElement?.hidden) continue;
+      const rect = img.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) continue;
+      if (rect.bottom < top || rect.top > bottom) continue;
+      img.src = img.dataset.src;
+      thumbs.unobserve(img);
+    }
+  }
+
+  function watchThumbs() {
+    if (panel.hidden) return;
+    for (const img of list.querySelectorAll("img:not([src])")) thumbs.observe(img);
+    revealThumbs();
+  }
+
+  new ResizeObserver(revealThumbs).observe(list);
+  list.addEventListener("scroll", () => requestAnimationFrame(revealThumbs), { passive: true });
 
   function filterPieces() {
     const query = search.value.trim().toLowerCase();
@@ -245,6 +289,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       if (match) shown += 1;
     }
     if (heading) heading.hidden = shown === 0;
+    revealThumbs();
   }
 
   function status() {}
@@ -585,6 +630,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     enabled = next;
     panel.hidden = !enabled;
     if (!enabled) {
+      thumbs.disconnect();
       dropCarried(hover);
       dropPreview();
       hover = null;
@@ -592,6 +638,8 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       return;
     }
     status("Build mode.");
+    watchThumbs();
+    requestAnimationFrame(watchThumbs);
     if (selection) showPreview().catch(() => status("That model failed to load."));
   }
 

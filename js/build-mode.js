@@ -584,8 +584,21 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     if (selection) showPreview().catch(() => status("That model failed to load."));
   }
 
+  function nextScale(current, direction) {
+    return Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((current + direction * SCALE_STEP) * 100) / 100));
+  }
+
   function stepScale(direction) {
-    const next = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((scale + direction * SCALE_STEP) * 100) / 100));
+    if (carrying) {
+      const record = carrying.record;
+      const next = nextScale(record.scale ?? 1, direction);
+      if (next === record.scale) return;
+      record.scale = next;
+      applyScale(carrying.root, record.scale, record.mirror === true);
+      status(direction > 0 ? "Bigger." : "Smaller.");
+      return;
+    }
+    const next = nextScale(scale, direction);
     if (next === scale) return;
     scale = next;
     if (preview) applyScale(preview, scale, mirror);
@@ -595,11 +608,24 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   keys.enabled = () => enabled;
   keys.onB = () => setEnabled(!enabled);
   keys.onR = () => {
+    if (carrying) {
+      const record = carrying.record;
+      record.turn = (record.turn + 1) % 4;
+      carrying.root.rotation.y = record.turn * Math.PI / 2;
+      status("Rotated.");
+      return;
+    }
     turn = (turn + 1) % 4;
     if (preview) preview.rotation.y = turn * Math.PI / 2;
     status("Rotated.");
   };
   keys.onF = () => {
+    if (carrying) {
+      const record = carrying.record;
+      record.mirror = record.mirror !== true;
+      applyScale(carrying.root, record.scale ?? 1, record.mirror);
+      return;
+    }
     mirror = !mirror;
     if (preview) applyScale(preview, scale, mirror);
   };

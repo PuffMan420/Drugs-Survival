@@ -309,11 +309,12 @@ function createAmbientOcclusion(renderer, scene, camera) {
   // maxDistance 0.1 across a near/far span of 600. Those distances are
   // fractions of the span. This camera's span is FAR - NEAR, so the same
   // world distances stay moderate: a few units of depth noise ignored, and
-  // occluders beyond about 60 units ignored. The radius is in world units,
-  // about a third of a block, enough to crease a wall base or a wheel.
+  // occluders beyond about 60 units ignored. The radius is in world units.
+  // 20 is a little under half a block, so a wall base or a wheel reads a
+  // bit more clearly than at 16, without shading the whole street.
   const exampleSpan = 600;
   const span = FAR - NEAR;
-  ssao.kernelRadius = 16;
+  ssao.kernelRadius = 20;
   ssao.minDistance = 0.005 * exampleSpan / span;
   ssao.maxDistance = 0.1 * exampleSpan / span;
   // Streets are wound downward and drawn double-sided. The normal material

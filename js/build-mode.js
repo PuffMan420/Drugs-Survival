@@ -46,11 +46,12 @@ const keys = {
   onR: () => {},
   onP: () => {},
   onX: () => {},
+  onF: () => {},
   onScale: () => {},
 };
 let searchInput = null;
 window.addEventListener("keydown", (event) => {
-  // Letters typed into the piece search must not walk, save, rotate, or resize.
+  // Keys typed into the piece search must not walk, save, rotate, resize, or mirror.
   if (searchInput && event.target === searchInput) return;
   if (event.repeat) return;
   if (event.code === "KeyB") {
@@ -61,12 +62,13 @@ window.addEventListener("keydown", (event) => {
   }
   if (!keys.enabled()) return;
   const direction = brushScale(event);
-  if (event.code !== "KeyR" && event.code !== "KeyP" && event.code !== "KeyX" && direction === 0) return;
+  if (event.code !== "KeyR" && event.code !== "KeyP" && event.code !== "KeyX" && event.code !== "KeyF" && direction === 0) return;
   event.preventDefault();
   event.stopImmediatePropagation();
   if (event.code === "KeyR") keys.onR();
   else if (event.code === "KeyP") keys.onP();
   else if (event.code === "KeyX") keys.onX();
+  else if (event.code === "KeyF") keys.onF();
   else keys.onScale(direction);
 }, true);
 
@@ -168,6 +170,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   let enabled = false;
   let turn = 0;
   let scale = 1;
+  let mirror = false;
   let selection = null;
   let preview = null;
   let selectToken = 0;
@@ -179,9 +182,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   panel.hidden = true;
   const info = document.createElement("p");
   info.id = "build-info";
-  info.textContent = "Click places. X removes. R rotates. + and - resize. P saves. The search box filters this list.";
-  const help = document.createElement("p");
-  help.id = "build-help";
+  info.textContent = "BUILD MODE\nClick = place\nX = remove\nR = rotate\n+ / - = bigger / smaller\nF = mirror\nP = save\nWASD = walk\nSearch = type to find pieces";
   const search = document.createElement("input");
   search.id = "build-search";
   search.type = "search";
@@ -196,7 +197,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   search.addEventListener("input", () => filterPieces());
   const list = document.createElement("div");
   list.id = "build-kits";
-  panel.append(info, help, search, list);
+  panel.append(info, search, list);
   document.body.append(panel);
 
   for (const kit of KITS) {
@@ -234,15 +235,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     if (heading) heading.hidden = shown === 0;
   }
 
-  function pieceCount() {
-    help.dataset.count = String(pieces.length);
-  }
-
-  function status(text) {
-    const name = selection ? selection.file.replace(/\.glb$/, "") : "nothing picked";
-    help.textContent = `${text} ${pieces.length} placed. ${name}, turn ${turn}, scale ${scale}. Click places, X or right-click removes a piece or a west road, R rotates, + and - resize, P downloads west-map.json. Arrows walk.`;
-    pieceCount();
-  }
+  function status() {}
 
   function loadTemplate(kit, file) {
     const key = `${kit}/${file}`;
@@ -263,10 +256,15 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     return pending;
   }
 
+  function applyScale(root, pieceScale, flipped) {
+    const size = UNIT * pieceScale;
+    root.scale.set(flipped ? -size : size, size, size);
+  }
+
   function wrapper(template, spec) {
     const root = new Group();
     root.add(template.clone(true));
-    root.scale.setScalar(UNIT * (spec.scale ?? 1));
+    applyScale(root, spec.scale ?? 1, spec.mirror === true);
     root.position.set((spec.x + 0.5) * TILE, GROUND_Y, (spec.z + 0.5) * TILE);
     root.rotation.y = spec.turn * Math.PI / 2;
     return root;
@@ -281,6 +279,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       z: spec.z,
       turn: spec.turn,
       scale: spec.scale ?? 1,
+      mirror: spec.mirror === true,
     };
     const root = wrapper(template, record);
     root.userData.piece = record;
@@ -309,6 +308,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       z: raw.z,
       turn: turnValue,
       scale: Math.round(scaleValue * 1000) / 1000,
+      mirror: raw.mirror === true,
     };
   }
 
@@ -354,7 +354,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     if (token !== selectToken || !enabled || !selection) return;
     dropPreview();
     const spec = hover || { x: 0, z: 0, turn };
-    preview = wrapper(template, { ...spec, turn, scale });
+    preview = wrapper(template, { ...spec, turn, scale, mirror });
     ghost(preview);
     preview.visible = hover !== null;
     scene.add(preview);
@@ -404,6 +404,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     const chosen = selection;
     const placedTurn = turn;
     const placedScale = scale;
+    const placedMirror = mirror;
     const token = selectToken;
     let template = null;
     try {
@@ -413,7 +414,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       return;
     }
     if (!enabled || token !== selectToken || selection !== chosen) return;
-    addPiece({ ...chosen, x: cell.x, z: cell.z, turn: placedTurn, scale: placedScale }, template);
+    addPiece({ ...chosen, x: cell.x, z: cell.z, turn: placedTurn, scale: placedScale, mirror: placedMirror }, template);
     status("Placed.");
   }
 
@@ -530,7 +531,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     const next = Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((scale + direction * SCALE_STEP) * 100) / 100));
     if (next === scale) return;
     scale = next;
-    if (preview) preview.scale.setScalar(UNIT * scale);
+    if (preview) applyScale(preview, scale, mirror);
     status(direction > 0 ? "Bigger." : "Smaller.");
   }
 
@@ -540,6 +541,10 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     turn = (turn + 1) % 4;
     if (preview) preview.rotation.y = turn * Math.PI / 2;
     status("Rotated.");
+  };
+  keys.onF = () => {
+    mirror = !mirror;
+    if (preview) applyScale(preview, scale, mirror);
   };
   keys.onP = () => download();
   keys.onX = () => {

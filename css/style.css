@@ -114,16 +114,10 @@ canvas {
   margin: 0 0 8px;
   padding: 6px;
   border: 1px solid #fff;
-  color: #fff6d0;
-  background: #000;
-  font: inherit;
-}
-
-#build-help {
-  margin: 0 0 8px;
   color: #fff;
   background: #000;
   font: inherit;
+  white-space: pre;
 }
 
 #build-search {

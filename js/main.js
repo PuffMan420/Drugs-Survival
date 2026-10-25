@@ -309,17 +309,34 @@ function createAmbientOcclusion(renderer, scene, camera) {
   // maxDistance 0.1 across a near/far span of 600. Those distances are
   // fractions of the span. This camera's span is FAR - NEAR, so the same
   // world distances stay moderate: a few units of depth noise ignored, and
-  // occluders beyond about 60 units ignored. The radius is in world units,
-  // about a third of a block, enough to crease a wall base or a wheel.
+  // occluders beyond about 60 units ignored. The radius is in world units.
+  // 20 is a little under half a block, so a wall base or a wheel reads a
+  // bit more clearly than at 16, without shading the whole street.
   const exampleSpan = 600;
   const span = FAR - NEAR;
-  ssao.kernelRadius = 16;
+  ssao.kernelRadius = 20;
   ssao.minDistance = 0.005 * exampleSpan / span;
   ssao.maxDistance = 0.1 * exampleSpan / span;
   // Streets are wound downward and drawn double-sided. The normal material
   // flips a back face only when its side is DoubleSide, so the hemisphere
   // stays above the ground instead of darkening every street.
   ssao.normalMaterial.side = DoubleSide;
+  // The pass multiplies its mask onto the picture and has no strength
+  // control. Open ground stays at 1. A crease of 0.8 becomes 0.68: the
+  // doubled darkening, pulled back by 20%.
+  const aoStrength = 1.6;
+  ssao.copyMaterial.uniforms.strength = { value: aoStrength };
+  ssao.copyMaterial.fragmentShader = `
+    uniform sampler2D tDiffuse;
+    uniform float strength;
+    varying vec2 vUv;
+    void main() {
+      float ao = texture2D(tDiffuse, vUv).r;
+      ao = clamp(1.0 - (1.0 - ao) * strength, 0.0, 1.0);
+      gl_FragColor = vec4(vec3(ao), 1.0);
+    }
+  `;
+  ssao.copyMaterial.needsUpdate = true;
   chain.addPass(ssao);
   chain.addPass(new OutputPass());
 

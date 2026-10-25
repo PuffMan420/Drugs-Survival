@@ -321,6 +321,22 @@ function createAmbientOcclusion(renderer, scene, camera) {
   // flips a back face only when its side is DoubleSide, so the hemisphere
   // stays above the ground instead of darkening every street.
   ssao.normalMaterial.side = DoubleSide;
+  // The pass multiplies its mask onto the picture and has no strength
+  // control. Open ground stays at 1. A crease of 0.8 becomes 0.6, so the
+  // darkening is about twice as deep.
+  const aoStrength = 2;
+  ssao.copyMaterial.uniforms.strength = { value: aoStrength };
+  ssao.copyMaterial.fragmentShader = `
+    uniform sampler2D tDiffuse;
+    uniform float strength;
+    varying vec2 vUv;
+    void main() {
+      float ao = texture2D(tDiffuse, vUv).r;
+      ao = clamp(1.0 - (1.0 - ao) * strength, 0.0, 1.0);
+      gl_FragColor = vec4(vec3(ao), 1.0);
+    }
+  `;
+  ssao.copyMaterial.needsUpdate = true;
   chain.addPass(ssao);
   chain.addPass(new OutputPass());
 

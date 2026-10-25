@@ -187,10 +187,10 @@ export function createGlow(scene, map) {
       for (const light of carLights) {
         if (light.kind === "head") {
           if (headCount >= 64) continue;
-          place(heads, headCount, light.x, 4.2, light.z);
+          place(heads, headCount, light.x, light.y == null ? 4.2 : light.y, light.z);
           headCount += 1;
         } else if (tailCount < 64) {
-          place(tails, tailCount, light.x, 4.2, light.z);
+          place(tails, tailCount, light.x, light.y == null ? 4.2 : light.y, light.z);
           tailCount += 1;
         }
       }

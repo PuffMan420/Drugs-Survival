@@ -437,7 +437,7 @@ async function start() {
   playerSprite.shadow.visible = false;
   scene.add(playerSprite.mesh);
   lightMesh(playerSprite.mesh, { forwardMap: true, cast: true });
-  const traffic = await createTraffic(scene, map);
+  const traffic = await createTraffic(scene, map, savedLayout.pieces);
   const pedestrians = await createPedestrians(scene, map);
   window.pedestrians = pedestrians;
   const glow = createGlow(scene, map);

@@ -3,50 +3,344 @@
     {
       "kit": "roads",
       "file": "road-straight.glb",
-      "x": 49,
-      "z": 43,
-      "turn": 0,
-      "scale": 1
+      "x": 78,
+      "z": 184,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
     },
     {
-      "kit": "commercial",
-      "file": "building-a.glb",
-      "x": 44,
-      "z": 38,
-      "turn": 0,
-      "scale": 1
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 82,
+      "z": 184,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
     },
     {
-      "kit": "suburban",
-      "file": "building-type-a.glb",
-      "x": 48,
-      "z": 42,
-      "turn": 1,
-      "scale": 1
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 78,
+      "z": 188,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
     },
     {
-      "kit": "industrial",
-      "file": "building-a.glb",
-      "x": 50,
-      "z": 36,
-      "turn": 0,
-      "scale": 1
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 82,
+      "z": 188,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
     },
     {
-      "kit": "retro",
-      "file": "wall-a.glb",
-      "x": 45,
-      "z": 40,
-      "turn": 0,
-      "scale": 1
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 78,
+      "z": 192,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
     },
     {
-      "kit": "commercial",
-      "file": "detail-awning.glb",
-      "x": 44,
-      "z": 42,
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 82,
+      "z": 192,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 78,
+      "z": 196,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 82,
+      "z": 196,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 78,
+      "z": 200,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend.glb",
+      "x": 78,
+      "z": 204,
       "turn": 2,
-      "scale": 1
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-curve.glb",
+      "x": 80,
+      "z": 206,
+      "turn": 2,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 82,
+      "z": 200,
+      "turn": 3,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 70,
+      "z": 28,
+      "turn": 3,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 70,
+      "z": 32,
+      "turn": 3,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend.glb",
+      "x": 70,
+      "z": 24,
+      "turn": 3,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 66,
+      "z": 24,
+      "turn": 0,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-curve.glb",
+      "x": 60,
+      "z": 26,
+      "turn": 0,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 70,
+      "z": 36,
+      "turn": 1,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 70,
+      "z": 40,
+      "turn": 1,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 70,
+      "z": 44,
+      "turn": 1,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend.glb",
+      "x": 70,
+      "z": 48,
+      "turn": 2,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 66,
+      "z": 48,
+      "turn": 2,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-half.glb",
+      "x": 58,
+      "z": 31,
+      "turn": 3,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 58,
+      "z": 34,
+      "turn": 1,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 62,
+      "z": 48,
+      "turn": 2,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-bridge.glb",
+      "x": 58,
+      "z": 48,
+      "turn": 2,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-crossing.glb",
+      "x": 58,
+      "z": 38,
+      "turn": 3,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-slant-high.glb",
+      "x": 58,
+      "z": 44,
+      "turn": 1,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-slant-high.glb",
+      "x": 58,
+      "z": 52,
+      "turn": 3,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-half.glb",
+      "x": 58,
+      "z": 41,
+      "turn": 3,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 58,
+      "z": 56,
+      "turn": 3,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend-square.glb",
+      "x": 58,
+      "z": 60,
+      "turn": 2,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-crossing.glb",
+      "x": 54,
+      "z": 60,
+      "turn": 2,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend.glb",
+      "x": 50,
+      "z": 60,
+      "turn": 1,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 50,
+      "z": 56,
+      "turn": 1,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 54,
+      "z": 48,
+      "turn": 2,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend.glb",
+      "x": 50,
+      "z": 48,
+      "turn": 0,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight.glb",
+      "x": 50,
+      "z": 52,
+      "turn": 1,
+      "scale": 1,
+      "mirror": true
     }
   ],
   "removedRoads": []

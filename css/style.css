@@ -110,6 +110,15 @@ canvas {
   display: none;
 }
 
+#build-info {
+  margin: 0 0 8px;
+  padding: 6px;
+  border: 1px solid #fff;
+  color: #fff6d0;
+  background: #000;
+  font: inherit;
+}
+
 #build-help {
   margin: 0 0 8px;
   color: #fff;
@@ -117,8 +126,22 @@ canvas {
   font: inherit;
 }
 
+#build-search {
+  margin: 0 0 8px;
+  padding: 4px 6px;
+  border: 1px solid #fff;
+  background: #000;
+  color: #fff;
+  font: inherit;
+}
+
 #build-kits {
   overflow: auto;
+}
+
+#build-kits h2[hidden],
+#build-kits button[hidden] {
+  display: none;
 }
 
 #build-kits h2 {

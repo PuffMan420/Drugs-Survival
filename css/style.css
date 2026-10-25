@@ -149,7 +149,9 @@ canvas {
 }
 
 #build-kits button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   margin: 0 0 2px;
   padding: 3px 6px;
@@ -159,6 +161,13 @@ canvas {
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+#build-kits button img {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  object-fit: contain;
 }
 
 #build-kits button.is-selected {

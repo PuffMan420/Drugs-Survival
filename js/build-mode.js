@@ -1,10 +1,13 @@
 import {
+  ClampToEdgeWrapping,
   Group,
   LinearFilter,
   LinearMipmapLinearFilter,
   Matrix4,
   Plane,
   Raycaster,
+  SRGBColorSpace,
+  TextureLoader,
   Vector2,
   Vector3,
 } from "three";
@@ -85,6 +88,56 @@ window.addEventListener("blur", () => {
 
 function modelUrl(path) {
   return new URL(`../${path}`, import.meta.url).href;
+}
+
+const textureLoader = new TextureLoader();
+const skinTextures = new Map();
+
+function loadSkinTexture(url) {
+  const cached = skinTextures.get(url);
+  if (cached) return Promise.resolve(cached);
+  const pending = textureLoader.loadAsync(modelUrl(url)).then((texture) => {
+    texture.colorSpace = SRGBColorSpace;
+    texture.flipY = true;
+    texture.wrapS = ClampToEdgeWrapping;
+    texture.wrapT = ClampToEdgeWrapping;
+    texture.magFilter = LinearFilter;
+    texture.minFilter = LinearMipmapLinearFilter;
+    texture.generateMipmaps = true;
+    texture.needsUpdate = true;
+    skinTextures.set(url, texture);
+    return texture;
+  });
+  skinTextures.set(url, pending);
+  return pending;
+}
+
+// road-straight skins keep the original mesh. Its UVs point into the Kenney
+// atlas, so a full road PNG is projected across the top: length along X,
+// width along Z. The image edge is the curb and lands on the raised edge.
+function paintStraightSkin(root, texture) {
+  root.traverse((obj) => {
+    if (!obj.isMesh || !obj.geometry) return;
+    const geometry = obj.geometry.clone();
+    const position = geometry.getAttribute("position");
+    const uv = geometry.getAttribute("uv");
+    if (position && uv) {
+      for (let i = 0; i < position.count; i += 1) {
+        uv.setXY(i, position.getX(i) + 0.5, position.getZ(i) + 0.5);
+      }
+      uv.needsUpdate = true;
+    }
+    obj.geometry = geometry;
+    const list = Array.isArray(obj.material) ? obj.material : [obj.material];
+    const next = list.map((mat) => {
+      const copy = mat.clone();
+      copy.map = texture;
+      if (copy.color) copy.color.set(0xffffff);
+      copy.needsUpdate = true;
+      return copy;
+    });
+    obj.material = Array.isArray(obj.material) ? next : next[0];
+  });
 }
 
 function linearize(root) {
@@ -236,7 +289,9 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       thumb.width = 48;
       thumb.height = 48;
       thumb.decoding = "async";
-      thumb.dataset.src = `./assets/previews/${kit.id}/${name}.png`;
+      thumb.dataset.src = item.texture
+        ? `./${item.texture}`
+        : `./assets/previews/${kit.id}/${name}.png`;
       thumb.addEventListener("error", () => thumb.remove());
       button.append(thumb, document.createTextNode(name));
       button.addEventListener("click", () => {
@@ -301,10 +356,15 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     const cached = templates.get(key);
     if (cached?.isObject3D) return Promise.resolve(cached);
     if (cached) return cached;
-    const pending = loader.loadAsync(modelUrl(item.url)).then((gltf) => {
-      linearize(gltf.scene);
-      templates.set(key, gltf.scene);
-      return gltf.scene;
+    const pending = loader.loadAsync(modelUrl(item.url)).then(async (gltf) => {
+      const scene = gltf.scene;
+      if (item.texture) {
+        const texture = await loadSkinTexture(item.texture);
+        paintStraightSkin(scene, texture);
+      }
+      linearize(scene);
+      templates.set(key, scene);
+      return scene;
     }).catch((error) => {
       if (templates.get(key) === pending) templates.delete(key);
       throw error;

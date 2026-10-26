@@ -22,6 +22,9 @@ const NEAR = 64;
 
 const KIND = new Map([
   ["road-straight.glb", "x"],
+  ["road-straight-2.glb", "x"],
+  ["road-straight-3.glb", "x"],
+  ["road-straight-4.glb", "x"],
   ["road-crossing.glb", "x"],
   ["road-straight-half.glb", "half"],
   ["road-slant.glb", "slant"],

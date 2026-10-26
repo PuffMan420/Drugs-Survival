@@ -337,6 +337,21 @@ export const KITS = [
         "url": "GLB format/road-straight.glb"
       },
       {
+        "file": "road-straight-2.glb",
+        "url": "GLB format/road-straight.glb",
+        "texture": "assets/roads/road-straight-2.png"
+      },
+      {
+        "file": "road-straight-3.glb",
+        "url": "GLB format/road-straight.glb",
+        "texture": "assets/roads/road-straight-3.png"
+      },
+      {
+        "file": "road-straight-4.glb",
+        "url": "GLB format/road-straight.glb",
+        "texture": "assets/roads/road-straight-4.png"
+      },
+      {
         "file": "sign-highway-detailed.glb",
         "url": "GLB format/sign-highway-detailed.glb"
       },

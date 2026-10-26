@@ -16,9 +16,9 @@ import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { GROUND_H, GROUND_W, TILE } from "./constants.js";
 import { westOfCanal } from "./kenney-road-plan.js";
 
-// Same height fit as the player, including both extra 10% bumps, so these figures stand with him.
+// Same height fit as the player, including both extra 10% bumps and another 5%, so these figures stand with him.
 const SEDAN_LENGTH = 71;
-const SCALE_BUMP = 1.15 * 1.1 * 1.1;
+const SCALE_BUMP = 1.15 * 1.1 * 1.1 * 1.05;
 const FEET_Y = 0.6;
 const FADE = 0.12;
 // A walk covers a little under one sidewalk tile per cycle. Run is twice that.

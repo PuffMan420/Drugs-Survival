@@ -224,6 +224,7 @@ function paintBendSkin(root, texture) {
 // wall shows the same edge of the picture as the top. flipY and clamp-to-edge
 // come from the skin texture loader. Geometry and materials are cloned first.
 const PLANAR_MESH = new Set([
+  "road-bend.glb",
   "road-bend-square.glb",
   "road-crossing.glb",
   "road-crossroad.glb",
@@ -937,8 +938,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       } else if (item.texture) {
         const texture = await loadSkinTexture(item.texture);
         const mesh = item.url.slice(item.url.lastIndexOf("/") + 1);
-        if (mesh === "road-bend.glb") paintBendSkin(scene, texture);
-        else if (PLANAR_MESH.has(mesh)) paintPlanarSkin(scene, texture);
+        if (PLANAR_MESH.has(mesh)) paintPlanarSkin(scene, texture);
         else paintStraightSkin(scene, texture);
       }
       linearize(scene);

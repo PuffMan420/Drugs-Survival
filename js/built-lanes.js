@@ -29,6 +29,8 @@ const KIND = new Map([
   ["road-straight-6.glb", "x"],
   ["road-straight-7.glb", "x"],
   ["road-crossing.glb", "x"],
+  ["road-crossing-2.glb", "x"],
+  ["road-crossing-3.glb", "x"],
   ["road-straight-half.glb", "half"],
   ["road-straight-half-2.glb", "half"],
   ["road-straight-half-3.glb", "half"],
@@ -44,16 +46,32 @@ const KIND = new Map([
   ["road-bend-2.glb", "bend"],
   ["road-bend-3.glb", "bend"],
   ["road-bend-square.glb", "bend"],
+  ["road-bend-square-2.glb", "bend"],
+  ["road-bend-square-3.glb", "bend"],
   ["road-bend-sidewalk.glb", "bend"],
   ["road-curve.glb", "curve"],
+  ["road-curve-2.glb", "curve"],
+  ["road-curve-3.glb", "curve"],
+  ["road-curve-intersection-2.glb", "curve"],
+  ["road-curve-intersection-3.glb", "curve"],
   ["road-bridge.glb", "bridge"],
   ["road-bridge-2.glb", "bridge"],
   ["road-crossroad.glb", "cross"],
+  ["road-crossroad-2.glb", "cross"],
+  ["road-crossroad-3.glb", "cross"],
   ["road-crossroad-line.glb", "cross"],
   ["road-crossroad-path.glb", "cross"],
+  ["road-crossroad-path-2.glb", "cross"],
+  ["road-crossroad-path-3.glb", "cross"],
   ["road-intersection.glb", "tee"],
+  ["road-intersection-2.glb", "tee"],
+  ["road-intersection-3.glb", "tee"],
   ["road-intersection-line.glb", "tee"],
   ["road-intersection-path.glb", "tee"],
+  ["road-intersection-path-2.glb", "tee"],
+  ["road-intersection-path-3.glb", "tee"],
+  ["road-roundabout-2.glb", "round"],
+  ["road-roundabout-3.glb", "round"],
 ]);
 
 function line(x0, z0, x1, z1, y0, y1, steps) {
@@ -89,6 +107,22 @@ function centerlines(kind) {
   if (kind === "slant-high") return [line(-0.5, 0, 0.5, 0, Y_ROAD, Y_DECK, 8)];
   if (kind === "bend") return [arc(-0.5, 0.5, 0.5, -Math.PI / 2, 0, 12)];
   if (kind === "curve") return [arc(-1, 1, 1.5, -Math.PI / 2, 0, 16)];
+  if (kind === "round") {
+    const radius = 0.95;
+    const ring = [];
+    const steps = 24;
+    for (let i = 0; i <= steps; i += 1) {
+      const angle = (i / steps) * Math.PI * 2;
+      ring.push({ x: radius * Math.cos(angle), y: Y_ROAD, z: radius * Math.sin(angle) });
+    }
+    return [
+      ring,
+      line(0, radius, 0, 1.5, Y_ROAD, Y_ROAD, 2),
+      line(0, -1.5, 0, -radius, Y_ROAD, Y_ROAD, 2),
+      line(-1.5, 0, -radius, 0, Y_ROAD, Y_ROAD, 2),
+      line(radius, 0, 1.5, 0, Y_ROAD, Y_ROAD, 2),
+    ];
+  }
   if (kind === "bridge") {
     return [
       line(-0.5, 0, 0.5, 0, Y_ROAD, Y_ROAD, 4),

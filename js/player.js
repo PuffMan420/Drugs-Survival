@@ -11,6 +11,7 @@ import {
   SRGBColorSpace,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
 
 // Brisk walk. The live speed stays here; constants.js mirrors it.
 const SPEED = 80;
@@ -118,6 +119,10 @@ export async function createPlayer() {
   model.updateMatrixWorld(true);
   const fitted = new Box3().setFromObject(model);
   model.position.y -= fitted.min.y;
+  // After the height fit, so SCALE_BUMP still measures the full body.
+  // The clips' Head.scale tracks are a constant 1 and would undo this.
+  shrinkHead(model);
+  dropHeadScaleTracks(gltf.animations);
 
   const holder = new Group();
   holder.frustumCulled = false;

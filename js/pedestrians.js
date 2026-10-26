@@ -13,6 +13,7 @@ import {
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
+import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
 import { GROUND_H, GROUND_W, TILE } from "./constants.js";
 import { westOfCanal } from "./kenney-road-plan.js";
 
@@ -354,6 +355,8 @@ function fitModel(model) {
   model.updateMatrixWorld(true);
   const fitted = new Box3().setFromObject(model);
   model.position.y -= fitted.min.y;
+  // Same order as the player: the height fit has already run.
+  shrinkHead(model);
 }
 
 function sidewalkGraph(map) {
@@ -447,6 +450,9 @@ export async function createPedestrians(scene, map) {
       throw new Error(`The pedestrian model failed to load: ${file}`);
     }
     const clips = await clipsFor(gltf);
+    // Own clips and any player-file fallback. Head.scale is a rest hold
+    // at 1, and the mixer would write it back over the smaller head.
+    dropHeadScaleTracks(clips);
     const template = gltf.scene;
     const mask = clothMask(template);
     litMaterials(template);

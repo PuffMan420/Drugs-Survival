@@ -775,7 +775,9 @@ export async function loadWestMap() {
   return layoutFrom(data);
 }
 
-export async function createBuildMode({ scene, camera, canvas, map, saved = null, roads = null }) {
+// onPiecesChanged(pieces) runs after every edit that moves, adds, removes or
+// reshapes a placed piece, so physics can match what is on screen.
+export async function createBuildMode({ scene, camera, canvas, map, saved = null, roads = null, onPiecesChanged = null }) {
   const group = new Group();
   group.name = "west-build";
   scene.add(group);
@@ -798,6 +800,10 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   let selectToken = 0;
   let hover = null;
   let pointerAt = null;
+
+  function changed() {
+    if (onPiecesChanged) onPiecesChanged(pieces);
+  }
 
   const panel = document.createElement("aside");
   panel.id = "build-panel";
@@ -1056,9 +1062,11 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
 
   function moveCarried(cell) {
     if (!carrying || !cell) return;
+    const moved = carrying.record.x !== cell.x || carrying.record.z !== cell.z;
     carrying.record.x = cell.x;
     carrying.record.z = cell.z;
     carrying.root.position.set((cell.x + 0.5) * TILE, GROUND_Y, (cell.z + 0.5) * TILE);
+    if (moved) changed();
   }
 
   function dropCarried(cell) {
@@ -1152,6 +1160,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       if (selectToken !== token || selection !== chosen) return;
     } else if (selectToken !== token + 1) return;
     addPiece({ ...chosen, x: cell.x, z: cell.z, turn: placedTurn, scale: placedScale, mirror: placedMirror }, template);
+    changed();
     status("Placed.");
   }
 
@@ -1163,6 +1172,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     for (const child of [...group.children]) {
       if (child.userData.piece === record) child.removeFromParent();
     }
+    changed();
     status("Removed.");
     return true;
   }
@@ -1293,6 +1303,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       if (next === record.scale) return;
       record.scale = next;
       applyScale(carrying.root, record.scale, record.mirror === true);
+      changed();
       status(direction > 0 ? "Bigger." : "Smaller.");
       return;
     }
@@ -1310,6 +1321,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       const record = carrying.record;
       record.turn = (record.turn + 1) % 4;
       carrying.root.rotation.y = record.turn * Math.PI / 2;
+      changed();
       status("Rotated.");
       return;
     }
@@ -1322,6 +1334,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       const record = carrying.record;
       record.mirror = record.mirror !== true;
       applyScale(carrying.root, record.scale ?? 1, record.mirror);
+      changed();
       return;
     }
     mirror = !mirror;
@@ -1380,6 +1393,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   });
 
   await loadSaved();
+  changed();
   status(enabled ? "Build mode." : "Press B for build mode.");
   return { download, pieceCount: () => pieces.length, isOpen: () => enabled };
 }

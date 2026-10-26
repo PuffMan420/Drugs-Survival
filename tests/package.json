@@ -1,0 +1,12 @@
+{
+  "name": "drugs-survival-tests",
+  "private": true,
+  "type": "module",
+  "description": "Headless checks for the game modules. The site itself has no build step.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "@dimforge/rapier3d-compat": "0.21.0"
+  }
+}

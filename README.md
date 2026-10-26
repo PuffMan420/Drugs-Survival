@@ -31,3 +31,13 @@ node tools/generate-map.mjs
 ```
 
 The plan in that script (where the river, parks, and districts sit) is the easy place to change the layout.
+
+## Physics tests
+
+The shared physics world (`js/physics.js`, `js/physics-scene.js`, `js/drive.js`) has headless checks in `tests/`. They need Node 20 or newer:
+
+```bash
+cd tests
+npm install
+npm test
+```

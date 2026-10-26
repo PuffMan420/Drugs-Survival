@@ -27,6 +27,8 @@ import {
 } from "./constants.js";
 import { createTraffic } from "./cars.js";
 import { createDrive } from "./drive.js";
+import { createPhysics } from "./physics.js";
+import { createPhysicsScene } from "./physics-scene.js";
 import { buildCity, tileAt, tileCenter, updateChunks } from "./city.js";
 import { createPedestrians } from "./pedestrians.js";
 import { createGlow } from "./glow.js";
@@ -439,7 +441,9 @@ async function start() {
   scene.add(playerSprite.mesh);
   lightMesh(playerSprite.mesh, { forwardMap: true, cast: true });
   const traffic = await createTraffic(scene, map, savedLayout.pieces);
-  const drive = await createDrive(map, savedLayout.pieces);
+  const physics = await createPhysics();
+  const physicsScene = createPhysicsScene(physics, map, savedLayout.pieces, { cars: () => traffic.cars() });
+  const drive = createDrive(physics, physicsScene);
   const hintEl = document.getElementById("hint");
   const hintWalk = hintEl.textContent;
   const pedestrians = await createPedestrians(scene, map);
@@ -468,6 +472,7 @@ async function start() {
     map,
     saved: savedLayout,
     roads: city.roads,
+    onPiecesChanged: (pieces) => physicsScene.setRoads(pieces),
   });
 
   omitFromAmbientOcclusion(scene);
@@ -504,18 +509,25 @@ async function start() {
   };
 
   function frame(now) {
-    const dt = Math.min((now - last) / 1000, 0.05);
+    const frameDt = (now - last) / 1000;
+    const dt = Math.min(frameDt, 0.05);
     last = now;
     const previousX = player.x;
     const previousZ = player.z;
 
     if (drive.driving) {
-      const pose = drive.update(dt, {
+      drive.control({
         forward: held.has("KeyW"),
         brake: held.has("KeyS"),
         left: held.has("KeyA"),
         right: held.has("KeyD"),
-      }, traffic.cars());
+      });
+    }
+    // Physics keeps its own clock: whole 1/60 s steps, capped per frame.
+    physics.step(frameDt);
+
+    if (drive.driving) {
+      const pose = drive.pose();
       if (pose) {
         player.x = pose.x;
         player.z = pose.z;

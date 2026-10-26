@@ -41,6 +41,8 @@ const KIND = new Map([
   ["road-slant-high-4.glb", "slant-high"],
   ["road-slant-flat-high.glb", "slant-high"],
   ["road-bend.glb", "bend"],
+  ["road-bend-2.glb", "bend"],
+  ["road-bend-3.glb", "bend"],
   ["road-bend-square.glb", "bend"],
   ["road-bend-sidewalk.glb", "bend"],
   ["road-curve.glb", "curve"],

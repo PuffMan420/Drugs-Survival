@@ -166,6 +166,58 @@ function paintStraightSkin(root, texture) {
   });
 }
 
+// road-bend skins keep the Kenney quarter bend. The arc is a unit quarter
+// disc centred at (x, z) = (-0.5, 0.5): u runs along the arc and v runs
+// with the radius, so a straight-road PNG wraps the curve. flipY is true.
+// Curb walls are the faces whose normal runs along the radius; they sweep
+// the same 10% band as a straight skin. The mesh is cloned first so the
+// shared road-bend geometry stays untouched.
+function paintBendSkin(root, texture) {
+  root.traverse((obj) => {
+    if (!obj.isMesh || !obj.geometry) return;
+    let geometry = obj.geometry.clone();
+    if (!geometry.getAttribute("normal")) {
+      geometry = geometry.toNonIndexed();
+      geometry.computeVertexNormals();
+    }
+    const position = geometry.getAttribute("position");
+    const normal = geometry.getAttribute("normal");
+    const uv = geometry.getAttribute("uv");
+    if (position && uv) {
+      for (let i = 0; i < position.count; i += 1) {
+        const x = position.getX(i);
+        const y = position.getY(i);
+        const z = position.getZ(i);
+        const dx = x + 0.5;
+        const dz = 0.5 - z;
+        const r = Math.hypot(dx, dz);
+        uv.setXY(i, Math.atan2(dz, dx) / (Math.PI / 2), r);
+        if (normal && r > 0) {
+          // dz is (0.5 - z), so the mesh z component of the outward radius flips.
+          const along = Math.abs(normal.getX(i) * dx + normal.getZ(i) * (z - 0.5)) / r;
+          if (along > 0.5) {
+            const d = (0.02 - y) * 5;
+            const outer = r < 1e-3 || Math.abs(r - 1) < 1e-3;
+            const edge = outer ? d : 0.1 - d;
+            uv.setY(i, r < 0.5 ? edge : 1 - edge);
+          }
+        }
+      }
+      uv.needsUpdate = true;
+    }
+    obj.geometry = geometry;
+    const list = Array.isArray(obj.material) ? obj.material : [obj.material];
+    const next = list.map((mat) => {
+      const copy = mat.clone();
+      copy.map = texture;
+      if (copy.color) copy.color.set(0xffffff);
+      copy.needsUpdate = true;
+      return copy;
+    });
+    obj.material = Array.isArray(obj.material) ? next : next[0];
+  });
+}
+
 // road-slant-high skins keep the Kenney ramp and parent the matching barrier
 // at the same origin. Length runs along X: the deck rises from y=0 at x=-0.5
 // to about y=0.52 at x=0.5, and the width runs along Z. Top faces take the
@@ -822,7 +874,8 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
         });
       } else if (item.texture) {
         const texture = await loadSkinTexture(item.texture);
-        paintStraightSkin(scene, texture);
+        if (item.url.endsWith("/road-bend.glb")) paintBendSkin(scene, texture);
+        else paintStraightSkin(scene, texture);
       }
       linearize(scene);
       templates.set(key, scene);

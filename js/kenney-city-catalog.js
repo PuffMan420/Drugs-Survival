@@ -109,6 +109,16 @@ export const KITS = [
         "url": "GLB format/road-bend.glb"
       },
       {
+        "file": "road-bend-2.glb",
+        "url": "GLB format/road-bend.glb",
+        "texture": "assets/roads/road-bend-2.png"
+      },
+      {
+        "file": "road-bend-3.glb",
+        "url": "GLB format/road-bend.glb",
+        "texture": "assets/roads/road-bend-3.png"
+      },
+      {
         "file": "road-bridge.glb",
         "url": "GLB format/road-bridge.glb"
       },

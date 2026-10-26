@@ -105,6 +105,16 @@ export const KITS = [
         "url": "GLB format/road-bend-square.glb"
       },
       {
+        "file": "road-bend-square-2.glb",
+        "url": "GLB format/road-bend-square.glb",
+        "texture": "assets/roads/road-bend-square-2.png"
+      },
+      {
+        "file": "road-bend-square-3.glb",
+        "url": "GLB format/road-bend-square.glb",
+        "texture": "assets/roads/road-bend-square-3.png"
+      },
+      {
         "file": "road-bend.glb",
         "url": "GLB format/road-bend.glb"
       },
@@ -136,6 +146,16 @@ export const KITS = [
         "url": "GLB format/road-crossing.glb"
       },
       {
+        "file": "road-crossing-2.glb",
+        "url": "GLB format/road-crossing.glb",
+        "texture": "assets/roads/road-crossing-2.png"
+      },
+      {
+        "file": "road-crossing-3.glb",
+        "url": "GLB format/road-crossing.glb",
+        "texture": "assets/roads/road-crossing-3.png"
+      },
+      {
         "file": "road-crossroad-barrier.glb",
         "url": "GLB format/road-crossroad-barrier.glb"
       },
@@ -148,8 +168,28 @@ export const KITS = [
         "url": "GLB format/road-crossroad-path.glb"
       },
       {
+        "file": "road-crossroad-path-2.glb",
+        "url": "GLB format/road-crossroad-path.glb",
+        "texture": "assets/roads/road-crossroad-path-2.png"
+      },
+      {
+        "file": "road-crossroad-path-3.glb",
+        "url": "GLB format/road-crossroad-path.glb",
+        "texture": "assets/roads/road-crossroad-path-3.png"
+      },
+      {
         "file": "road-crossroad.glb",
         "url": "GLB format/road-crossroad.glb"
+      },
+      {
+        "file": "road-crossroad-2.glb",
+        "url": "GLB format/road-crossroad.glb",
+        "texture": "assets/roads/road-crossroad-2.png"
+      },
+      {
+        "file": "road-crossroad-3.glb",
+        "url": "GLB format/road-crossroad.glb",
+        "texture": "assets/roads/road-crossroad-3.png"
       },
       {
         "file": "road-curve-barrier.glb",
@@ -164,12 +204,32 @@ export const KITS = [
         "url": "GLB format/road-curve-intersection.glb"
       },
       {
+        "file": "road-curve-intersection-2.glb",
+        "url": "GLB format/road-curve-intersection.glb",
+        "texture": "assets/roads/road-curve-intersection-2.png"
+      },
+      {
+        "file": "road-curve-intersection-3.glb",
+        "url": "GLB format/road-curve-intersection.glb",
+        "texture": "assets/roads/road-curve-intersection-3.png"
+      },
+      {
         "file": "road-curve-pavement.glb",
         "url": "GLB format/road-curve-pavement.glb"
       },
       {
         "file": "road-curve.glb",
         "url": "GLB format/road-curve.glb"
+      },
+      {
+        "file": "road-curve-2.glb",
+        "url": "GLB format/road-curve.glb",
+        "texture": "assets/roads/road-curve-2.png"
+      },
+      {
+        "file": "road-curve-3.glb",
+        "url": "GLB format/road-curve.glb",
+        "texture": "assets/roads/road-curve-3.png"
       },
       {
         "file": "road-driveway-double-barrier.glb",
@@ -216,8 +276,28 @@ export const KITS = [
         "url": "GLB format/road-intersection-path.glb"
       },
       {
+        "file": "road-intersection-path-2.glb",
+        "url": "GLB format/road-intersection-path.glb",
+        "texture": "assets/roads/road-intersection-path-2.png"
+      },
+      {
+        "file": "road-intersection-path-3.glb",
+        "url": "GLB format/road-intersection-path.glb",
+        "texture": "assets/roads/road-intersection-path-3.png"
+      },
+      {
         "file": "road-intersection.glb",
         "url": "GLB format/road-intersection.glb"
+      },
+      {
+        "file": "road-intersection-2.glb",
+        "url": "GLB format/road-intersection.glb",
+        "texture": "assets/roads/road-intersection-2.png"
+      },
+      {
+        "file": "road-intersection-3.glb",
+        "url": "GLB format/road-intersection.glb",
+        "texture": "assets/roads/road-intersection-3.png"
       },
       {
         "file": "road-roundabout-barrier.glb",
@@ -226,6 +306,16 @@ export const KITS = [
       {
         "file": "road-roundabout.glb",
         "url": "GLB format/road-roundabout.glb"
+      },
+      {
+        "file": "road-roundabout-2.glb",
+        "url": "GLB format/road-roundabout.glb",
+        "texture": "assets/roads/road-roundabout-2.png"
+      },
+      {
+        "file": "road-roundabout-3.glb",
+        "url": "GLB format/road-roundabout.glb",
+        "texture": "assets/roads/road-roundabout-3.png"
       },
       {
         "file": "road-side-barrier.glb",

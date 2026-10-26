@@ -218,6 +218,68 @@ function paintBendSkin(root, texture) {
   });
 }
 
+// These Kenney meshes are one flat junction. A skin projects the PNG across
+// the piece: E is half the width, the bounding box max X. Curb walls sample
+// a point shifted back along the horizontal normal by the curb band, so the
+// wall shows the same edge of the picture as the top. flipY and clamp-to-edge
+// come from the skin texture loader. Geometry and materials are cloned first.
+const PLANAR_MESH = new Set([
+  "road-bend-square.glb",
+  "road-crossing.glb",
+  "road-crossroad.glb",
+  "road-crossroad-path.glb",
+  "road-curve.glb",
+  "road-curve-intersection.glb",
+  "road-intersection.glb",
+  "road-intersection-path.glb",
+  "road-roundabout.glb",
+]);
+
+function paintPlanarSkin(root, texture) {
+  root.traverse((obj) => {
+    if (!obj.isMesh || !obj.geometry) return;
+    let geometry = obj.geometry.clone();
+    if (!geometry.getAttribute("normal")) {
+      geometry = geometry.toNonIndexed();
+      geometry.computeVertexNormals();
+    }
+    geometry.computeBoundingBox();
+    const extent = geometry.boundingBox.max.x;
+    const position = geometry.getAttribute("position");
+    const normal = geometry.getAttribute("normal");
+    const uv = geometry.getAttribute("uv");
+    if (position && uv && extent > 0) {
+      const span = extent * 2;
+      for (let i = 0; i < position.count; i += 1) {
+        let x = position.getX(i);
+        let z = position.getZ(i);
+        if (normal && Math.abs(normal.getY(i)) < 0.5) {
+          const nx = normal.getX(i);
+          const nz = normal.getZ(i);
+          const horizontal = Math.hypot(nx, nz);
+          if (horizontal > 0) {
+            const d = Math.max(0, (0.02 - position.getY(i)) * 5);
+            x -= (nx / horizontal) * d;
+            z -= (nz / horizontal) * d;
+          }
+        }
+        uv.setXY(i, (x + extent) / span, (extent - z) / span);
+      }
+      uv.needsUpdate = true;
+    }
+    obj.geometry = geometry;
+    const list = Array.isArray(obj.material) ? obj.material : [obj.material];
+    const next = list.map((mat) => {
+      const copy = mat.clone();
+      copy.map = texture;
+      if (copy.color) copy.color.set(0xffffff);
+      copy.needsUpdate = true;
+      return copy;
+    });
+    obj.material = Array.isArray(obj.material) ? next : next[0];
+  });
+}
+
 // road-slant-high skins keep the Kenney ramp and parent the matching barrier
 // at the same origin. Length runs along X: the deck rises from y=0 at x=-0.5
 // to about y=0.52 at x=0.5, and the width runs along Z. Top faces take the
@@ -874,7 +936,9 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
         });
       } else if (item.texture) {
         const texture = await loadSkinTexture(item.texture);
-        if (item.url.endsWith("/road-bend.glb")) paintBendSkin(scene, texture);
+        const mesh = item.url.slice(item.url.lastIndexOf("/") + 1);
+        if (mesh === "road-bend.glb") paintBendSkin(scene, texture);
+        else if (PLANAR_MESH.has(mesh)) paintPlanarSkin(scene, texture);
         else paintStraightSkin(scene, texture);
       }
       linearize(scene);

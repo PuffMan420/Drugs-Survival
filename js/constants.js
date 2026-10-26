@@ -1,6 +1,6 @@
 export const TILE = 48;
-// 12.5% nearer than the first camera distance (2800). The framed ground shrinks by the same amount.
-export const CAMERA_DISTANCE = 0.875;
+// 5% nearer than the first camera distance (2800). The framed ground shrinks by the same amount.
+export const CAMERA_DISTANCE = 0.95;
 // Polar angle from straight up. 20 degrees toward south, so south walls show a little.
 export const CAMERA_ANGLE = 20 * Math.PI / 180;
 // Distance from the player. The previous camera sat 2800*0.875 above the ground

@@ -30,6 +30,9 @@ const SPAWN_MIN = 500;
 const SPAWN_MAX = 860;
 const DESPAWN = 1120;
 const STUCK_TIME = 2.6;
+// A car the player leaves within this of its lane, facing along it, drives on.
+const REJOIN_GAP = 12;
+const REJOIN_TURN = 0.6;
 
 function tileHash(x, z) {
   let h = Math.imul(x | 0, 374761393) ^ Math.imul(z | 0, 668265263);
@@ -604,6 +607,25 @@ function pointAlong(exit, dist, out) {
   return out;
 }
 
+// Closest point on an exit's polyline: how far along it, and how far off it.
+function nearestOnExit(exit, x, z) {
+  let best = { dist: 0, gap: Infinity, hx: 0, hz: -1 };
+  let along = 0;
+  for (let i = 0; i < exit.seg.length; i += 1) {
+    const a = exit.pts[i];
+    const b = exit.pts[i + 1];
+    const dx = b.x - a.x;
+    const dz = b.z - a.z;
+    const len2 = dx * dx + dz * dz;
+    let t = len2 > 0 ? ((x - a.x) * dx + (z - a.z) * dz) / len2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    const gap = Math.hypot(a.x + dx * t - x, a.z + dz * t - z);
+    if (gap < best.gap) best = { dist: along + exit.seg[i] * t, gap, hx: dx, hz: dz };
+    along += exit.seg[i];
+  }
+  return best;
+}
+
 function sharesRoad(a, b) {
   if (a.y == null || b.y == null) return true;
   return Math.abs(a.y - b.y) < 36;
@@ -883,14 +905,51 @@ export function createSim(plan, models, pick) {
     return { exitIndex: chosen.index, arc: chosen.arc };
   }
 
+  // The player just left this car. Near its lane and facing along it, it
+  // drives on from that spot; anywhere else it stays put until off screen.
+  function release(driver) {
+    driver.wasHeld = false;
+    driver.reap = false;
+    driver.stray = false;
+    const options = [{ node: driver.node, exit: driver.exit }];
+    if (driver.arc) options.push({ node: driver.arc.nextNode, exit: driver.arc.nextExit });
+    driver.arc = null;
+    driver.commit = null;
+    let best = null;
+    for (const option of options) {
+      const edge = plan.nodes[option.node] && plan.nodes[option.node].exits[option.exit];
+      if (!edge) continue;
+      const hit = nearestOnExit(edge, driver.x, driver.z);
+      if (!best || hit.gap < best.hit.gap) best = { ...option, hit };
+    }
+    const turn = best ? Math.abs(wrapAngle(headingAngle(best.hit.hx, best.hit.hz) - driver.angle)) : Infinity;
+    if (best && best.hit.gap <= REJOIN_GAP && turn <= REJOIN_TURN) {
+      driver.node = best.node;
+      driver.exit = best.exit;
+      driver.dist = best.hit.dist;
+      // The sim steers by angle; the physics tilt would freeze the drawn heading.
+      driver.quat = null;
+      return;
+    }
+    driver.stray = true;
+  }
+
   return {
     drivers,
     step(dt, camX, camZ, playerX, playerZ) {
       for (let i = drivers.length - 1; i >= 0; i -= 1) {
         const driver = drivers[i];
-        if (driver.held) continue;
+        if (driver.held) {
+          driver.wasHeld = true;
+          continue;
+        }
+        if (driver.wasHeld) release(driver);
         const dist = Math.hypot(driver.x - camX, driver.z - camZ);
         const onScreen = Math.abs(driver.x - camX) < 560 && driver.z > camZ - 420 && driver.z < camZ + 560;
+        if (driver.stray) {
+          if (!onScreen) drivers.splice(i, 1);
+          continue;
+        }
         if (driver.reap || dist > DESPAWN || (driver.wait > STUCK_TIME && !driver.blocked && !onScreen)) {
           drivers.splice(i, 1);
         }
@@ -905,7 +964,7 @@ export function createSim(plan, models, pick) {
 
       const player = { x: playerX, z: playerZ, y: 0.6, angle: 0, w: 32, h: 32, speed: 0 };
       for (const driver of drivers) {
-        if (driver.held) continue;
+        if (driver.held || driver.stray) continue;
         let limit = driver.cruise;
         let blocked = false;
         let backing = false;
@@ -919,6 +978,23 @@ export function createSim(plan, models, pick) {
         }
         for (const other of drivers) {
           if (other === driver || !sharesRoad(driver, other)) continue;
+          // The player's car, or one left off its lane, is only an obstacle:
+          // stop for it, but never yield to it, back away from it, or vanish.
+          if (other.held || other.stray) {
+            const gap = gapOf(driver, other);
+            if (gap < STOP_GAP) {
+              limit = 0;
+              blocked = true;
+            } else if (gap < SLOW_GAP) {
+              limit = Math.min(limit, driver.cruise * ((gap - STOP_GAP) / (SLOW_GAP - STOP_GAP)));
+              blocked = true;
+            }
+            if (obbOverlap(driver, other, 2)) {
+              limit = 0;
+              blocked = true;
+            }
+            continue;
+          }
           const turn = Math.abs(Math.atan2(Math.sin(other.angle - driver.angle), Math.cos(other.angle - driver.angle)));
           if (turn < 0.8) {
             const gap = gapOf(driver, other);

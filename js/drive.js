@@ -9,12 +9,13 @@ import { TILE } from "./constants.js";
 import { builtRoadStrips } from "./built-lanes.js";
 
 const GRAVITY = -40;
-const MASS = 70;
+const MASS = 90;
 const REST = 2;
 const RADIUS = 3.2;
 const WHEEL_Y = -1;
 const LIFT = -WHEEL_Y + REST + RADIUS;
-const ENGINE = 6400;
+// Was 6400 at mass 70. Scaled with mass so acceleration stays the same.
+const ENGINE = 8229;
 const BRAKE = 50;
 const TOP_SPEED = 180;
 // Same motor in reverse, held to about a quarter of the forward cap.
@@ -336,17 +337,31 @@ export async function createDrive(map, pieces) {
           .setRotation(quat)
           .setLinearDamping(0.35)
           .setAngularDamping(8)
-          .setAdditionalMass(MASS)
           .setCanSleep(false),
       );
+      const hx = Math.max(10, w * 0.38);
+      const hy = 3;
+      const hz = Math.max(16, h * 0.31);
       chassisCol = world.createCollider(
-        RAPIER.ColliderDesc.cuboid(Math.max(10, w * 0.38), 3, Math.max(16, h * 0.31))
+        RAPIER.ColliderDesc.cuboid(hx, hy, hz)
           .setTranslation(0, -1.5, -h * 0.04)
           .setCollisionGroups(groups(SOLID, SOLID))
           .setFriction(0.5)
           .setRestitution(0)
           .setDensity(0),
         chassis,
+      );
+      // A little lower and a little toward the nose (local -Z) than the chassis box.
+      chassis.setAdditionalMassProperties(
+        MASS,
+        { x: 0, y: -2.8, z: -3.2 },
+        {
+          x: (MASS * (hy * hy + hz * hz)) / 3,
+          y: (MASS * (hx * hx + hz * hz)) / 3,
+          z: (MASS * (hx * hx + hy * hy)) / 3,
+        },
+        { x: 0, y: 0, z: 0, w: 1 },
+        true,
       );
       vehicle = world.createVehicleController(chassis);
       const wx = Math.max(8, w * 0.3);

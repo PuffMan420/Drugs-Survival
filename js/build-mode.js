@@ -1,4 +1,5 @@
 import {
+  Box3,
   ClampToEdgeWrapping,
   Group,
   LinearFilter,
@@ -6,6 +7,7 @@ import {
   Matrix4,
   Plane,
   Raycaster,
+  RepeatWrapping,
   SRGBColorSpace,
   TextureLoader,
   Vector2,
@@ -93,22 +95,24 @@ function modelUrl(path) {
 const textureLoader = new TextureLoader();
 const skinTextures = new Map();
 
-function loadSkinTexture(url) {
-  const cached = skinTextures.get(url);
+function loadSkinTexture(url, wrap = ClampToEdgeWrapping) {
+  if (!url) return Promise.resolve(null);
+  const key = `${wrap}:${url}`;
+  const cached = skinTextures.get(key);
   if (cached) return Promise.resolve(cached);
   const pending = textureLoader.loadAsync(modelUrl(url)).then((texture) => {
     texture.colorSpace = SRGBColorSpace;
     texture.flipY = true;
-    texture.wrapS = ClampToEdgeWrapping;
-    texture.wrapT = ClampToEdgeWrapping;
+    texture.wrapS = wrap;
+    texture.wrapT = wrap;
     texture.magFilter = LinearFilter;
     texture.minFilter = LinearMipmapLinearFilter;
     texture.generateMipmaps = true;
     texture.needsUpdate = true;
-    skinTextures.set(url, texture);
+    skinTextures.set(key, texture);
     return texture;
   });
-  skinTextures.set(url, pending);
+  skinTextures.set(key, pending);
   return pending;
 }
 
@@ -165,9 +169,12 @@ function paintStraightSkin(root, texture) {
 // road-slant-high skins keep the Kenney ramp and parent the matching barrier
 // at the same origin. Length runs along X: the deck rises from y=0 at x=-0.5
 // to about y=0.52 at x=0.5, and the width runs along Z. Top faces take the
-// straight-road texture, side walls take sideTexture, and the back wall,
-// bottom, and any other face take backTexture. The barrier samples the
-// concrete curb band of the road texture. Geometry and materials are cloned
+// straight-road texture. Outer side walls take sideTexture, and when
+// sideTextureB is set the negative-Z wall uses that fourth material with a
+// flipped u. Inward curb faces sit near |z|≈0.4; they stay on the top texture.
+// The back wall, bottom, and any other face take backTexture, with u flipped
+// so text reads the right way. barrierTexture, when set, wraps the barrier
+// instead of sampling the road's curb band. Geometry and materials are cloned
 // first so the shared Kenney files stay untouched.
 function rampFaceKind(nx, ny, nz) {
   if (ny > 0.3) return 0;
@@ -178,7 +185,32 @@ function rampFaceKind(nx, ny, nz) {
   return 2;
 }
 
+function triangleNormal(position, i0, i1, i2) {
+  const ax = position.getX(i0);
+  const ay = position.getY(i0);
+  const az = position.getZ(i0);
+  const abx = position.getX(i1) - ax;
+  const aby = position.getY(i1) - ay;
+  const abz = position.getZ(i1) - az;
+  const acx = position.getX(i2) - ax;
+  const acy = position.getY(i2) - ay;
+  const acz = position.getZ(i2) - az;
+  const nx = aby * acz - abz * acy;
+  const ny = abz * acx - abx * acz;
+  const nz = abx * acy - aby * acx;
+  const len = Math.hypot(nx, ny, nz) || 1;
+  return {
+    nx: nx / len,
+    ny: ny / len,
+    nz: nz / len,
+    cx: (ax + position.getX(i1) + position.getX(i2)) / 3,
+    cy: (ay + position.getY(i1) + position.getY(i2)) / 3,
+    cz: (az + position.getZ(i1) + position.getZ(i2)) / 3,
+  };
+}
+
 function paintRampMesh(mesh, maps) {
+  if (!mesh || !mesh.geometry || !maps || !maps.length) return;
   let geometry = mesh.geometry.clone();
   if (!geometry.getAttribute("normal")) {
     geometry = geometry.toNonIndexed();
@@ -192,10 +224,12 @@ function paintRampMesh(mesh, maps) {
   const normal = geometry.getAttribute("normal");
   const uv = geometry.getAttribute("uv");
   const index = geometry.getIndex();
+  if (!position || !normal) return;
   const triCount = (index ? index.count : position.count) / 3;
-  const triKind = new Uint8Array(triCount);
-  const vertexKind = new Uint8Array(position.count);
-  vertexKind.fill(255);
+  const triMat = new Uint8Array(triCount);
+  const vertexMode = new Uint8Array(position.count);
+  vertexMode.fill(255);
+  const sideB = maps.length > 3 && maps[3];
 
   for (let t = 0; t < triCount; t += 1) {
     const i0 = index ? index.getX(t * 3) : t * 3;
@@ -204,49 +238,52 @@ function paintRampMesh(mesh, maps) {
     let kind = rampFaceKind(normal.getX(i0), normal.getY(i0), normal.getZ(i0));
     const kind1 = rampFaceKind(normal.getX(i1), normal.getY(i1), normal.getZ(i1));
     const kind2 = rampFaceKind(normal.getX(i2), normal.getY(i2), normal.getZ(i2));
-    if (kind !== kind1 || kind !== kind2) {
-      const ax = position.getX(i0);
-      const ay = position.getY(i0);
-      const az = position.getZ(i0);
-      const abx = position.getX(i1) - ax;
-      const aby = position.getY(i1) - ay;
-      const abz = position.getZ(i1) - az;
-      const acx = position.getX(i2) - ax;
-      const acy = position.getY(i2) - ay;
-      const acz = position.getZ(i2) - az;
-      const nx = aby * acz - abz * acy;
-      const ny = abz * acx - abx * acz;
-      const nz = abx * acy - aby * acx;
-      const len = Math.hypot(nx, ny, nz) || 1;
-      kind = rampFaceKind(nx / len, ny / len, nz / len);
+    const face = triangleNormal(position, i0, i1, i2);
+    if (kind !== kind1 || kind !== kind2) kind = rampFaceKind(face.nx, face.ny, face.nz);
+    // Inward curb faces are kind 1 by normal but sit inside the outer wall.
+    // They sample the top texture. Negative-Z outer walls can take sideTextureB.
+    let mat = kind;
+    let mode = kind;
+    if (kind === 1 && Math.abs(face.cz) < 0.45) {
+      mat = 0;
+      mode = 4;
+    } else if (kind === 1 && sideB && face.nz < 0) {
+      mat = 3;
+      mode = 3;
     }
-    triKind[t] = kind;
-    vertexKind[i0] = kind;
-    vertexKind[i1] = kind;
-    vertexKind[i2] = kind;
+    triMat[t] = mat;
+    vertexMode[i0] = mode;
+    vertexMode[i1] = mode;
+    vertexMode[i2] = mode;
   }
 
-  if (position && uv) {
+  if (uv) {
     for (let i = 0; i < position.count; i += 1) {
-      const kind = vertexKind[i];
-      if (kind === 255) continue;
+      const mode = vertexMode[i];
+      if (mode === 255) continue;
       const x = position.getX(i);
       const y = position.getY(i);
       const z = position.getZ(i);
-      if (kind === 0) uv.setXY(i, (x - minX) / spanX, z + 0.5);
-      else if (kind === 1) uv.setXY(i, x + 0.5, y);
-      else uv.setXY(i, z + 0.5, y);
+      if (mode === 0) uv.setXY(i, (x - minX) / spanX, z + 0.5);
+      else if (mode === 1) uv.setXY(i, x + 0.5, y);
+      else if (mode === 2) uv.setXY(i, 0.5 - z, y);
+      else if (mode === 3) uv.setXY(i, 0.5 - x, y);
+      else uv.setXY(i, (x - minX) / spanX, (z > 0 ? 0.95 : 0.05) + 0.03 * y);
     }
     uv.needsUpdate = true;
   }
 
-  const order = [[], [], []];
-  for (let t = 0; t < triCount; t += 1) order[triKind[t]].push(t);
+  const slots = maps.length;
+  const order = Array.from({ length: slots }, () => []);
+  for (let t = 0; t < triCount; t += 1) {
+    const slot = triMat[t];
+    if (slot < slots) order[slot].push(t);
+  }
   if (index) {
     const src = index.array;
     const next = new src.constructor(src.length);
     let cursor = 0;
-    for (let kind = 0; kind < 3; kind += 1) {
+    for (let kind = 0; kind < slots; kind += 1) {
       for (const t of order[kind]) {
         next[cursor] = src[t * 3];
         next[cursor + 1] = src[t * 3 + 1];
@@ -267,7 +304,7 @@ function paintRampMesh(mesh, maps) {
       };
     });
     let cursor = 0;
-    for (let kind = 0; kind < 3; kind += 1) {
+    for (let kind = 0; kind < slots; kind += 1) {
       for (const t of order[kind]) {
         for (let v = 0; v < 3; v += 1) {
           const from = t * 3 + v;
@@ -288,7 +325,7 @@ function paintRampMesh(mesh, maps) {
 
   geometry.clearGroups();
   let start = 0;
-  for (let kind = 0; kind < 3; kind += 1) {
+  for (let kind = 0; kind < slots; kind += 1) {
     const count = order[kind].length * 3;
     if (count === 0) continue;
     geometry.addGroup(start, count, kind);
@@ -297,9 +334,10 @@ function paintRampMesh(mesh, maps) {
 
   mesh.geometry = geometry;
   const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+  if (!source || !source.clone) return;
   mesh.material = maps.map((map) => {
     const copy = source.clone();
-    copy.map = map;
+    copy.map = map || null;
     if (copy.color) copy.color.set(0xffffff);
     copy.needsUpdate = true;
     return copy;
@@ -333,14 +371,214 @@ function paintBarrierCurb(root, texture) {
   });
 }
 
-async function paintRampSkin(root, texture, sideTexture, backTexture, barrierUrl, loader) {
+function paintBarrierTexture(root, texture) {
+  if (!root || !texture) return;
+  texture.wrapS = RepeatWrapping;
+  texture.wrapT = RepeatWrapping;
+  texture.needsUpdate = true;
   root.traverse((obj) => {
     if (!obj.isMesh || !obj.geometry) return;
-    paintRampMesh(obj, [texture, sideTexture, backTexture]);
+    let geometry = obj.geometry.clone();
+    if (!geometry.getAttribute("normal")) {
+      geometry = geometry.toNonIndexed();
+      geometry.computeVertexNormals();
+    }
+    const position = geometry.getAttribute("position");
+    const uv = geometry.getAttribute("uv");
+    const index = geometry.getIndex();
+    if (position && uv) {
+      const triCount = (index ? index.count : position.count) / 3;
+      for (let t = 0; t < triCount; t += 1) {
+        const i0 = index ? index.getX(t * 3) : t * 3;
+        const i1 = index ? index.getX(t * 3 + 1) : t * 3 + 1;
+        const i2 = index ? index.getX(t * 3 + 2) : t * 3 + 2;
+        const face = triangleNormal(position, i0, i1, i2);
+        const ax = Math.abs(face.nx);
+        const ay = Math.abs(face.ny);
+        const az = Math.abs(face.nz);
+        for (const i of [i0, i1, i2]) {
+          const x = position.getX(i);
+          const y = position.getY(i);
+          const z = position.getZ(i);
+          if (ay > 0.7) uv.setXY(i, x + 0.5, z + 0.5);
+          else if (az >= ax) uv.setXY(i, x + 0.5, y * 1.5);
+          else uv.setXY(i, z + 0.5, y * 1.5);
+        }
+      }
+      uv.needsUpdate = true;
+    }
+    obj.geometry = geometry;
+    const list = Array.isArray(obj.material) ? obj.material : [obj.material];
+    const next = list.map((mat) => {
+      if (!mat || !mat.clone) return mat;
+      const copy = mat.clone();
+      copy.map = texture;
+      if (copy.color) copy.color.set(0xffffff);
+      copy.needsUpdate = true;
+      return copy;
+    });
+    obj.material = Array.isArray(obj.material) ? next : next[0];
+  });
+}
+
+async function paintRampSkin(root, texture, sideTexture, backTexture, barrierUrl, loader, extra) {
+  if (!root || !texture || !sideTexture) return;
+  const sideTextureB = extra && extra.sideTextureB ? extra.sideTextureB : null;
+  const barrierTexture = extra && extra.barrierTexture ? extra.barrierTexture : null;
+  const maps = [texture, sideTexture, backTexture];
+  if (sideTextureB) maps.push(sideTextureB);
+  root.traverse((obj) => {
+    if (!obj.isMesh || !obj.geometry) return;
+    paintRampMesh(obj, maps);
   });
   if (!barrierUrl || !loader) return;
   const barrier = await loader.loadAsync(modelUrl(barrierUrl));
-  paintBarrierCurb(barrier.scene, texture);
+  if (!barrier || !barrier.scene) return;
+  if (barrierTexture) paintBarrierTexture(barrier.scene, barrierTexture);
+  else paintBarrierCurb(barrier.scene, texture);
+  root.add(barrier.scene);
+}
+
+// Bridge deck runs along Z near y=0.52. The lower road runs along X near y=0.
+// Up faces above the deck line take the road texture with u along Z. Lower up
+// faces take the same texture with u along X. Everything else takes sideTexture.
+// The barrier is parented on the deck (bridge max Y) and is not rotated.
+function paintBridgeMesh(mesh, maps) {
+  if (!mesh || !mesh.geometry || !maps || maps.length < 2) return;
+  let geometry = mesh.geometry.clone();
+  if (!geometry.getAttribute("normal")) {
+    geometry = geometry.toNonIndexed();
+    geometry.computeVertexNormals();
+  }
+  const position = geometry.getAttribute("position");
+  const uv = geometry.getAttribute("uv");
+  const index = geometry.getIndex();
+  if (!position) return;
+  const triCount = (index ? index.count : position.count) / 3;
+  const triMat = new Uint8Array(triCount);
+  const vertexMode = new Uint8Array(position.count);
+  vertexMode.fill(255);
+
+  for (let t = 0; t < triCount; t += 1) {
+    const i0 = index ? index.getX(t * 3) : t * 3;
+    const i1 = index ? index.getX(t * 3 + 1) : t * 3 + 1;
+    const i2 = index ? index.getX(t * 3 + 2) : t * 3 + 2;
+    const face = triangleNormal(position, i0, i1, i2);
+    let mat = 1;
+    let mode = Math.abs(face.nz) >= Math.abs(face.nx) ? 2 : 3;
+    if (face.ny > 0.7 && face.cy > 0.4) {
+      mat = 0;
+      mode = 0;
+    } else if (face.ny > 0.7) {
+      mat = 0;
+      mode = 1;
+    }
+    triMat[t] = mat;
+    vertexMode[i0] = mode;
+    vertexMode[i1] = mode;
+    vertexMode[i2] = mode;
+  }
+
+  if (uv) {
+    for (let i = 0; i < position.count; i += 1) {
+      const mode = vertexMode[i];
+      if (mode === 255) continue;
+      const x = position.getX(i);
+      const y = position.getY(i);
+      const z = position.getZ(i);
+      if (mode === 0) uv.setXY(i, z + 0.5, x + 0.5);
+      else if (mode === 1) uv.setXY(i, x + 0.5, z + 0.5);
+      else if (mode === 2) uv.setXY(i, x + 0.5, y);
+      else uv.setXY(i, z + 0.5, y);
+    }
+    uv.needsUpdate = true;
+  }
+
+  const slots = maps.length;
+  const order = Array.from({ length: slots }, () => []);
+  for (let t = 0; t < triCount; t += 1) {
+    const slot = triMat[t];
+    if (slot < slots) order[slot].push(t);
+  }
+  if (index) {
+    const src = index.array;
+    const next = new src.constructor(src.length);
+    let cursor = 0;
+    for (let kind = 0; kind < slots; kind += 1) {
+      for (const t of order[kind]) {
+        next[cursor] = src[t * 3];
+        next[cursor + 1] = src[t * 3 + 1];
+        next[cursor + 2] = src[t * 3 + 2];
+        cursor += 3;
+      }
+    }
+    index.array.set(next);
+    index.needsUpdate = true;
+  } else {
+    const copies = Object.keys(geometry.attributes).map((name) => {
+      const attr = geometry.getAttribute(name);
+      return {
+        attr,
+        itemSize: attr.itemSize,
+        src: attr.array,
+        next: new attr.array.constructor(attr.array.length),
+      };
+    });
+    let cursor = 0;
+    for (let kind = 0; kind < slots; kind += 1) {
+      for (const t of order[kind]) {
+        for (let v = 0; v < 3; v += 1) {
+          const from = t * 3 + v;
+          for (const copy of copies) {
+            const dst = cursor * copy.itemSize;
+            const srcAt = from * copy.itemSize;
+            for (let k = 0; k < copy.itemSize; k += 1) copy.next[dst + k] = copy.src[srcAt + k];
+          }
+          cursor += 1;
+        }
+      }
+    }
+    for (const copy of copies) {
+      copy.attr.array.set(copy.next);
+      copy.attr.needsUpdate = true;
+    }
+  }
+
+  geometry.clearGroups();
+  let start = 0;
+  for (let kind = 0; kind < slots; kind += 1) {
+    const count = order[kind].length * 3;
+    if (count === 0) continue;
+    geometry.addGroup(start, count, kind);
+    start += count;
+  }
+
+  mesh.geometry = geometry;
+  const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+  if (!source || !source.clone) return;
+  mesh.material = maps.map((map) => {
+    const copy = source.clone();
+    copy.map = map || null;
+    if (copy.color) copy.color.set(0xffffff);
+    copy.needsUpdate = true;
+    return copy;
+  });
+}
+
+async function paintBridgeSkin(root, texture, sideTexture, barrierUrl, barrierTexture, loader) {
+  if (!root || !texture) return;
+  const side = sideTexture || texture;
+  root.traverse((obj) => {
+    if (!obj.isMesh || !obj.geometry) return;
+    paintBridgeMesh(obj, [texture, side]);
+  });
+  if (!barrierUrl || !loader) return;
+  const barrier = await loader.loadAsync(modelUrl(barrierUrl));
+  if (!barrier || !barrier.scene) return;
+  if (barrierTexture) paintBarrierTexture(barrier.scene, barrierTexture);
+  else paintBarrierCurb(barrier.scene, texture);
+  const box = new Box3().setFromObject(root);
+  if (!box.isEmpty() && Number.isFinite(box.max.y)) barrier.scene.position.y = box.max.y;
   root.add(barrier.scene);
 }
 
@@ -563,13 +801,25 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     if (cached) return cached;
     const pending = loader.loadAsync(modelUrl(item.url)).then(async (gltf) => {
       const scene = gltf.scene;
-      if (item.sideTexture) {
-        const [texture, sideTexture, backTexture] = await Promise.all([
+      if (item.skin === "bridge") {
+        const [texture, sideTexture, barrierTexture] = await Promise.all([
+          loadSkinTexture(item.texture),
+          loadSkinTexture(item.sideTexture),
+          loadSkinTexture(item.barrierTexture, RepeatWrapping),
+        ]);
+        await paintBridgeSkin(scene, texture, sideTexture, item.barrier, barrierTexture, loader);
+      } else if (item.sideTexture) {
+        const [texture, sideTexture, backTexture, sideTextureB, barrierTexture] = await Promise.all([
           loadSkinTexture(item.texture),
           loadSkinTexture(item.sideTexture),
           loadSkinTexture(item.backTexture),
+          loadSkinTexture(item.sideTextureB),
+          loadSkinTexture(item.barrierTexture, RepeatWrapping),
         ]);
-        await paintRampSkin(scene, texture, sideTexture, backTexture, item.barrier, loader);
+        await paintRampSkin(scene, texture, sideTexture, backTexture, item.barrier, loader, {
+          sideTextureB,
+          barrierTexture,
+        });
       } else if (item.texture) {
         const texture = await loadSkinTexture(item.texture);
         paintStraightSkin(scene, texture);

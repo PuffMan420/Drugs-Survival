@@ -12,6 +12,9 @@ const BLOCK_RANGE = 2;
 const BLOCK_MOVE = 240;
 const CAR_POOL = 12;
 const CAR_REACH = 220;
+// A stand-in that would move further than this in one step is teleported, so
+// Rapier never gives it the huge velocity that launches the driven car.
+const TELEPORT = 30;
 
 function quatFromBasis(rx, ry, rz, ux, uy, uz, dx, dy, dz) {
   const m00 = rx;
@@ -150,8 +153,12 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
         .setRestitution(0),
       body,
     );
+    body.userData = { slot: i };
     pool.push(body);
   }
+  // Each car near the focus keeps the same stand-in until it leaves reach.
+  const assigned = new Map();
+  const free = [...pool];
 
   const blockCells = new Map();
   for (const building of map.buildings || []) {
@@ -196,22 +203,52 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
     }
   }
 
+  function park(body) {
+    body.setTranslation({ x: 0, y: -800, z: body.userData.slot * 20 }, false);
+    body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, false);
+    free.push(body);
+  }
+
+  function releaseAll() {
+    for (const body of assigned.values()) park(body);
+    assigned.clear();
+  }
+
   function syncTraffic(list, focus) {
-    let count = 0;
+    const near = [];
     for (const car of list) {
-      if (count >= pool.length || car === focus) continue;
+      if (car === focus) continue;
       const dx = car.x - focus.x;
       const dz = car.z - focus.z;
-      if (dx * dx + dz * dz > CAR_REACH * CAR_REACH) continue;
-      const body = pool[count];
-      count += 1;
-      const y = (car.y == null ? 0.6 : car.y) + 7;
-      body.setNextKinematicTranslation({ x: car.x, y, z: car.z });
-      body.setNextKinematicRotation(yawQuat(car.angle || 0));
+      const d2 = dx * dx + dz * dz;
+      if (d2 <= CAR_REACH * CAR_REACH) near.push({ car, d2 });
     }
-    for (let i = count; i < pool.length; i += 1) {
-      pool[i].setNextKinematicTranslation({ x: 0, y: -800, z: i * 20 });
-      pool[i].setNextKinematicRotation({ x: 0, y: 0, z: 0, w: 1 });
+    near.sort((a, b) => a.d2 - b.d2);
+    if (near.length > pool.length) near.length = pool.length;
+    const keep = new Set();
+    for (const item of near) keep.add(item.car);
+    for (const [car, body] of assigned) {
+      if (keep.has(car)) continue;
+      assigned.delete(car);
+      park(body);
+    }
+    for (const { car } of near) {
+      const at = { x: car.x, y: (car.y == null ? 0.6 : car.y) + 7, z: car.z };
+      const turn = yawQuat(car.angle || 0);
+      let body = assigned.get(car);
+      if (body) {
+        const now = body.translation();
+        if (Math.hypot(at.x - now.x, at.y - now.y, at.z - now.z) <= TELEPORT) {
+          body.setNextKinematicTranslation(at);
+          body.setNextKinematicRotation(turn);
+          continue;
+        }
+      } else {
+        body = free.pop();
+        assigned.set(car, body);
+      }
+      body.setTranslation(at, true);
+      body.setRotation(turn, true);
     }
   }
 
@@ -229,6 +266,7 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
   return {
     setRoads,
     follow(target) {
+      if ((target || null) !== focus) releaseAll();
       focus = target || null;
       if (focus) streamBlocks(focus.x, focus.z);
     },

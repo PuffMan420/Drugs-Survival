@@ -232,6 +232,10 @@ export function createDrive(physics, scene) {
       if (!occupied) return null;
       writePose(true);
       const car = occupied;
+      // Hand the car back to traffic, standing still where it was left.
+      car.held = false;
+      car.speed = 0;
+      car.wait = 0;
       const reachX = (car.w || 36) / 2 + 22;
       const reachZ = (car.h || 70) / 2 + 22;
       const spots = [localPoint(car, reachX, 0), localPoint(car, -reachX, 0), localPoint(car, 0, reachZ)];

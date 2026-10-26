@@ -14,9 +14,13 @@ const REST = 2;
 const RADIUS = 3.2;
 const WHEEL_Y = -1;
 const LIFT = -WHEEL_Y + REST + RADIUS;
-const ENGINE = 3200;
+const ENGINE = 6400;
 const BRAKE = 50;
-const TOP_SPEED = 90;
+const TOP_SPEED = 180;
+// Same motor in reverse, held to about a quarter of the forward cap.
+const REVERSE_SPEED = TOP_SPEED * 0.25;
+// S brakes while the car still rolls forward. Under this it shifts into reverse.
+const HALT = 8;
 const STEER = 0.42;
 const ROAD = 1;
 const WHEEL = 2;
@@ -261,20 +265,47 @@ export async function createDrive(map, pieces) {
     }
   }
 
+  // The steered wheels sit at local -Z, so that axis is the nose. Negative
+  // engine force drives toward it; positive force backs the car up.
+  function noseXZ(q) {
+    let x = -2 * (q.x * q.z + q.w * q.y);
+    let z = 2 * (q.x * q.x + q.y * q.y) - 1;
+    const len = Math.hypot(x, z) || 1;
+    x /= len;
+    z /= len;
+    return { x, z };
+  }
+
+  function wheelDrive(input, signed, speed) {
+    const ahead = signed > HALT;
+    const back = signed < -HALT;
+    let engine = 0;
+    let brake = 0;
+    if (input.brake && input.forward) brake = BRAKE;
+    else if (input.brake && ahead) brake = BRAKE;
+    else if (input.forward && back) brake = BRAKE;
+    else if (input.brake && signed < -REVERSE_SPEED) brake = 12;
+    else if (input.brake) engine = ENGINE;
+    else if (input.forward && speed > TOP_SPEED) brake = 12;
+    else if (input.forward) engine = -ENGINE;
+    else if (speed > TOP_SPEED) brake = 12;
+    return { engine, brake };
+  }
+
   function apply(input) {
     const velocity = { x: 0, y: 0, z: 0 };
     chassis.linvel(velocity);
+    const nose = noseXZ(chassis.rotation());
+    const signed = velocity.x * nose.x + velocity.z * nose.z;
     const speed = Math.hypot(velocity.x, velocity.z);
     const target = (input.left ? STEER : 0) - (input.right ? STEER : 0);
     steering += (target - steering) * 0.35;
-    const coast = speed > TOP_SPEED;
-    const drive = input.forward && !input.brake && !coast;
-    const brake = input.brake ? BRAKE : (coast ? 12 : 0);
+    const command = wheelDrive(input, signed, speed);
     const wheels = vehicle.numWheels();
     for (let i = 0; i < wheels; i += 1) {
       vehicle.setWheelSteering(i, i < 2 ? steering : 0);
-      vehicle.setWheelEngineForce(i, drive ? -ENGINE : 0);
-      vehicle.setWheelBrake(i, brake);
+      vehicle.setWheelEngineForce(i, command.engine);
+      vehicle.setWheelBrake(i, command.brake);
     }
   }
 

@@ -500,7 +500,7 @@ async function start() {
     if (!drive.enter(traffic.cars(), player.x, player.z)) return;
     playerSprite.mesh.visible = false;
     session.driving = true;
-    hintEl.textContent = "W drive · S brake · A D steer · E exit";
+    hintEl.textContent = "W drive · S brake, then reverse · A D steer · E exit";
   };
 
   function frame(now) {

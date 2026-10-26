@@ -162,6 +162,188 @@ function paintStraightSkin(root, texture) {
   });
 }
 
+// road-slant-high skins keep the Kenney ramp and parent the matching barrier
+// at the same origin. Length runs along X: the deck rises from y=0 at x=-0.5
+// to about y=0.52 at x=0.5, and the width runs along Z. Top faces take the
+// straight-road texture, side walls take sideTexture, and the back wall,
+// bottom, and any other face take backTexture. The barrier samples the
+// concrete curb band of the road texture. Geometry and materials are cloned
+// first so the shared Kenney files stay untouched.
+function rampFaceKind(nx, ny, nz) {
+  if (ny > 0.3) return 0;
+  const ax = Math.abs(nx);
+  const ay = Math.abs(ny);
+  const az = Math.abs(nz);
+  if (az >= ax && az >= ay) return 1;
+  return 2;
+}
+
+function paintRampMesh(mesh, maps) {
+  let geometry = mesh.geometry.clone();
+  if (!geometry.getAttribute("normal")) {
+    geometry = geometry.toNonIndexed();
+    geometry.computeVertexNormals();
+  }
+  geometry.computeBoundingBox();
+  const minX = geometry.boundingBox.min.x;
+  const maxX = geometry.boundingBox.max.x;
+  const spanX = maxX - minX || 1;
+  const position = geometry.getAttribute("position");
+  const normal = geometry.getAttribute("normal");
+  const uv = geometry.getAttribute("uv");
+  const index = geometry.getIndex();
+  const triCount = (index ? index.count : position.count) / 3;
+  const triKind = new Uint8Array(triCount);
+  const vertexKind = new Uint8Array(position.count);
+  vertexKind.fill(255);
+
+  for (let t = 0; t < triCount; t += 1) {
+    const i0 = index ? index.getX(t * 3) : t * 3;
+    const i1 = index ? index.getX(t * 3 + 1) : t * 3 + 1;
+    const i2 = index ? index.getX(t * 3 + 2) : t * 3 + 2;
+    let kind = rampFaceKind(normal.getX(i0), normal.getY(i0), normal.getZ(i0));
+    const kind1 = rampFaceKind(normal.getX(i1), normal.getY(i1), normal.getZ(i1));
+    const kind2 = rampFaceKind(normal.getX(i2), normal.getY(i2), normal.getZ(i2));
+    if (kind !== kind1 || kind !== kind2) {
+      const ax = position.getX(i0);
+      const ay = position.getY(i0);
+      const az = position.getZ(i0);
+      const abx = position.getX(i1) - ax;
+      const aby = position.getY(i1) - ay;
+      const abz = position.getZ(i1) - az;
+      const acx = position.getX(i2) - ax;
+      const acy = position.getY(i2) - ay;
+      const acz = position.getZ(i2) - az;
+      const nx = aby * acz - abz * acy;
+      const ny = abz * acx - abx * acz;
+      const nz = abx * acy - aby * acx;
+      const len = Math.hypot(nx, ny, nz) || 1;
+      kind = rampFaceKind(nx / len, ny / len, nz / len);
+    }
+    triKind[t] = kind;
+    vertexKind[i0] = kind;
+    vertexKind[i1] = kind;
+    vertexKind[i2] = kind;
+  }
+
+  if (position && uv) {
+    for (let i = 0; i < position.count; i += 1) {
+      const kind = vertexKind[i];
+      if (kind === 255) continue;
+      const x = position.getX(i);
+      const y = position.getY(i);
+      const z = position.getZ(i);
+      if (kind === 0) uv.setXY(i, (x - minX) / spanX, z + 0.5);
+      else if (kind === 1) uv.setXY(i, x + 0.5, y);
+      else uv.setXY(i, z + 0.5, y);
+    }
+    uv.needsUpdate = true;
+  }
+
+  const order = [[], [], []];
+  for (let t = 0; t < triCount; t += 1) order[triKind[t]].push(t);
+  if (index) {
+    const src = index.array;
+    const next = new src.constructor(src.length);
+    let cursor = 0;
+    for (let kind = 0; kind < 3; kind += 1) {
+      for (const t of order[kind]) {
+        next[cursor] = src[t * 3];
+        next[cursor + 1] = src[t * 3 + 1];
+        next[cursor + 2] = src[t * 3 + 2];
+        cursor += 3;
+      }
+    }
+    index.array.set(next);
+    index.needsUpdate = true;
+  } else {
+    const copies = Object.keys(geometry.attributes).map((name) => {
+      const attr = geometry.getAttribute(name);
+      return {
+        attr,
+        itemSize: attr.itemSize,
+        src: attr.array,
+        next: new attr.array.constructor(attr.array.length),
+      };
+    });
+    let cursor = 0;
+    for (let kind = 0; kind < 3; kind += 1) {
+      for (const t of order[kind]) {
+        for (let v = 0; v < 3; v += 1) {
+          const from = t * 3 + v;
+          for (const copy of copies) {
+            const dst = cursor * copy.itemSize;
+            const srcAt = from * copy.itemSize;
+            for (let k = 0; k < copy.itemSize; k += 1) copy.next[dst + k] = copy.src[srcAt + k];
+          }
+          cursor += 1;
+        }
+      }
+    }
+    for (const copy of copies) {
+      copy.attr.array.set(copy.next);
+      copy.attr.needsUpdate = true;
+    }
+  }
+
+  geometry.clearGroups();
+  let start = 0;
+  for (let kind = 0; kind < 3; kind += 1) {
+    const count = order[kind].length * 3;
+    if (count === 0) continue;
+    geometry.addGroup(start, count, kind);
+    start += count;
+  }
+
+  mesh.geometry = geometry;
+  const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+  mesh.material = maps.map((map) => {
+    const copy = source.clone();
+    copy.map = map;
+    if (copy.color) copy.color.set(0xffffff);
+    copy.needsUpdate = true;
+    return copy;
+  });
+}
+
+function paintBarrierCurb(root, texture) {
+  root.traverse((obj) => {
+    if (!obj.isMesh || !obj.geometry) return;
+    const geometry = obj.geometry.clone();
+    const position = geometry.getAttribute("position");
+    const uv = geometry.getAttribute("uv");
+    if (position && uv) {
+      for (let i = 0; i < position.count; i += 1) {
+        const y = position.getY(i);
+        const band = Math.min(1, Math.max(0, y / 0.6));
+        uv.setXY(i, position.getX(i) + 0.5, 0.905 + 0.09 * band);
+      }
+      uv.needsUpdate = true;
+    }
+    obj.geometry = geometry;
+    const list = Array.isArray(obj.material) ? obj.material : [obj.material];
+    const next = list.map((mat) => {
+      const copy = mat.clone();
+      copy.map = texture;
+      if (copy.color) copy.color.set(0xffffff);
+      copy.needsUpdate = true;
+      return copy;
+    });
+    obj.material = Array.isArray(obj.material) ? next : next[0];
+  });
+}
+
+async function paintRampSkin(root, texture, sideTexture, backTexture, barrierUrl, loader) {
+  root.traverse((obj) => {
+    if (!obj.isMesh || !obj.geometry) return;
+    paintRampMesh(obj, [texture, sideTexture, backTexture]);
+  });
+  if (!barrierUrl || !loader) return;
+  const barrier = await loader.loadAsync(modelUrl(barrierUrl));
+  paintBarrierCurb(barrier.scene, texture);
+  root.add(barrier.scene);
+}
+
 function linearize(root) {
   root.traverse((obj) => {
     if (!obj.isMesh) return;
@@ -311,8 +493,9 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       thumb.width = 48;
       thumb.height = 48;
       thumb.decoding = "async";
-      thumb.dataset.src = item.texture
-        ? `./${item.texture}`
+      const thumbUrl = item.sideTexture || item.texture;
+      thumb.dataset.src = thumbUrl
+        ? `./${thumbUrl}`
         : `./assets/previews/${kit.id}/${name}.png`;
       thumb.addEventListener("error", () => thumb.remove());
       button.append(thumb, document.createTextNode(name));
@@ -380,7 +563,14 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     if (cached) return cached;
     const pending = loader.loadAsync(modelUrl(item.url)).then(async (gltf) => {
       const scene = gltf.scene;
-      if (item.texture) {
+      if (item.sideTexture) {
+        const [texture, sideTexture, backTexture] = await Promise.all([
+          loadSkinTexture(item.texture),
+          loadSkinTexture(item.sideTexture),
+          loadSkinTexture(item.backTexture),
+        ]);
+        await paintRampSkin(scene, texture, sideTexture, backTexture, item.barrier, loader);
+      } else if (item.texture) {
         const texture = await loadSkinTexture(item.texture);
         paintStraightSkin(scene, texture);
       }

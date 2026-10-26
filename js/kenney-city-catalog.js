@@ -297,6 +297,22 @@ export const KITS = [
         "url": "GLB format/road-slant-high.glb"
       },
       {
+        "file": "road-slant-high-2.glb",
+        "url": "GLB format/road-slant-high.glb",
+        "texture": "assets/roads/road-straight-7.png",
+        "sideTexture": "assets/roads/road-slant-high-2-side.png",
+        "backTexture": "assets/roads/road-slant-high-2-back.png",
+        "barrier": "GLB format/road-slant-high-barrier.glb"
+      },
+      {
+        "file": "road-slant-high-3.glb",
+        "url": "GLB format/road-slant-high.glb",
+        "texture": "assets/roads/road-straight-7.png",
+        "sideTexture": "assets/roads/road-slant-high-3-side.png",
+        "backTexture": "assets/roads/road-slant-high-3-back.png",
+        "barrier": "GLB format/road-slant-high-barrier.glb"
+      },
+      {
         "file": "road-slant.glb",
         "url": "GLB format/road-slant.glb"
       },

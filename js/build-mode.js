@@ -113,12 +113,14 @@ function loadSkinTexture(url) {
 }
 
 // road-straight skins keep the original mesh. Its UVs point into the Kenney
-// atlas, so a full road PNG is projected across the top: length along X,
-// width along Z. flipY is true, so v = 0 is the bottom of the image and the
-// curb bands (top and bottom 10%) land on 0.4 <= |z| <= 0.5. Faces whose
-// normal runs along Z are the curb walls; they sweep that same band instead
-// of holding one texture row. The mesh is cloned first so the shared
-// road-straight geometry stays untouched.
+// atlas, so a full road PNG is projected across the top: u runs from the
+// mesh bounding box along X (0 at min X, 1 at max X), so a 1-long piece and
+// a half piece both span the whole texture. Width stays along Z. flipY is
+// true, so v = 0 is the bottom of the image and the curb bands (top and
+// bottom 10%) land on 0.4 <= |z| <= 0.5. Faces whose normal runs along Z
+// are the curb walls; they sweep that same band instead of holding one
+// texture row. The mesh is cloned first so the shared road-straight
+// geometry stays untouched.
 function paintStraightSkin(root, texture) {
   root.traverse((obj) => {
     if (!obj.isMesh || !obj.geometry) return;
@@ -127,12 +129,15 @@ function paintStraightSkin(root, texture) {
       geometry = geometry.toNonIndexed();
       geometry.computeVertexNormals();
     }
+    geometry.computeBoundingBox();
+    const minX = geometry.boundingBox.min.x;
+    const maxX = geometry.boundingBox.max.x;
     const position = geometry.getAttribute("position");
     const normal = geometry.getAttribute("normal");
     const uv = geometry.getAttribute("uv");
     if (position && uv) {
       for (let i = 0; i < position.count; i += 1) {
-        uv.setXY(i, position.getX(i) + 0.5, position.getZ(i) + 0.5);
+        uv.setXY(i, (position.getX(i) - minX) / (maxX - minX), position.getZ(i) + 0.5);
         if (normal && Math.abs(normal.getZ(i)) > 0.5) {
           const y = position.getY(i);
           const z = position.getZ(i);

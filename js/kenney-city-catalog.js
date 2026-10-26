@@ -113,6 +113,15 @@ export const KITS = [
         "url": "GLB format/road-bridge.glb"
       },
       {
+        "file": "road-bridge-2.glb",
+        "url": "GLB format/road-bridge.glb",
+        "texture": "assets/roads/road-straight-7.png",
+        "sideTexture": "assets/roads/road-slant-high-2-back.png",
+        "barrier": "GLB format/road-straight-barrier.glb",
+        "barrierTexture": "assets/roads/road-barrier-rough.png",
+        "skin": "bridge"
+      },
+      {
         "file": "road-crossing.glb",
         "url": "GLB format/road-crossing.glb"
       },
@@ -302,7 +311,8 @@ export const KITS = [
         "texture": "assets/roads/road-straight-7.png",
         "sideTexture": "assets/roads/road-slant-high-2-side.png",
         "backTexture": "assets/roads/road-slant-high-2-back.png",
-        "barrier": "GLB format/road-slant-high-barrier.glb"
+        "barrier": "GLB format/road-slant-high-barrier.glb",
+        "barrierTexture": "assets/roads/road-barrier-rough.png"
       },
       {
         "file": "road-slant-high-3.glb",
@@ -310,7 +320,18 @@ export const KITS = [
         "texture": "assets/roads/road-straight-7.png",
         "sideTexture": "assets/roads/road-slant-high-3-side.png",
         "backTexture": "assets/roads/road-slant-high-3-back.png",
-        "barrier": "GLB format/road-slant-high-barrier.glb"
+        "barrier": "GLB format/road-slant-high-barrier.glb",
+        "barrierTexture": "assets/roads/road-barrier-rough.png"
+      },
+      {
+        "file": "road-slant-high-4.glb",
+        "url": "GLB format/road-slant-high.glb",
+        "texture": "assets/roads/road-straight-7.png",
+        "sideTexture": "assets/roads/road-slant-high-4-side.png",
+        "sideTextureB": "assets/roads/road-slant-high-4-side-b.png",
+        "backTexture": "assets/roads/road-slant-high-4-back.png",
+        "barrier": "GLB format/road-slant-high-barrier.glb",
+        "barrierTexture": "assets/roads/road-barrier-rough.png"
       },
       {
         "file": "road-slant.glb",

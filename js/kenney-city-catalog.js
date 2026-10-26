@@ -333,23 +333,53 @@ export const KITS = [
         "url": "GLB format/road-straight-half.glb"
       },
       {
+        "file": "road-straight-half-2.glb",
+        "url": "GLB format/road-straight-half.glb",
+        "texture": "assets/roads/road-straight-half-2.png"
+      },
+      {
+        "file": "road-straight-half-3.glb",
+        "url": "GLB format/road-straight-half.glb",
+        "texture": "assets/roads/road-straight-half-3.png"
+      },
+      {
+        "file": "road-straight-half-4.glb",
+        "url": "GLB format/road-straight-half.glb",
+        "texture": "assets/roads/road-straight-half-4.png"
+      },
+      {
         "file": "road-straight.glb",
         "url": "GLB format/road-straight.glb"
       },
       {
         "file": "road-straight-2.glb",
         "url": "GLB format/road-straight.glb",
-        "texture": "assets/roads/road-straight-2_v2.png"
+        "texture": "assets/roads/road-straight-2_v3.png"
       },
       {
         "file": "road-straight-3.glb",
         "url": "GLB format/road-straight.glb",
-        "texture": "assets/roads/road-straight-3_v2.png"
+        "texture": "assets/roads/road-straight-3_v3.png"
       },
       {
         "file": "road-straight-4.glb",
         "url": "GLB format/road-straight.glb",
-        "texture": "assets/roads/road-straight-4_v2.png"
+        "texture": "assets/roads/road-straight-4_v3.png"
+      },
+      {
+        "file": "road-straight-5.glb",
+        "url": "GLB format/road-straight.glb",
+        "texture": "assets/roads/road-straight-5.png"
+      },
+      {
+        "file": "road-straight-6.glb",
+        "url": "GLB format/road-straight.glb",
+        "texture": "assets/roads/road-straight-6.png"
+      },
+      {
+        "file": "road-straight-7.glb",
+        "url": "GLB format/road-straight.glb",
+        "texture": "assets/roads/road-straight-7.png"
       },
       {
         "file": "sign-highway-detailed.glb",

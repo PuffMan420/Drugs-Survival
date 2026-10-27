@@ -3,6 +3,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { planBuiltLanes } from "../js/built-lanes.js";
+import { STOP_TURN } from "../js/road-sockets.js";
 
 const SVG_PATH = process.argv[2] || "/tmp/island-v2/island-map-inputs/city-grid-roads.svg";
 const U = 16;
@@ -24,9 +25,8 @@ const LINES = [
 const STEP = { E: [1, 0], W: [-1, 0], N: [0, -1], S: [0, 1] };
 const TURN = { E: 0, W: 2, N: 1, S: 3 };
 const OPP = { E: "W", W: "E", N: "S", S: "N" };
-// STOP sits at the far end of the straight (model +Z). That end faces the
-// junction, so the word is right-side up for the car driving toward it.
-const STOP_TURN = { E: 1, S: 0, W: 3, N: 2 };
+// STOP_TURN comes from js/road-sockets.js. The stop line is model +X, so the
+// key is the side the junction is on: {E:0, N:1, W:2, S:3}.
 
 const key = (x, y) => `${x},${y}`;
 const round3 = (n) => Math.round(n * 1000) / 1000;

@@ -391,7 +391,9 @@ function blocked(map, x, z) {
 }
 
 async function start() {
-  const island = new URLSearchParams(window.location.search).get("map") === "island";
+  const mapName = new URLSearchParams(window.location.search).get("map");
+  const island = mapName === "island";
+  const roadtest = mapName === "roadtest";
   const renderer = new WebGLRenderer({
     canvas,
     antialias: true,
@@ -417,13 +419,19 @@ async function start() {
   window.addEventListener("resize", () => fitDisplay(renderer));
 
   fpsEl.textContent = "Loading map…";
-  const map = await fetch(island ? "./data/island.json" : "./data/city.json").then((response) => {
+  const mapFile = island ? "./data/island.json" : roadtest ? "./data/roadtest.json" : "./data/city.json";
+  const map = await fetch(mapFile).then((response) => {
     if (!response.ok) throw new Error("The city map failed to load.");
     return response.json();
   });
   if (island) map.island = true;
+  if (roadtest) map.roadtest = true;
   fpsEl.textContent = "Loading saved layout…";
-  const savedLayout = island ? await loadNamedMap("./island-map.json", "island-map") : await loadWestMap();
+  const savedLayout = island
+    ? await loadNamedMap("./island-map.json", "island-map")
+    : roadtest
+      ? await loadNamedMap("./roadtest-map.json", "roadtest-map")
+      : await loadWestMap();
   const removedRoadKeys = new Set();
   for (const item of savedLayout.removedRoads) {
     const key = roadKey(item);
@@ -620,7 +628,7 @@ async function start() {
 }
 
 function activeJumps() {
-  if (session.map?.island && Array.isArray(session.map.views) && session.map.views.length) return session.map.views;
+  if ((session.map?.island || session.map?.roadtest) && Array.isArray(session.map.views) && session.map.views.length) return session.map.views;
   return JUMPS;
 }
 

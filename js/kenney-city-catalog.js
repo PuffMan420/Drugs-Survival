@@ -645,6 +645,14 @@ export const KITS = [
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-skyscraper-a.glb"
       },
       {
+        "file": "building-brick.glb",
+        "url": "assets/buildings/building-brick.glb"
+      },
+      {
+        "file": "building-brick-scuffed.glb",
+        "url": "assets/buildings/building-brick-scuffed.glb"
+      },
+      {
         "file": "building-skyscraper-b.glb",
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-skyscraper-b.glb"
       },

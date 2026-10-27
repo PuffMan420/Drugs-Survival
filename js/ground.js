@@ -619,7 +619,7 @@ export async function createGround(map, skipRoad = () => false) {
       // The city painter treats "l" as asphalt and "p" as sidewalk. West of the
       // city canal it skips those quads, so the island quarter's blocks vanish.
       // Land, beach, and park on this map stay the plain ground tiles.
-      if (map.islandSw && (cell === "l" || cell === "p" || cell === "g")) return false;
+      if ((map.island || map.islandSw) && (cell === "l" || cell === "p" || cell === "g")) return false;
       return ROAD.has(cell) || WALK.has(cell) || cell === "q";
     },
     paint(buffers, x, z) {

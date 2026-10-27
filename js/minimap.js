@@ -42,7 +42,7 @@ const STYLES = {
 
 const ROAD = "#c6c2a4";
 const CORNER = 280;
-const TILE_PX = 5;
+const TILE_PX = 4;
 const SPAN = CORNER / TILE_PX;
 
 function paintRoadModules(ctx, pieces) {

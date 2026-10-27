@@ -36,6 +36,24 @@ const SPHERE_INERTIA = 0.4 * SPHERE_MASS * SPHERE_RADIUS * SPHERE_RADIUS;
 const GRAVITY = 9.8 * 1.5;
 const FRICTION = 5;
 const IMPULSE_DENOM = 1 / SPHERE_MASS + (SPHERE_RADIUS * SPHERE_RADIUS) / SPHERE_INERTIA;
+// A full lock only breaks traction near cruise speed. Below that, and again
+// after a slide has scrubbed speed, velocity is pulled back onto the nose.
+const DRIFT_ON = 166;
+const DRIFT_OFF = 138;
+// Torque follows the throttle, a little behind it, so the pull-away is heavier.
+// Top speed is the same once the spool catches the throttle.
+const DRIVE_SPOOL = 4;
+// Four gears across the cruise. Each upshift starts lower than the gear before
+// it peaked, then climbs again. The rates stay under 1 so the loop sounds deeper.
+const GEARS = [
+  { at: 0, lo: 0.36, hi: 0.52 },
+  { at: 70, lo: 0.40, hi: 0.58 },
+  { at: 114, lo: 0.42, hi: 0.64 },
+  { at: 156, lo: 0.44, hi: 0.76 },
+];
+const GEAR_DROP = 16;
+const GEAR_HOLD = 0.22;
+const PITCH_TOP_SPEED = 188;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -88,17 +106,21 @@ export function createArcadeVehicle() {
   let wy = 0;
   let wz = 0;
   let linearSpeed = 0;
+  let drive = 0;
   let angularSpeed = 0;
   let acceleration = 0;
   let lean = 0;
   let inputX = 0;
   let inputZ = 0;
-  let engineDb = -15;
-  let enginePitch = 0.5;
+  let engineDb = -28;
+  let enginePitch = 0.36;
+  let gear = 0;
+  let shiftHold = 0;
   let skidDb = -80;
   let skidPitch = 1;
   let drift = 0;
   let emit = false;
+  let sliding = false;
 
   // The rendered heading, so a collision that yaws the body stays the steer reference.
   function syncYaw(next) {
@@ -113,6 +135,7 @@ export function createArcadeVehicle() {
     wx *= k;
     wz *= k;
     linearSpeed *= k;
+    drive *= k;
   }
 
   function step(dt, controls, grounded) {
@@ -125,25 +148,29 @@ export function createArcadeVehicle() {
 
     let direction = sign(linearSpeed);
     if (direction === 0) direction = Math.abs(inputZ) > 0.1 ? sign(inputZ) : 1;
-    const steeringGrip = clamp(Math.abs(linearSpeed), 0.2, 1);
-    const targetAngular = -inputX * steeringGrip * 4 * direction;
-    angularSpeed = lerp(angularSpeed, targetAngular, dt * 4);
+    const worldBefore = Math.hypot(vx, vz) * METERS_TO_WORLD;
+    const steerBasis = Math.max(worldBefore, sliding ? DRIFT_ON : 0);
+    const steerScale = clamp(steerBasis / DRIFT_ON, 0.34, 1);
+    const targetAngular = -inputX * steerScale * 3.2 * direction;
+    angularSpeed = lerp(angularSpeed, targetAngular, dt * 2.5);
     yaw += angularSpeed * dt;
 
     const targetSpeed = inputZ;
     if (targetSpeed < 0 && linearSpeed > 0.01) linearSpeed = lerp(linearSpeed, 0, dt * 8);
     else if (targetSpeed < 0) linearSpeed = lerp(linearSpeed, targetSpeed / 2, dt * 2);
     else linearSpeed = lerp(linearSpeed, targetSpeed, dt * 6);
+    const spool = Math.abs(linearSpeed) + 0.002 < Math.abs(drive) ? 8 : DRIVE_SPOOL;
+    drive = lerp(drive, linearSpeed, dt * spool);
 
     const spin = Math.hypot(wx, wy, wz);
     acceleration = lerp(acceleration, linearSpeed + Math.abs(spin * linearSpeed) / 100, dt);
 
-    // Right axis of a yaw whose nose is -Z. Positive linear_speed rolls the
-    // sphere toward that nose (the kit adds spin on the model's right axis).
+    // Right axis of a yaw whose nose is -Z. Positive drive rolls the sphere
+    // toward that nose (the kit adds spin on the model's right axis).
     const rightX = Math.cos(yaw);
     const rightZ = -Math.sin(yaw);
-    wx += -rightX * (linearSpeed * 100) * dt;
-    wz += -rightZ * (linearSpeed * 100) * dt;
+    wx += -rightX * (drive * 100) * dt;
+    wz += -rightZ * (drive * 100) * dt;
 
     const angularDamp = Math.max(1 - 4 * dt, 0);
     const linearDamp = Math.max(1 - 0.1 * dt, 0);
@@ -168,19 +195,52 @@ export function createArcadeVehicle() {
     wx += (-SPHERE_RADIUS * jz) / SPHERE_INERTIA;
     wz += (SPHERE_RADIUS * jx) / SPHERE_INERTIA;
 
+    const worldSpeed = Math.hypot(vx, vz) * METERS_TO_WORLD;
+    const sharp = Math.abs(inputX) > 0.5;
+    if (sharp && worldSpeed > DRIFT_ON && Math.abs(drive) > 0.5) sliding = true;
+    if (!sharp || worldSpeed < DRIFT_OFF || Math.abs(drive) < 0.2) sliding = false;
+    const align = 1 - Math.exp(-(sliding ? 0.7 : 16) * dt);
+    const planar = Math.hypot(vx, vz);
+    if (planar > 0.05) {
+      const noseX = -Math.sin(yaw);
+      const noseZ = -Math.cos(yaw);
+      let dir = sign(linearSpeed);
+      if (dir === 0) dir = vx * noseX + vz * noseZ >= 0 ? 1 : -1;
+      vx = lerp(vx, noseX * planar * dir, align);
+      vz = lerp(vz, noseZ * planar * dir, align);
+      wx = vz / SPHERE_RADIUS;
+      wz = -vx / SPHERE_RADIUS;
+    }
+
     lean = lerpAngle(lean, (-inputX / 5) * linearSpeed, dt * 5);
-    drift = Math.abs(linearSpeed - acceleration) + Math.abs(lean) * 2;
-    emit = drift > 0.25;
+    let slip = 0;
+    if (planar > 0.35) {
+      slip = Math.atan2(-vx, -vz) - yaw;
+      while (slip > Math.PI) slip -= Math.PI * 2;
+      while (slip < -Math.PI) slip += Math.PI * 2;
+      slip = Math.abs(slip);
+    }
+    drift = slip;
+    emit = sliding && slip > 0.4;
 
-    const speedFactor = clamp(Math.abs(linearSpeed), 0, 1);
+    const pace = clamp(worldSpeed / 180, 0, 1);
     const throttleFactor = clamp(Math.abs(inputZ), 0, 1);
-    const targetVolume = remap(speedFactor + throttleFactor * 0.5, 0, 1.5, -15, -5);
+    const targetVolume = remap(pace * 0.65 + throttleFactor * 0.35, 0, 1, -28, -16);
     engineDb = lerp(engineDb, targetVolume, dt * 5);
-    let targetPitch = remap(speedFactor, 0, 1, 0.5, 3);
-    if (throttleFactor > 0.1) targetPitch += 0.2;
-    enginePitch = lerp(enginePitch, targetPitch, dt * 2);
+    if (gear < GEARS.length - 1 && worldSpeed >= GEARS[gear + 1].at) {
+      gear += 1;
+      shiftHold = GEAR_HOLD;
+    } else if (gear > 0 && worldSpeed <= GEARS[gear].at - GEAR_DROP) {
+      gear -= 1;
+    }
+    const band = GEARS[gear];
+    const bandTop = gear < GEARS.length - 1 ? GEARS[gear + 1].at : PITCH_TOP_SPEED;
+    if (shiftHold > 0) shiftHold = Math.max(0, shiftHold - dt);
+    const ratio = shiftHold > 0 ? 0 : clamp((worldSpeed - band.at) / (bandTop - band.at), 0, 1);
+    const targetPitch = lerp(band.lo, band.hi, ratio);
+    enginePitch = lerp(enginePitch, targetPitch, dt * 9);
 
-    const skidTarget = emit ? remap(clamp(drift, 0.25, 2), 0.25, 2, -10, 0) : -80;
+    const skidTarget = emit ? remap(clamp(drift, 0.4, 1.4), 0.4, 1.4, -10, 0) : -80;
     skidPitch = lerp(skidPitch, clamp(Math.abs(linearSpeed), 1, 3), 0.1);
     skidDb = lerp(skidDb, skidTarget, 10 * dt);
 

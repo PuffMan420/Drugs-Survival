@@ -91,6 +91,12 @@ export function createDriveEffects(scene, camera) {
   const loader = new AudioLoader();
   const engine = new Audio(listener);
   const skid = new Audio(listener);
+  // Keeps the lowered playback range from coming through thin and bright.
+  const engineLowpass = listener.context.createBiquadFilter();
+  engineLowpass.type = "lowpass";
+  engineLowpass.frequency.value = 1100;
+  engineLowpass.Q.value = 0.55;
+  engine.setFilter(engineLowpass);
   const status = { engine: "loading", skid: "loading", smoke: "loading" };
   const engineUrl = new URL("../assets/kenney-racing/engine.ogg", import.meta.url).href;
   const skidUrl = new URL("../assets/kenney-racing/skid.ogg", import.meta.url).href;

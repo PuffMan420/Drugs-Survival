@@ -14,9 +14,12 @@ function run(seconds, inputAt, vehicle = createArcadeVehicle()) {
 }
 
 test("W settles near 180 world units and noses toward -Z", () => {
+  const pulling = run(2, () => ({ forward: true }));
+  const early = Math.hypot(pulling.vx, pulling.vz);
+  assert.ok(early > 140 && early < 158, `two-second speed ${early}`);
   const done = run(8, () => ({ forward: true }));
   const speed = Math.hypot(done.vx, done.vz);
-  assert.ok(speed > 160 && speed < 200, `speed ${speed}`);
+  assert.ok(speed > 170 && speed < 200, `speed ${speed}`);
   assert.ok(done.vz < -100, `vz ${done.vz}`);
   assert.ok(Math.abs(done.vx) < 1, `vx ${done.vx}`);
   assert.equal(METERS_TO_WORLD, 180 / 11);
@@ -40,40 +43,69 @@ test("S brakes to a stop before it reverses, then holds about half speed", () =>
   assert.ok(speed > 70 && speed < 110, `reverse speed ${speed}`);
 });
 
-test("a hard turn drifts: heading and velocity split, and the tires smoke", () => {
-  const vehicle = createArcadeVehicle();
-  run(1.5, () => ({ forward: true }), vehicle);
+function slipOf(frame) {
+  const heading = Math.atan2(-frame.vx, -frame.vz);
+  let slip = heading - frame.yaw;
+  while (slip > Math.PI) slip -= Math.PI * 2;
+  while (slip < -Math.PI) slip += Math.PI * 2;
+  return Math.abs(slip);
+}
+
+test("grip holds below cruise, and a fast full lock is the slide", () => {
+  const slow = createArcadeVehicle();
+  run(2, () => ({ forward: true }), slow);
+  let slowSmoke = false;
+  let slowSlip = 0;
+  for (let i = 0; i < 60; i += 1) {
+    const frame = slow.step(STEP, { forward: true, right: true }, true);
+    if (frame.emit) slowSmoke = true;
+    slowSlip = Math.max(slowSlip, slipOf(frame));
+  }
+  assert.equal(slowSmoke, false);
+  assert.ok(slowSlip < 0.28, `planted turn slipped ${slowSlip}`);
+
+  const fast = createArcadeVehicle();
+  run(5, () => ({ forward: true }), fast);
   let smoked = false;
   let slipped = 0;
-  for (let i = 0; i < 45; i += 1) {
-    const frame = vehicle.step(STEP, { forward: true, right: true }, true);
+  for (let i = 0; i < 60; i += 1) {
+    const frame = fast.step(STEP, { forward: true, right: true }, true);
     if (frame.emit) smoked = true;
-    const heading = Math.atan2(-frame.vx, -frame.vz);
-    let slip = heading - frame.yaw;
-    while (slip > Math.PI) slip -= Math.PI * 2;
-    while (slip < -Math.PI) slip += Math.PI * 2;
-    slipped = Math.max(slipped, Math.abs(slip));
+    slipped = Math.max(slipped, slipOf(frame));
   }
-  assert.ok(smoked, "drift smoke never turned on");
-  assert.ok(slipped > 0.35, `slip only ${slipped}`);
+  assert.ok(smoked, "a high-speed full lock never broke traction");
+  assert.ok(slipped > 0.55, `slip only ${slipped}`);
+
+  const jab = createArcadeVehicle();
+  run(5, () => ({ forward: true }), jab);
+  let jabSmoke = false;
+  let jabSlip = 0;
+  for (let i = 0; i < 10; i += 1) {
+    const frame = jab.step(STEP, { forward: true, right: true }, true);
+    if (frame.emit) jabSmoke = true;
+    jabSlip = Math.max(jabSlip, slipOf(frame));
+  }
+  assert.equal(jabSmoke, false);
+  assert.ok(jabSlip < 0.35, `a short correction slipped ${jabSlip}`);
 });
 
-test("mixed inputs: a held turn is a tight drift spin, opposites cancel, steer release recovers", () => {
+test("mixed inputs: a fast held turn slides then hooks up, opposites cancel, steer release recovers", () => {
   const vehicle = createArcadeVehicle();
-  run(2, () => ({ forward: true }), vehicle);
+  run(5, () => ({ forward: true }), vehicle);
   let smoked = false;
   let minSpeed = Infinity;
-  for (let i = 0; i < 180; i += 1) {
+  for (let i = 0; i < 150; i += 1) {
     const frame = vehicle.step(STEP, { forward: true, right: true }, true);
     const speed = Math.hypot(frame.vx, frame.vz);
     if (frame.emit) smoked = true;
     if (speed < minSpeed) minSpeed = speed;
     assert.ok(Number.isFinite(speed) && Number.isFinite(frame.yaw), "spin state left the finite range");
   }
-  const spinning = vehicle.feel();
-  assert.ok(smoked, "the tight spin never smoked");
-  assert.ok(Math.abs(spinning.yawRate) > 3.5, `yaw rate ${spinning.yawRate}`);
-  assert.ok(minSpeed < 80, `the turn never tightened (${minSpeed})`);
+  const turning = vehicle.feel();
+  assert.ok(smoked, "the fast full lock never smoked");
+  assert.ok(Math.abs(turning.yawRate) > 2.2, `yaw rate ${turning.yawRate}`);
+  assert.ok(minSpeed < 150, `the slide never scrubbed speed (${minSpeed})`);
+  assert.ok(minSpeed > 70, `the slide collapsed (${minSpeed})`);
   const recovered = run(3, () => ({ forward: true }), vehicle);
   const recoveredSpeed = Math.hypot(recovered.vx, recovered.vz);
   assert.ok(recoveredSpeed > 150, `releasing steer did not recover (${recoveredSpeed})`);
@@ -86,12 +118,53 @@ test("mixed inputs: a held turn is a tight drift spin, opposites cancel, steer r
   assert.ok(cancelled.vz < 20, `cancel reversed (${cancelled.vz})`);
 });
 
-test("engine and skid gains follow the kit's decibel curve", () => {
+test("engine pitch climbs with speed, drops a gear at a time, and stays quiet", () => {
   assert.ok(Math.abs(dbToGain(-15) - 10 ** (-15 / 20)) < 1e-9);
   assert.ok(dbToGain(0) === 1);
   const idle = createArcadeVehicle().feel();
-  assert.ok(idle.engineGain < 0.25 && idle.skidGain < 0.001);
-  const pulling = run(2, () => ({ forward: true }));
-  assert.ok(pulling.enginePitch > 1.5, `pitch ${pulling.enginePitch}`);
-  assert.ok(pulling.engineGain > dbToGain(-12));
+  assert.ok(idle.engineGain < 0.08 && idle.skidGain < 0.001, `idle gain ${idle.engineGain}`);
+  assert.ok(idle.enginePitch < 0.5, `idle pitch ${idle.enginePitch}`);
+
+  const vehicle = createArcadeVehicle();
+  const pitches = [];
+  let cruise = null;
+  const frames = Math.round(7 / STEP);
+  for (let i = 0; i < frames; i += 1) {
+    cruise = vehicle.step(STEP, { forward: true }, true);
+    pitches.push(cruise.enginePitch);
+    assert.ok(cruise.enginePitch < 0.85, `pitch left the deep range (${cruise.enginePitch})`);
+  }
+  const at = (seconds) => pitches[Math.round(seconds / STEP) - 1];
+  assert.ok(at(0.35) < at(0.7) - 0.02, `first gear did not rise (${at(0.35)} -> ${at(0.7)})`);
+  assert.ok(at(2) < at(6) - 0.04, `pitch was already topped at two seconds (${at(2)} -> ${at(6)})`);
+  assert.ok(cruise.engineGain < dbToGain(-15), `cruise gain ${cruise.engineGain}`);
+  assert.ok(cruise.engineGain > dbToGain(-24), `cruise gain fell out (${cruise.engineGain})`);
+
+  let drops = 0;
+  for (let i = 2; i < pitches.length - 1;) {
+    const earlier = pitches[i - 1];
+    if (earlier <= pitches[i]) {
+      i += 1;
+      continue;
+    }
+    let trough = pitches[i];
+    let troughAt = i;
+    const window = Math.min(pitches.length - 1, i + 18);
+    for (let j = i; j <= window; j += 1) {
+      if (pitches[j] < trough) {
+        trough = pitches[j];
+        troughAt = j;
+      }
+    }
+    let rose = 0;
+    const after = Math.min(pitches.length - 1, troughAt + 30);
+    for (let j = troughAt; j <= after; j += 1) rose = Math.max(rose, pitches[j] - trough);
+    if (earlier - trough > 0.04 && rose > 0.025) {
+      drops += 1;
+      i = troughAt + 20;
+    } else {
+      i += 1;
+    }
+  }
+  assert.ok(drops >= 2, `heard ${drops} gear drops`);
 });

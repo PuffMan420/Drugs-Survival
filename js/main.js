@@ -501,6 +501,7 @@ async function start() {
     scene,
     camera,
     canvas,
+    renderer,
     map,
     saved: savedLayout,
     roads: city.roads,

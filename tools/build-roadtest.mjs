@@ -13,6 +13,12 @@ const ramp = (gx, gz, turn) => placePiece("road-slant-high-4.glb", gx, gz, turn)
 const bridge = (gx, gz, turn) => placePiece("road-bridge-2.glb", gx, gz, turn);
 const split = (gx, gz, turn) => placePiece("road-split-2.glb", gx, gz, turn);
 const water = (gx, gz, turn) => placePiece("bridge-water.glb", gx, gz, turn);
+// cellsZ is a whole-cell nudge. ±2 is half a module, the split's narrow line.
+const moved = (file, gx, gz, turn, cellsZ) => {
+  const placed = placePiece(file, gx, gz, turn);
+  placed.z += cellsZ;
+  return placed;
+};
 
 // Each group is closed: every socket meets the opposite socket on the next piece.
 const pieces = [
@@ -37,10 +43,9 @@ const pieces = [
   straight(4, 4, 0),
   bend(5, 4, 3),
 
-  // 4-lane road. West split opens one road into two. East split merges them.
-  // Bridges carry the green overpass across both carriageways.
-  bend(0, 9, 1),
-  straight(1, 9, 0),
+  // 4-lane road. The wide mouths stay on the two module rows. The single road
+  // and the bend that meet each narrow mouth are shifted 2 cells onto the
+  // shared edge, then the two narrow ends join around the outside.
   split(2, 9, 2),
   straight(3, 8, 0),
   straight(3, 9, 0),
@@ -49,32 +54,40 @@ const pieces = [
   straight(5, 8, 0),
   straight(5, 9, 0),
   split(6, 8, 0),
-  tee(7, 8, 2),
-  bend(8, 8, 0),
-  straight(8, 9, 1),
-  straight(8, 10, 1),
-  straight(8, 11, 1),
-  bend(8, 12, 3),
-  straight(7, 12, 0),
-  straight(6, 12, 0),
-  straight(5, 12, 0),
-  straight(3, 12, 0),
-  straight(2, 12, 0),
-  straight(1, 12, 0),
-  bend(0, 12, 2),
-  straight(0, 11, 1),
-  straight(0, 10, 1),
+  moved("road-bend-3.glb", 0, 9, 1, -2),
+  moved("road-straight-7.glb", 1, 9, 0, -2),
+  moved("road-straight-7.glb", 7, 8, 0, 2),
+  moved("road-bend-3.glb", 8, 8, 0, 2),
+  moved("road-straight-7.glb", 8, 10, 1, -2),
+  moved("road-straight-7.glb", 8, 11, 1, -2),
+  moved("road-straight-7.glb", 8, 12, 1, -2),
+  moved("road-straight-7.glb", 8, 13, 1, -2),
+  moved("road-bend-3.glb", 8, 14, 3, -2),
+  moved("road-straight-7.glb", 7, 14, 0, -2),
+  moved("road-straight-7.glb", 6, 14, 0, -2),
+  moved("road-straight-7.glb", 5, 14, 0, -2),
+  moved("road-straight-7.glb", 4, 14, 0, -2),
+  moved("road-straight-7.glb", 3, 14, 0, -2),
+  moved("road-straight-7.glb", 2, 14, 0, -2),
+  moved("road-straight-7.glb", 1, 14, 0, -2),
+  moved("road-bend-3.glb", 0, 14, 2, -2),
+  moved("road-straight-7.glb", 0, 13, 1, -2),
+  moved("road-straight-7.glb", 0, 12, 1, -2),
+  moved("road-straight-7.glb", 0, 11, 1, -2),
+  moved("road-straight-7.glb", 0, 10, 1, -2),
+
+  // Each ramp's ground end closes on its own, clear of the half-module road.
   ramp(4, 7, 3),
-  straight(4, 6, 1),
+  tee(4, 6, 1),
   bend(4, 5, 1),
-  straight(5, 5, 0),
-  straight(6, 5, 0),
-  bend(7, 5, 0),
-  straight(7, 6, 1),
-  straight(7, 7, 1),
+  bend(5, 5, 0),
+  bend(5, 6, 3),
   ramp(4, 10, 1),
   straight(4, 11, 1),
-  tee(4, 12, 2),
+  tee(4, 12, 1),
+  bend(4, 13, 2),
+  bend(5, 13, 3),
+  bend(5, 12, 0),
 
   // Water bridge, ramps up to the deck and back down, closed by a side road.
   bend(11, 0, 0),

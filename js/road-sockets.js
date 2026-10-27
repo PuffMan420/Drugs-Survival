@@ -4,9 +4,10 @@
 // g = ground road, h = high deck (0.52). One turn is +90° about Y, so
 // E→N→W→S. Mirror flips model X and swaps E with W before the turn.
 //
-// road-split-2 is a 1×2 Y. Its east mouth is sheared onto the north module
-// centre, so every opening sits on a module centre. The south mouth merges
-// into that through road. bridge-water is a 1×2 deck along Z, high at both ends.
+// road-split-2 is the original 1×2 Y. The two wide mouths sit on module
+// centres. The single narrow mouth is centred on the shared edge, half a
+// module (2 cells) off either row. A road that meets it is placed on that
+// half-module line. bridge-water is a 1×2 deck along Z, high at both ends.
 
 export const MODULE = 4;
 
@@ -42,14 +43,15 @@ const ROADS = {
   },
   "road-split-2.glb": {
     cells: [
-      { dx: 0, dz: -0.5, sockets: { E: "g", W: "g" } },
+      { dx: 0, dz: -0.5, sockets: { W: "g" } },
       { dx: 0, dz: 0.5, sockets: { W: "g" } },
+      // Narrow mouth. It occupies no module; it only meets a road whose centre
+      // is on the half-module line between the two wide rows.
+      { dx: 0, dz: 0, sockets: { E: "g" } },
     ],
-    // Through road on the north module, then the south mouth merging into it.
     lines: [
-      [[-0.5, -0.5], [0.25, -0.5]],
-      [[-0.5, 0.5], [-0.25, 0.25], [0, 0], [0.25, -0.25], [0.25, -0.5]],
-      [[0.25, -0.5], [0.5, -0.5]],
+      [[-0.5, -0.5], [0, -0.2], [0.5, 0]],
+      [[-0.5, 0.5], [0, 0.2], [0.5, 0]],
     ],
   },
   "bridge-water.glb": {
@@ -147,8 +149,12 @@ export function modelPolylines(file) {
   return spec.lines.map((line) => line.map(([x, z]) => ({ x, z })));
 }
 
-function nearInt(value) {
-  return Math.abs(value - Math.round(value)) < 1e-6;
+function snapHalf(value) {
+  return Math.round(value * 2) / 2;
+}
+
+function onHalfGrid(value) {
+  return Math.abs(value * 2 - Math.round(value * 2)) < 1e-6;
 }
 
 // Every socket must meet the neighbour's opposite socket. Open ends, mismatches,
@@ -163,12 +169,12 @@ export function checkRoads(pieces) {
       continue;
     }
     for (const cell of covered) {
-      if (!nearInt(cell.gx) || !nearInt(cell.gz)) {
+      if (!onHalfGrid(cell.gx) || !onHalfGrid(cell.gz)) {
         errors.push({ kind: "offgrid", file: piece.file, x: piece.x, z: piece.z, gx: cell.gx, gz: cell.gz });
         continue;
       }
-      const gx = Math.round(cell.gx);
-      const gz = Math.round(cell.gz);
+      const gx = snapHalf(cell.gx);
+      const gz = snapHalf(cell.gz);
       const key = `${gx},${gz}`;
       if (cells.has(key)) errors.push({ kind: "overlap", file: piece.file, gx, gz, other: cells.get(key).file });
       cells.set(key, { ...cell, gx, gz });

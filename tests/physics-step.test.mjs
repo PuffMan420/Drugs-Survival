@@ -8,9 +8,8 @@ import assert from "node:assert/strict";
 
 register("./rapier-resolve.mjs", import.meta.url);
 const { createPhysics, STEP, GROUP, blendPose } = await import("../js/physics.js");
-const { createPhysicsScene } = await import("../js/physics-scene.js");
+const { createPhysicsScene, roadBoxes } = await import("../js/physics-scene.js");
 const { createDrive } = await import("../js/drive.js");
-const { builtRoadStrips } = await import("../js/built-lanes.js");
 const { TILE } = await import("../js/constants.js");
 
 const MAP = { cols: 60, rows: 60, buildings: [] };
@@ -74,15 +73,7 @@ function roadColliders(world) {
 }
 
 function expectedRoadBoxes(pieces) {
-  let count = 0;
-  for (const strip of builtRoadStrips(pieces)) {
-    for (let i = 0; i < strip.pts.length - 1; i += 1) {
-      const a = strip.pts[i];
-      const b = strip.pts[i + 1];
-      if (Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) >= 0.5) count += 1;
-    }
-  }
-  return count;
+  return roadBoxes(pieces).length;
 }
 
 // Scene queries see collider edits after the next world step, which in the

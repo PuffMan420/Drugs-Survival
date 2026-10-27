@@ -28,6 +28,7 @@ const KIND = new Map([
   ["road-straight-5.glb", "x"],
   ["road-straight-6.glb", "x"],
   ["road-straight-7.glb", "x"],
+  ["road-straight-stop.glb", "x"],
   ["road-crossing.glb", "x"],
   ["road-crossing-2.glb", "x"],
   ["road-crossing-3.glb", "x"],
@@ -56,6 +57,8 @@ const KIND = new Map([
   ["road-curve-intersection-3.glb", "curve"],
   ["road-bridge.glb", "bridge"],
   ["road-bridge-2.glb", "bridge"],
+  ["bridge-water.glb", "water"],
+  ["road-split-2.glb", "split"],
   ["road-crossroad.glb", "cross"],
   ["road-crossroad-2.glb", "cross"],
   ["road-crossroad-3.glb", "cross"],
@@ -127,6 +130,19 @@ function centerlines(kind) {
     return [
       line(-0.5, 0, 0.5, 0, Y_ROAD, Y_ROAD, 4),
       line(0, -0.5, 0, 0.5, Y_DECK, Y_DECK, 4),
+    ];
+  }
+  // Water bridge: deck only, two modules along Z, centered on the piece origin.
+  if (kind === "water") return [line(0, -1, 0, 1, Y_DECK, Y_DECK, 6)];
+  // Split is two modules along Z. The through road sits at x=-0.4 and the
+  // piece is shifted so that line is the carriageway. Side mouths at x=0.1
+  // meet a two-way street. Only the exit is a lane: the linker allows one
+  // successor, so an entrance would cut the street and die in the median.
+  if (kind === "split") {
+    return [
+      line(-0.4, -1, -0.4, 1, Y_ROAD, Y_ROAD, 6),
+      line(-0.4, -0.5, 0.1, -0.5, Y_ROAD, Y_ROAD, 3),
+      line(-0.4, 0.5, 0.1, 0.5, Y_ROAD, Y_ROAD, 3),
     ];
   }
   if (kind === "cross") {
@@ -206,6 +222,96 @@ function distToSeg(x, z, a, b) {
   return closestPoint(x, z, a, b).dist;
 }
 
+function pieceReady(piece) {
+  if (!piece || piece.kit !== "roads") return null;
+  const kind = KIND.get(piece.file);
+  if (!kind) return null;
+  if (!Number.isFinite(piece.x) || !Number.isFinite(piece.z)) return null;
+  const turn = Number(piece.turn);
+  if (!Number.isInteger(turn)) return null;
+  const scale = piece.scale == null ? 1 : Number(piece.scale);
+  if (!Number.isFinite(scale) || scale <= 0) return null;
+  const oneWay = piece.oneWay === true || piece.oneWay === "x" || piece.oneWay === "z" || piece.oneWay === "back"
+    ? piece.oneWay
+    : false;
+  return {
+    kind,
+    size: UNIT * scale,
+    placed: {
+      ...piece,
+      mirror: piece.mirror === true,
+      turn: ((turn % 4) + 4) % 4,
+      oneWay,
+    },
+  };
+}
+
+function axisOf(raw) {
+  const a = raw[0];
+  const b = raw[raw.length - 1];
+  return Math.abs(b.x - a.x) >= Math.abs(b.z - a.z) ? "x" : "z";
+}
+
+// oneWay true keeps the authored direction. "x" / "z" keep that model axis
+// one-way and still emit the other axis both ways (a bridge underpass).
+// "back" keeps only the reverse, for a ramp the car drives down.
+function pushLane(lanes, world, lateral, oneWay, axis) {
+  if (oneWay === "back") {
+    lanes.push(offsetLane([...world].reverse(), lateral));
+    return;
+  }
+  lanes.push(offsetLane(world, lateral));
+  if (oneWay === true) return;
+  if (oneWay === "x" && axis === "x") return;
+  if (oneWay === "z" && axis === "z") return;
+  lanes.push(offsetLane([...world].reverse(), lateral));
+}
+
+function linkNext(lanes) {
+  const next = new Array(lanes.length).fill(-1);
+  const buckets = new Map();
+  for (let j = 0; j < lanes.length; j += 1) {
+    const start = lanes[j][0];
+    const key = `${Math.floor(start.x / LINK_XZ)},${Math.floor(start.z / LINK_XZ)}`;
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = [];
+      buckets.set(key, bucket);
+    }
+    bucket.push(j);
+  }
+  const pairs = [];
+  for (let i = 0; i < lanes.length; i += 1) {
+    const end = lanes[i][lanes[i].length - 1];
+    const cx = Math.floor(end.x / LINK_XZ);
+    const cz = Math.floor(end.z / LINK_XZ);
+    for (let dz = -1; dz <= 1; dz += 1) {
+      for (let dx = -1; dx <= 1; dx += 1) {
+        const bucket = buckets.get(`${cx + dx},${cz + dz}`);
+        if (!bucket) continue;
+        for (let n = 0; n < bucket.length; n += 1) {
+          const j = bucket[n];
+          if (i === j) continue;
+          const start = lanes[j][0];
+          if (Math.abs(end.y - start.y) > LINK_Y) continue;
+          const dist = Math.hypot(end.x - start.x, end.z - start.z);
+          if (dist < LINK_XZ) pairs.push({ i, j, dist });
+        }
+      }
+    }
+  }
+  pairs.sort((a, b) => a.dist - b.dist || a.i - b.i || a.j - b.j);
+  const usedIn = new Array(lanes.length).fill(false);
+  const usedOut = new Array(lanes.length).fill(false);
+  for (const pair of pairs) {
+    if (usedOut[pair.i] || usedIn[pair.j]) continue;
+    next[pair.i] = pair.j;
+    usedOut[pair.i] = true;
+    usedIn[pair.j] = true;
+  }
+  return next;
+}
+
 function extendEnds(pts, extra) {
   if (pts.length < 2 || extra <= 0) return pts;
   const first = pts[0];
@@ -233,20 +339,12 @@ export function builtRoadStrips(pieces) {
   const strips = [];
   const list = Array.isArray(pieces) ? pieces : [];
   for (const piece of list) {
-    if (!piece || piece.kit !== "roads") continue;
-    const kind = KIND.get(piece.file);
-    if (!kind) continue;
-    if (!Number.isInteger(piece.x) || !Number.isInteger(piece.z)) continue;
-    const turn = Number(piece.turn);
-    if (!Number.isInteger(turn)) continue;
-    const scale = piece.scale == null ? 1 : Number(piece.scale);
-    if (!Number.isFinite(scale) || scale <= 0) continue;
-    const size = UNIT * scale;
-    const placed = { ...piece, mirror: piece.mirror === true, turn: ((turn % 4) + 4) % 4 };
-    for (const raw of centerlines(kind)) {
-      const pts = raw.map((point) => worldPoint(point, placed, size));
+    const ready = pieceReady(piece);
+    if (!ready) continue;
+    for (const raw of centerlines(ready.kind)) {
+      const pts = raw.map((point) => worldPoint(point, ready.placed, ready.size));
       if (pts.length < 2) continue;
-      strips.push({ pts: extendEnds(pts, 8), half: 0.36 * size });
+      strips.push({ pts: extendEnds(pts, 8), half: 0.36 * ready.size });
     }
   }
   return strips;
@@ -257,45 +355,16 @@ export function planBuiltLanes(pieces) {
   const grid = new Map();
   const list = Array.isArray(pieces) ? pieces : [];
   for (const piece of list) {
-    if (!piece || piece.kit !== "roads") continue;
-    const kind = KIND.get(piece.file);
-    if (!kind) continue;
-    if (!Number.isInteger(piece.x) || !Number.isInteger(piece.z)) continue;
-    const turn = Number(piece.turn);
-    if (!Number.isInteger(turn)) continue;
-    const scale = piece.scale == null ? 1 : Number(piece.scale);
-    if (!Number.isFinite(scale) || scale <= 0) continue;
-    const size = UNIT * scale;
-    const lateral = LANE * size;
-    const placed = { ...piece, mirror: piece.mirror === true, turn: ((turn % 4) + 4) % 4 };
-    for (const raw of centerlines(kind)) {
-      const world = raw.map((point) => worldPoint(point, placed, size));
-      lanes.push(offsetLane(world, lateral));
-      lanes.push(offsetLane([...world].reverse(), lateral));
+    const ready = pieceReady(piece);
+    if (!ready) continue;
+    const lateral = LANE * ready.size;
+    for (const raw of centerlines(ready.kind)) {
+      const world = raw.map((point) => worldPoint(point, ready.placed, ready.size));
+      pushLane(lanes, world, lateral, ready.placed.oneWay, axisOf(raw));
     }
   }
 
-  const next = new Array(lanes.length).fill(-1);
-  const pairs = [];
-  for (let i = 0; i < lanes.length; i += 1) {
-    const end = lanes[i][lanes[i].length - 1];
-    for (let j = 0; j < lanes.length; j += 1) {
-      if (i === j) continue;
-      const start = lanes[j][0];
-      if (Math.abs(end.y - start.y) > LINK_Y) continue;
-      const dist = Math.hypot(end.x - start.x, end.z - start.z);
-      if (dist < LINK_XZ) pairs.push({ i, j, dist });
-    }
-  }
-  pairs.sort((a, b) => a.dist - b.dist);
-  const usedIn = new Array(lanes.length).fill(false);
-  const usedOut = new Array(lanes.length).fill(false);
-  for (const pair of pairs) {
-    if (usedOut[pair.i] || usedIn[pair.j]) continue;
-    next[pair.i] = pair.j;
-    usedOut[pair.i] = true;
-    usedIn[pair.j] = true;
-  }
+  const next = linkNext(lanes);
 
   for (const lane of lanes) {
     for (let i = 0; i < lane.length - 1; i += 1) {

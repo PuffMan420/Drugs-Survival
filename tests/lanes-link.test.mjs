@@ -33,8 +33,8 @@ function bruteNext(lanes) {
   return next;
 }
 
-test("spatial hash matches the brute-force linker on the current map", () => {
-  const pieces = JSON.parse(readFileSync(new URL("../west-map.json", import.meta.url), "utf8")).pieces;
+test("spatial hash matches the brute-force linker on the island", () => {
+  const pieces = JSON.parse(readFileSync(new URL("../island-map.json", import.meta.url), "utf8")).pieces;
   const plan = planBuiltLanes(pieces);
   assert.deepEqual(plan.next, bruteNext(plan.lanes));
   assert.ok(plan.lanes.length > 100);

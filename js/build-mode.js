@@ -19,14 +19,15 @@ import { KITS } from "./kenney-city-catalog.js";
 import { roadKey, roadRecord } from "./kenney-roads.js";
 import { createRoadBatches } from "./road-batch.js";
 
-// One Kenney unit is the same 4-tile module as the road pieces already on
-// the west bank. Scale is uniform so a building keeps the height in the file.
+// One Kenney unit is the same 4-tile module as the road pieces.
+// Scale is uniform so a building keeps the height in the file.
 // The suburban kit asks for nearest filtering; draw it with linear filtering
 // and leave the file alone.
 const UNIT = 4 * TILE;
 const GROUND_Y = 0.2;
-const MAP_URL = "./west-map.json";
-const STORAGE_KEY = "west-map";
+const MAP_URL = "./island-map.json";
+const STORAGE_KEY = "island-map";
+const DOWNLOAD_NAME = "island-map.json";
 const SCALE_STEP = 0.25;
 const SCALE_MIN = 0.25;
 const SCALE_MAX = 4;
@@ -776,19 +777,15 @@ export async function loadNamedMap(url, storageKey) {
   return layoutFrom(data);
 }
 
-export async function loadWestMap() {
-  return loadNamedMap(MAP_URL, STORAGE_KEY);
-}
-
 // onPiecesChanged(pieces) runs after every edit that moves, adds, removes or
 // reshapes a placed piece, so physics can match what is on screen.
 export async function createBuildMode({ scene, camera, canvas, renderer, map, saved = null, roads = null, onPiecesChanged = null }) {
   const group = new Group();
-  group.name = "west-build";
+  group.name = "build";
   scene.add(group);
   const batches = createRoadBatches(group);
-  const storageKey = map.islandSw ? "island-sw-map" : map.roadtest ? "roadtest-map" : map.island ? "island-map" : STORAGE_KEY;
-  const downloadName = map.islandSw ? "island-sw-map.json" : map.roadtest ? "roadtest-map.json" : map.island ? "island-map.json" : "west-map.json";
+  const storageKey = STORAGE_KEY;
+  const downloadName = DOWNLOAD_NAME;
 
   const loader = new GLTFLoader();
   const templates = new Map();
@@ -1044,7 +1041,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     return record;
   }
 
-  const layout = saved || await loadWestMap();
+  const layout = saved || await loadNamedMap(MAP_URL, STORAGE_KEY);
   const removedRoads = [];
   const removedKeys = new Set();
   for (const raw of layout.removedRoads) {

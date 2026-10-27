@@ -25,7 +25,7 @@ const SCALE_BUMP = 1.15 * 1.1 * 1.1 * 1.05;
 // Tires sit at this height. His soles use the same ground.
 const FEET_Y = 0.6;
 const SHADOW_Y = 0.35;
-// Keys 1–9 place him across the map in one frame. A step never does.
+// Keys 1–8 place him across the island in one frame. A step never does.
 const PLACE_STEP = 240;
 const FADE = 0.12;
 

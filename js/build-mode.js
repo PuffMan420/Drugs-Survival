@@ -168,6 +168,95 @@ function paintStraightSkin(root, texture) {
   });
 }
 
+function clampUnit(value) {
+  return Math.min(1, Math.max(0, value));
+}
+
+// 0 at the outer lip of a curb band, 0.1 at the inner lip. flipY puts v = 0
+// on the bottom concrete strip of a straight-road skin.
+function curbBand(y, outer) {
+  const d = clampUnit((0.02 - y) * 5);
+  return outer ? d : 0.1 - d;
+}
+
+function straightEndUV(x, y, z, nz, minX, spanX) {
+  const u = (x - minX) / spanX;
+  if (Math.abs(nz) > 0.5) {
+    const outer = Math.abs(Math.abs(z) - 0.5) < 1e-3;
+    const edge = curbBand(y, outer);
+    return [u, z < 0 ? edge : 1 - edge];
+  }
+  return [u, z + 0.5];
+}
+
+// Closed-end curb only. The deck and the open butt keep the straight-road
+// projection so they meet a skinned straight piece. Positions are not moved.
+function endCapUV(round, face, x, y, z) {
+  const { nx, ny, nz, cx, cy, cz } = face;
+  if (!round) {
+    if (Math.abs(nx) > 0.5 && cx < -0.2) return [z + 0.5, curbBand(y, cx < -0.45)];
+    if (ny > 0.5 && cy > 0.015 && cx < -0.35) return [z + 0.5, Math.min(0.1, Math.max(0, x + 0.5))];
+    return null;
+  }
+  const cr = Math.hypot(cx, cz);
+  if (cx >= 0.05 || cr <= 0.36 || cr >= 0.55) return null;
+  if (cx > 0 && Math.abs(nz) > 0.5) return null;
+  const u = clampUnit((Math.atan2(z, -x) + Math.PI / 2) / Math.PI);
+  if (Math.abs(ny) < 0.5) return [u, curbBand(y, cr > 0.45)];
+  if (ny > 0.5 && cy > 0.015 && cr > 0.39) {
+    return [u, clampUnit((0.5 - Math.hypot(x, z)) / 0.1) * 0.1];
+  }
+  return null;
+}
+
+// road-end and road-end-round keep the Kenney mesh. The straight-road skin
+// covers the deck and the side curbs. A second pass paints only the closed
+// end (square cap or round nose) with the concrete curb band, so lane paint
+// does not land on the cap. Each corner gets its own UV. The file is untouched.
+function paintEndSkin(root, texture, round) {
+  root.traverse((obj) => {
+    if (!obj.isMesh || !obj.geometry) return;
+    let geometry = obj.geometry.clone();
+    if (!geometry.getAttribute("normal")) {
+      geometry = geometry.toNonIndexed();
+      geometry.computeVertexNormals();
+    }
+    if (geometry.getIndex()) geometry = geometry.toNonIndexed();
+    geometry.computeBoundingBox();
+    const minX = geometry.boundingBox.min.x;
+    const spanX = geometry.boundingBox.max.x - minX || 1;
+    const position = geometry.getAttribute("position");
+    const uv = geometry.getAttribute("uv");
+    if (position && uv) {
+      const triCount = position.count / 3;
+      for (let t = 0; t < triCount; t += 1) {
+        const i0 = t * 3;
+        const face = triangleNormal(position, i0, i0 + 1, i0 + 2);
+        for (let k = 0; k < 3; k += 1) {
+          const i = i0 + k;
+          const x = position.getX(i);
+          const y = position.getY(i);
+          const z = position.getZ(i);
+          const over = endCapUV(round, face, x, y, z);
+          const pair = over || straightEndUV(x, y, z, face.nz, minX, spanX);
+          uv.setXY(i, pair[0], pair[1]);
+        }
+      }
+      uv.needsUpdate = true;
+    }
+    obj.geometry = geometry;
+    const list = Array.isArray(obj.material) ? obj.material : [obj.material];
+    const next = list.map((mat) => {
+      const copy = mat.clone();
+      copy.map = texture;
+      if (copy.color) copy.color.set(0xffffff);
+      copy.needsUpdate = true;
+      return copy;
+    });
+    obj.material = Array.isArray(obj.material) ? next : next[0];
+  });
+}
+
 // road-bend skins keep the Kenney quarter bend. The arc is a unit quarter
 // disc centred at (x, z) = (-0.5, 0.5): u runs along the arc and v runs
 // with the radius, so a straight-road PNG wraps the curve. flipY is true.
@@ -968,7 +1057,9 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       } else if (item.texture) {
         const texture = await loadSkinTexture(item.texture);
         const mesh = item.url.slice(item.url.lastIndexOf("/") + 1);
-        if (PLANAR_MESH.has(mesh)) paintPlanarSkin(scene, texture);
+        if (mesh === "road-end.glb") paintEndSkin(scene, texture, false);
+        else if (mesh === "road-end-round.glb") paintEndSkin(scene, texture, true);
+        else if (PLANAR_MESH.has(mesh)) paintPlanarSkin(scene, texture);
         else paintStraightSkin(scene, texture);
       }
       linearize(scene);

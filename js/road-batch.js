@@ -33,7 +33,10 @@ function bakeTemplate(template) {
     if (mats.length > 1 && groups && groups.length > 0) {
       for (const group of groups) {
         const geometry = sliceGeometry(obj.geometry, group.start, group.count);
-        parts.push({ geometry, material: mats[group.material] || mats[0], local: obj.matrixWorld.clone() });
+        // Groups store the slot on materialIndex. `.material` is unset, so the
+        // old lookup always used the road skin and the placed walls lost their graffiti.
+        const slot = group.materialIndex ?? 0;
+        parts.push({ geometry, material: mats[slot] || mats[0], local: obj.matrixWorld.clone() });
       }
       return;
     }

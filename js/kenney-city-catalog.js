@@ -264,8 +264,68 @@ export const KITS = [
         "url": "GLB format/road-end-round.glb"
       },
       {
+        "file": "road-end-round-2.glb",
+        "url": "GLB format/road-end-round.glb",
+        "texture": "assets/roads/road-straight-2_v3.png"
+      },
+      {
+        "file": "road-end-round-3.glb",
+        "url": "GLB format/road-end-round.glb",
+        "texture": "assets/roads/road-straight-3_v3.png"
+      },
+      {
+        "file": "road-end-round-4.glb",
+        "url": "GLB format/road-end-round.glb",
+        "texture": "assets/roads/road-straight-4_v3.png"
+      },
+      {
+        "file": "road-end-round-5.glb",
+        "url": "GLB format/road-end-round.glb",
+        "texture": "assets/roads/road-straight-5.png"
+      },
+      {
+        "file": "road-end-round-6.glb",
+        "url": "GLB format/road-end-round.glb",
+        "texture": "assets/roads/road-straight-6.png"
+      },
+      {
+        "file": "road-end-round-7.glb",
+        "url": "GLB format/road-end-round.glb",
+        "texture": "assets/roads/road-straight-7.png"
+      },
+      {
         "file": "road-end.glb",
         "url": "GLB format/road-end.glb"
+      },
+      {
+        "file": "road-end-2.glb",
+        "url": "GLB format/road-end.glb",
+        "texture": "assets/roads/road-straight-2_v3.png"
+      },
+      {
+        "file": "road-end-3.glb",
+        "url": "GLB format/road-end.glb",
+        "texture": "assets/roads/road-straight-3_v3.png"
+      },
+      {
+        "file": "road-end-4.glb",
+        "url": "GLB format/road-end.glb",
+        "texture": "assets/roads/road-straight-4_v3.png"
+      },
+      {
+        "file": "road-end-5.glb",
+        "url": "GLB format/road-end.glb",
+        "texture": "assets/roads/road-straight-5.png"
+      },
+      {
+        "file": "road-end-6.glb",
+        "url": "GLB format/road-end.glb",
+        "texture": "assets/roads/road-straight-6.png"
+      },
+      {
+        "file": "road-end-7.glb",
+        "url": "GLB format/road-end.glb",
+        "texture": "assets/roads/road-straight-7.png"
       },
       {
         "file": "road-intersection-barrier.glb",

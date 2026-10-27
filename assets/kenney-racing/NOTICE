@@ -1,0 +1,8 @@
+Engine loop, skid loop, and smoke sprite from Kenney's Starter Kit Racing
+(https://github.com/KenneyNL/Starter-Kit-Racing).
+
+The sounds and the smoke sprite are CC0. The skid sound was made by Landeplage
+(https://github.com/Landeplage) and is also CC0.
+
+The vehicle control script those assets were built for is MIT. The port lives
+in js/kenney-vehicle.js and keeps that notice.

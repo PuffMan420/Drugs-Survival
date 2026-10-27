@@ -27,6 +27,7 @@ import {
 } from "./constants.js";
 import { createTraffic } from "./cars.js";
 import { createDrive } from "./drive.js";
+import { createDriveEffects } from "./drive-effects.js";
 import { createPhysics } from "./physics.js";
 import { createPhysicsScene } from "./physics-scene.js";
 import { buildCity, tileAt, tileCenter, updateChunks } from "./city.js";
@@ -469,6 +470,7 @@ async function start() {
   // theta 0 is +Z, which is south. The camera does not orbit.
   const cameraTheta = 0;
   const cameraTarget = new Vector3();
+  const driveFx = createDriveEffects(scene, camera);
   const origin = tileCenter(map.spawn.x, map.spawn.z);
   const player = { x: origin.x, z: origin.z, y: 0.6 };
   const half = PLAYER_SIZE / 2;
@@ -606,6 +608,7 @@ async function start() {
     camX = frameCenter(snappedX, halfW, city.mapW);
     camZ = frameCenter(snappedZ, halfH, city.mapH);
     glow.update(camX, camZ, traffic.lights(camX, camZ));
+    driveFx.update(dt, drive.driving ? drive.sample() : null);
     camera.position.setFromSphericalCoords(CAMERA_RADIUS, CAMERA_ANGLE, cameraTheta);
     cameraTarget.set(camX, 0, camZ);
     camera.position.add(cameraTarget);

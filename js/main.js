@@ -34,12 +34,13 @@ import { createPedestrians } from "./pedestrians.js";
 import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
 import { createPlayer } from "./player.js";
-import { createBuildMode, loadNamedMap, loadWestMap } from "./build-mode.js";
+import { createBuildMode, loadNamedMap } from "./build-mode.js";
 import { roadKey } from "./kenney-roads.js";
 import { westOfCanal } from "./kenney-road-plan.js";
 
 const NEAR = 10;
-const FAR = 6000;
+// Wide enough to see the far shore from a camera sitting over the near one.
+const FAR = 48000;
 // Lambert shades by irradiance / PI. These scales keep sunlit streets about as
 // bright as the old unlit materials, with the hemisphere doing most of the work.
 const LAMBERT = Math.PI;
@@ -69,19 +70,7 @@ const MOVE = new Set([
   "ArrowRight",
 ]);
 
-const JUMPS = [
-  { name: "Northwest ring", x: 41, z: 40 },
-  { name: "North avenue", x: 130, z: 34 },
-  { name: "Northeast corner", x: 220, z: 28 },
-  { name: "West avenue", x: 40, z: 126 },
-  { name: "Midtown", x: 130, z: 126 },
-  { name: "East avenue", x: 220, z: 128 },
-  { name: "Southwest quay", x: 52, z: 200 },
-  { name: "South shore", x: 138, z: 196 },
-  { name: "Southeast ring", x: 214, z: 205 },
-];
-
-// Same digit-key jumps as JUMPS, eight of them, spread across the island.
+// Digit keys 1–8 land on roads spread across the island.
 const ISLAND_JUMPS = [
   { name: "Northwest", x: 82, z: 66 },
   { name: "North", x: 186, z: 66 },
@@ -98,7 +87,7 @@ const session = {
   map: null,
   player: null,
   minimap: null,
-  placeName: "Downtown",
+  placeName: "Southwest",
 };
 
 let composer = null;
@@ -402,11 +391,13 @@ function blocked(map, x, z) {
   return false;
 }
 
+function spawnPlaceName(map) {
+  const views = Array.isArray(map.views) ? map.views : [];
+  const match = views.find((view) => view.x === map.spawn?.x && view.z === map.spawn?.z);
+  return match?.name || "Southwest";
+}
+
 async function start() {
-  const mapName = new URLSearchParams(window.location.search).get("map");
-  const island = mapName === "island";
-  const islandSw = mapName === "island-sw";
-  const roadtest = mapName === "roadtest";
   const renderer = new WebGLRenderer({
     canvas,
     antialias: true,
@@ -432,28 +423,13 @@ async function start() {
   window.addEventListener("resize", () => fitDisplay(renderer));
 
   fpsEl.textContent = "Loading map…";
-  const mapFile = island
-    ? "./data/island.json"
-    : islandSw
-      ? "./data/island-sw.json"
-      : roadtest
-        ? "./data/roadtest.json"
-        : "./data/city.json";
-  const map = await fetch(mapFile).then((response) => {
-    if (!response.ok) throw new Error("The city map failed to load.");
+  const map = await fetch("./data/island.json").then((response) => {
+    if (!response.ok) throw new Error("The island map failed to load.");
     return response.json();
   });
-  if (island) map.island = true;
-  if (islandSw) map.islandSw = true;
-  if (roadtest) map.roadtest = true;
+  map.island = true;
   fpsEl.textContent = "Loading saved layout…";
-  const savedLayout = island
-    ? await loadNamedMap("./island-map.json", "island-map")
-    : islandSw
-      ? await loadNamedMap("./island-sw-map.json", "island-sw-map")
-      : roadtest
-        ? await loadNamedMap("./roadtest-map.json", "roadtest-map")
-        : await loadWestMap();
+  const savedLayout = await loadNamedMap("./island-map.json", "island-map");
   const removedRoadKeys = new Set();
   for (const item of savedLayout.removedRoads) {
     const key = roadKey(item);
@@ -482,8 +458,8 @@ async function start() {
   window.pedestrians = pedestrians;
   const glow = createGlow(scene, map);
   const sun = createSun(scene);
-  const minimap = createMinimap(map, island ? ISLAND_JUMPS : JUMPS, island ? savedLayout.pieces : null);
-  const camera = new PerspectiveCamera(15, GROUND_W / GROUND_H, NEAR, map.island || map.islandSw ? 48000 : FAR);
+  const minimap = createMinimap(map, ISLAND_JUMPS, savedLayout.pieces);
+  const camera = new PerspectiveCamera(15, GROUND_W / GROUND_H, NEAR, FAR);
   // Screen up stays north. Spherical phi is measured from +Y, so this up is
   // perpendicular to a view aimed CAMERA_ANGLE off straight down.
   const tiltUp = Math.sin(CAMERA_ANGLE);
@@ -517,7 +493,8 @@ async function start() {
   session.map = map;
   session.player = player;
   session.minimap = minimap;
-  placeEl.textContent = "Downtown";
+  session.placeName = spawnPlaceName(map);
+  placeEl.textContent = session.placeName;
 
   let fps = 0;
   let last = performance.now();
@@ -651,9 +628,7 @@ async function start() {
 }
 
 function activeJumps() {
-  if (session.map?.island) return ISLAND_JUMPS;
-  if ((session.map?.islandSw || session.map?.roadtest) && Array.isArray(session.map.views) && session.map.views.length) return session.map.views;
-  return JUMPS;
+  return ISLAND_JUMPS;
 }
 
 function jumpTo(index) {

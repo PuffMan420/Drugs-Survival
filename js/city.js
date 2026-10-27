@@ -442,7 +442,7 @@ function buildChunk(map, cx, cz, materials, ground, quay, plan) {
       const cell = row[x];
       // West of the canal is empty ground, plus water and the pier decks.
       // Quay walls are drawn separately. Roads are not.
-      if (!map.island && !map.roadtest && westOfCanal(x, z) && cell !== "~" && cell !== "d") {
+      if (!map.island && !map.islandSw && !map.roadtest && westOfCanal(x, z) && cell !== "~" && cell !== "d") {
         let buf = groundBufs.get("y");
         if (!buf) {
           buf = { pos: [], uv: [], idx: [] };
@@ -631,7 +631,7 @@ export async function buildCity(scene, map, _removedRoadKeys) {
   const materials = createMaterials(textures);
   materials.quay = await createQuayMaterials();
   const ground = await createGround(map, (x, z) => kenneyPlan.roadPaint(x, z));
-  const quay = map.island || map.roadtest ? EMPTY_QUAY : quayPlan(map);
+  const quay = map.island || map.islandSw || map.roadtest ? EMPTY_QUAY : quayPlan(map);
   const chunks = [];
   for (let cz = 0; cz < map.rows; cz += CHUNK) {
     for (let cx = 0; cx < map.cols; cx += CHUNK) {

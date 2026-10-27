@@ -787,8 +787,8 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   group.name = "west-build";
   scene.add(group);
   const batches = createRoadBatches(group);
-  const storageKey = map.roadtest ? "roadtest-map" : map.island ? "island-map" : STORAGE_KEY;
-  const downloadName = map.roadtest ? "roadtest-map.json" : map.island ? "island-map.json" : "west-map.json";
+  const storageKey = map.islandSw ? "island-sw-map" : map.roadtest ? "roadtest-map" : map.island ? "island-map" : STORAGE_KEY;
+  const downloadName = map.islandSw ? "island-sw-map.json" : map.roadtest ? "roadtest-map.json" : map.island ? "island-map.json" : "west-map.json";
 
   const loader = new GLTFLoader();
   const templates = new Map();

@@ -1,0 +1,5134 @@
+{
+  "pieces": [
+    {
+      "kit": "roads",
+      "file": "road-intersection-3.glb",
+      "x": 42,
+      "z": 202,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 46,
+      "z": 202,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 50,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 62,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-crossroad-3.glb",
+      "x": 66,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 70,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 74,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 78,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-crossroad-3.glb",
+      "x": 82,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 86,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 90,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 94,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-crossroad-3.glb",
+      "x": 98,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 102,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 106,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 110,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 114,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 118,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 122,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 126,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 130,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 134,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 138,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 142,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 146,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 150,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 154,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 158,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 162,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 166,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 170,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 174,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend-3.glb",
+      "x": 178,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-intersection-3.glb",
+      "x": 202,
+      "z": 202,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 206,
+      "z": 202,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 210,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 214,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 218,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 222,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-crossroad-3.glb",
+      "x": 226,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 230,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 234,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 238,
+      "z": 202,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 62,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-crossroad-3.glb",
+      "x": 66,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 70,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 74,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 78,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-intersection-3.glb",
+      "x": 82,
+      "z": 234,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-intersection-3.glb",
+      "x": 98,
+      "z": 234,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 102,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 106,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 110,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 114,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 118,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 122,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 126,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 130,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 134,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 138,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 142,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 146,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 150,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 154,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 158,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 162,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 166,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 170,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 174,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-intersection-3.glb",
+      "x": 178,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 182,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 186,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 190,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 194,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 198,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-crossroad-3.glb",
+      "x": 202,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 206,
+      "z": 234,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 210,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 214,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 218,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 222,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-intersection-3.glb",
+      "x": 226,
+      "z": 234,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 230,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 234,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 238,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 250,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 254,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 62,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-intersection-3.glb",
+      "x": 66,
+      "z": 218,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-intersection-3.glb",
+      "x": 82,
+      "z": 218,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 86,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 90,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 94,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-crossroad-3.glb",
+      "x": 98,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 102,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 106,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 110,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 114,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 118,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 122,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 126,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 130,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 134,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 138,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 142,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 146,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 150,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 154,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 158,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 162,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 166,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 170,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 174,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend-3.glb",
+      "x": 178,
+      "z": 218,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-intersection-3.glb",
+      "x": 202,
+      "z": 218,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 206,
+      "z": 218,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 210,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 214,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 218,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 222,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-crossroad-3.glb",
+      "x": 226,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 230,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 234,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 238,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 250,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 254,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 62,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend-3.glb",
+      "x": 66,
+      "z": 154,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend-3.glb",
+      "x": 82,
+      "z": 154,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 86,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 90,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 94,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-crossroad-3.glb",
+      "x": 98,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 102,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 106,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 110,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 114,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 118,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 122,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 126,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 130,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 134,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 138,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 142,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 146,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 150,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 154,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 158,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 162,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 166,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 170,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 174,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-crossroad-3.glb",
+      "x": 178,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 182,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 186,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 190,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 194,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 198,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 206,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 210,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 214,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 218,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 222,
+      "z": 154,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-intersection-3.glb",
+      "x": 226,
+      "z": 154,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 250,
+      "z": 194,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 254,
+      "z": 194,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-intersection-3.glb",
+      "x": 42,
+      "z": 170,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 46,
+      "z": 170,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 50,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend-3.glb",
+      "x": 66,
+      "z": 170,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 70,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 74,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 78,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-intersection-3.glb",
+      "x": 82,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 86,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 90,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 94,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-intersection-3.glb",
+      "x": 98,
+      "z": 170,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend-3.glb",
+      "x": 178,
+      "z": 170,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 182,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 186,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 190,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 194,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 198,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-intersection-3.glb",
+      "x": 202,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 206,
+      "z": 170,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 210,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 214,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 218,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 222,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-crossroad-3.glb",
+      "x": 226,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 230,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 234,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 238,
+      "z": 170,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 250,
+      "z": 146,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 254,
+      "z": 146,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 250,
+      "z": 178,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 254,
+      "z": 178,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend-3.glb",
+      "x": 42,
+      "z": 258,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 46,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 50,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 142,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 146,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 150,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 154,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 158,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 162,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 166,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 42,
+      "z": 174,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 178,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 182,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 186,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 190,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 194,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 198,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 42,
+      "z": 206,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 210,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 214,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 218,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 222,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 226,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 230,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 234,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 242,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 250,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 42,
+      "z": 254,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 142,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 146,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 98,
+      "z": 150,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 158,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 162,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 98,
+      "z": 166,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 174,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 178,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 182,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 186,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 190,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 194,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 98,
+      "z": 198,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 206,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 210,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 98,
+      "z": 214,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 222,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 226,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 98,
+      "z": 230,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 242,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 250,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 178,
+      "z": 142,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 178,
+      "z": 146,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 178,
+      "z": 150,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 178,
+      "z": 158,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 178,
+      "z": 162,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 178,
+      "z": 166,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 178,
+      "z": 206,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 178,
+      "z": 210,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 178,
+      "z": 214,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 178,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 178,
+      "z": 242,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 178,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 178,
+      "z": 250,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 142,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 146,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 150,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 174,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 178,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 182,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 186,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 190,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 194,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 66,
+      "z": 198,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 206,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 210,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 66,
+      "z": 214,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 222,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 226,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 66,
+      "z": 230,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 242,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 250,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 142,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 146,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 226,
+      "z": 150,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 158,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 162,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 226,
+      "z": 166,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 174,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 178,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 182,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 186,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 190,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 194,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 226,
+      "z": 198,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 206,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 210,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 226,
+      "z": 214,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 222,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 226,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 226,
+      "z": 230,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 202,
+      "z": 174,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 178,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 182,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 186,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 190,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 194,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 198,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 202,
+      "z": 206,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 210,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 214,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 202,
+      "z": 222,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 226,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 230,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 202,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 242,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 250,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 142,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 146,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 150,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 174,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 178,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 182,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 186,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 190,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 194,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 82,
+      "z": 198,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 206,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 210,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 82,
+      "z": 214,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 222,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 226,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-stop.glb",
+      "x": 82,
+      "z": 230,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 242,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 250,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 62,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 62,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 66,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 70,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 70,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 74,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 74,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 78,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 78,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 82,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 86,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 86,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 90,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 90,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 94,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 94,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 98,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 102,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 102,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 106,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 106,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 110,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 110,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 114,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 114,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 118,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 118,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 122,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 122,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 126,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 126,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 130,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 130,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 134,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 134,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 138,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 138,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 142,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 142,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 146,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 146,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 150,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 150,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 154,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 154,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 158,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 158,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 162,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 162,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 166,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 166,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 170,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 170,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 174,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 174,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 178,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 178,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 182,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 182,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 186,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 186,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 190,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 190,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 194,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 194,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 198,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 198,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 202,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 206,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 206,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 210,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 210,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 214,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 214,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 218,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 218,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 222,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 222,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 226,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 230,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 230,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 234,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 234,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 238,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 238,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 250,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 250,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 254,
+      "z": 258,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 254,
+      "z": 254,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 142,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 142,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 146,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 146,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 150,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 150,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 154,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 154,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 158,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 158,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 162,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 162,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 166,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 166,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 170,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 170,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 174,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 174,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 178,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 178,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 182,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 182,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 186,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 186,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 190,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 190,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 194,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 194,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 198,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 198,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 202,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 202,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 206,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 206,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 210,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 210,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 214,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 214,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 218,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 218,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 222,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 222,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 226,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 226,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 230,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 230,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 234,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 234,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 238,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 242,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 242,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 246,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 54,
+      "z": 250,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 58,
+      "z": 250,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 142,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 142,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 146,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 146,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 150,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 150,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 154,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 154,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 158,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 158,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 162,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 162,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 166,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 166,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 170,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 170,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 174,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 174,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 178,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 178,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 182,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 182,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 186,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 186,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 190,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 190,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 194,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 194,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 198,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 198,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 202,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 202,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 206,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 206,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 210,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 210,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 214,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 214,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 218,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 218,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 222,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 222,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 226,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 226,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 230,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 230,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 234,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 234,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 238,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 242,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 242,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 246,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 242,
+      "z": 250,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-7.glb",
+      "x": 246,
+      "z": 250,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false,
+      "oneWay": true
+    }
+  ],
+  "removedRoads": []
+}

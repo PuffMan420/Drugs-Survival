@@ -13,3 +13,11 @@ Contents:
 - road-split-2.glb - skinned Y road (Ted's skin, texture embedded) -> put in assets/roads/
 - road-straight-stop.glb - skinned straight road with worn STOP text, same size as road-straight -> assets/roads/
 - bridge-water.glb - skinned bridge over water (2 bridge pieces joined, one leg pair in middle, wet stains baked, textures embedded) -> assets/roads/
+
+UPDATE (v2, use these): 
+- city-grid-roads.svg - NEW source of truth: roads on grid, full scale 126x70 pieces (504x280 cells)
+- city-grid.png - preview of grid map
+- city-grid-cells.png - cell view of grid map
+- grid.py - generator script (seed 11)
+- AGENT-BRIEF-v2.md - current brief
+- city-final* is OLD (only land/water shape reference)

@@ -81,6 +81,18 @@ const JUMPS = [
   { name: "Southeast ring", x: 214, z: 205 },
 ];
 
+// Same digit-key jumps as JUMPS, eight of them, spread across the island.
+const ISLAND_JUMPS = [
+  { name: "Northwest", x: 82, z: 66 },
+  { name: "North", x: 186, z: 66 },
+  { name: "Park", x: 302, z: 90 },
+  { name: "Northeast", x: 410, z: 90 },
+  { name: "Southwest", x: 82, z: 194 },
+  { name: "South", x: 202, z: 194 },
+  { name: "East", x: 302, z: 194 },
+  { name: "Southeast", x: 410, z: 202 },
+];
+
 const session = {
   ready: false,
   map: null,
@@ -470,7 +482,7 @@ async function start() {
   window.pedestrians = pedestrians;
   const glow = createGlow(scene, map);
   const sun = createSun(scene);
-  const minimap = createMinimap(map, JUMPS);
+  const minimap = createMinimap(map, island ? ISLAND_JUMPS : JUMPS, island ? savedLayout.pieces : null);
   const camera = new PerspectiveCamera(15, GROUND_W / GROUND_H, NEAR, map.island || map.islandSw ? 48000 : FAR);
   // Screen up stays north. Spherical phi is measured from +Y, so this up is
   // perpendicular to a view aimed CAMERA_ANGLE off straight down.
@@ -638,7 +650,8 @@ async function start() {
 }
 
 function activeJumps() {
-  if ((session.map?.island || session.map?.islandSw || session.map?.roadtest) && Array.isArray(session.map.views) && session.map.views.length) return session.map.views;
+  if (session.map?.island) return ISLAND_JUMPS;
+  if ((session.map?.islandSw || session.map?.roadtest) && Array.isArray(session.map.views) && session.map.views.length) return session.map.views;
   return JUMPS;
 }
 

@@ -1,4 +1,5 @@
 import { westOfCanal } from "./kenney-road-plan.js";
+import { pieceCells } from "./road-sockets.js";
 
 const GROUND = {
   "~": "#1b6d78",
@@ -39,7 +40,21 @@ const STYLES = {
   shed: [96, 90, 84],
 };
 
-export function createMinimap(map, jumps = []) {
+const ROAD = "#c6c2a4";
+
+function paintRoadModules(ctx, pieces) {
+  ctx.fillStyle = ROAD;
+  for (const piece of pieces) {
+    const cells = pieceCells(piece);
+    if (!cells) continue;
+    for (const cell of cells) {
+      if (!Number.isInteger(cell.gx) || !Number.isInteger(cell.gz)) continue;
+      ctx.fillRect(cell.gx * 4, cell.gz * 4, 4, 4);
+    }
+  }
+}
+
+export function createMinimap(map, jumps = [], pieces = null) {
   const source = document.createElement("canvas");
   source.width = map.cols;
   source.height = map.rows;
@@ -60,6 +75,7 @@ export function createMinimap(map, jumps = []) {
     }
   }
   ctx.putImageData(image, 0, 0);
+  if (map.island && pieces) paintRoadModules(ctx, pieces);
   for (const building of map.buildings) {
     const [r, g, b] = STYLES[building.style] ?? STYLES.house;
     const shade = Math.max(70, 230 - building.h * 8);

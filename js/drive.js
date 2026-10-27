@@ -1,10 +1,11 @@
-// The car the player is sitting in is a Rapier ray-cast vehicle in the shared
-// physics world. Every other car stays on the traffic sim. The car is a
-// physics system: it only asks the world to step while someone is driving,
-// so walking costs nothing. Wheels ray-cast the ROAD surface; the chassis
-// does not collide with it, or a ramp would kick the box. The chassis does
-// collide with buildings and with the other cars (SOLID).
+// The car the player is sitting in. Horizontal motion is the Kenney arcade
+// sphere (js/kenney-vehicle.js): throttle, brake-then-reverse, and steering
+// that yaws the body while the sphere's velocity keeps going, which is the
+// drift. A Rapier ray-cast suspension still plants the chassis on the road
+// and the cuboid still blocks on buildings and the other cars. Every other
+// car stays on the traffic sim. The world only steps while someone is driving.
 
+import { createArcadeVehicle } from "./kenney-vehicle.js";
 import { GROUP, groups, yawQuat } from "./physics.js";
 
 const MASS = 90;
@@ -12,15 +13,6 @@ const REST = 2;
 const RADIUS = 3.2;
 const WHEEL_Y = -1;
 const LIFT = -WHEEL_Y + REST + RADIUS;
-// Was 6400 at mass 70. Scaled with mass so acceleration stays the same.
-const ENGINE = 8229;
-const BRAKE = 50;
-const TOP_SPEED = 180;
-// Same motor in reverse, held to about a quarter of the forward cap.
-const REVERSE_SPEED = TOP_SPEED * 0.25;
-// S brakes while the car still rolls forward. Under this it shifts into reverse.
-const HALT = 8;
-const STEER = 0.42;
 
 const DOWN = { x: 0, y: -1, z: 0 };
 const AXLE = { x: -1, y: 0, z: 0 };
@@ -64,33 +56,6 @@ function localPoint(car, lx, lz) {
   };
 }
 
-// The steered wheels sit at local -Z, so that axis is the nose. Negative
-// engine force drives toward it; positive force backs the car up.
-function noseXZ(q) {
-  let x = -2 * (q.x * q.z + q.w * q.y);
-  let z = 2 * (q.x * q.x + q.y * q.y) - 1;
-  const len = Math.hypot(x, z) || 1;
-  x /= len;
-  z /= len;
-  return { x, z };
-}
-
-function wheelDrive(input, signed, speed) {
-  const ahead = signed > HALT;
-  const back = signed < -HALT;
-  let engine = 0;
-  let brake = 0;
-  if (input.brake && input.forward) brake = BRAKE;
-  else if (input.brake && ahead) brake = BRAKE;
-  else if (input.forward && back) brake = BRAKE;
-  else if (input.brake && signed < -REVERSE_SPEED) brake = 12;
-  else if (input.brake) engine = ENGINE;
-  else if (input.forward && speed > TOP_SPEED) brake = 12;
-  else if (input.forward) engine = -ENGINE;
-  else if (speed > TOP_SPEED) brake = 12;
-  return { engine, brake };
-}
-
 export function createDrive(physics, scene) {
   const { RAPIER, world } = physics;
   let chassis = null;
@@ -98,8 +63,9 @@ export function createDrive(physics, scene) {
   let vehicle = null;
   let tracked = null;
   let occupied = null;
-  let steering = 0;
   let input = IDLE;
+  let arcade = null;
+  let commanded = { x: 0, z: 0 };
   const rayGroups = groups(GROUP.WHEEL, GROUP.ROAD);
   const notChassis = (collider) => collider.handle !== chassisCol.handle;
   const blended = {};
@@ -117,28 +83,40 @@ export function createDrive(physics, scene) {
     occupied.quat = q;
   }
 
-  function apply() {
+  function onGround() {
+    const t = chassis.translation();
+    const ray = new RAPIER.Ray({ x: t.x, y: t.y + 8, z: t.z }, { x: 0, y: -1, z: 0 });
+    const hit = world.castRay(ray, 40, true, undefined, rayGroups);
+    return hit != null;
+  }
+
+  // The suspension keeps the car on the road. The arcade sphere supplies the
+  // horizontal velocity and the yaw rate; the wheels do not grip or drive.
+  function apply(h) {
     const velocity = chassis.linvel();
-    const nose = noseXZ(chassis.rotation());
-    const signed = velocity.x * nose.x + velocity.z * nose.z;
-    const speed = Math.hypot(velocity.x, velocity.z);
-    const target = (input.left ? STEER : 0) - (input.right ? STEER : 0);
-    steering += (target - steering) * 0.35;
-    const command = wheelDrive(input, signed, speed);
+    const have = Math.hypot(velocity.x, velocity.z);
+    const want = Math.hypot(commanded.x, commanded.z);
+    if (want > 40 && have < want * 0.7) arcade.scalePlanar(have / want);
+    arcade.syncYaw(yawOf(chassis.rotation()));
+    const motion = arcade.step(h, input, onGround());
+    commanded = { x: motion.vx, z: motion.vz };
     const wheels = vehicle.numWheels();
     for (let i = 0; i < wheels; i += 1) {
-      vehicle.setWheelSteering(i, i < 2 ? steering : 0);
-      vehicle.setWheelEngineForce(i, command.engine);
-      vehicle.setWheelBrake(i, command.brake);
+      vehicle.setWheelSteering(i, 0);
+      vehicle.setWheelEngineForce(i, 0);
+      vehicle.setWheelBrake(i, 0);
     }
+    vehicle.updateVehicle(h, undefined, rayGroups, notChassis);
+    const planted = chassis.linvel();
+    chassis.setLinvel({ x: motion.vx, y: planted.y, z: motion.vz }, true);
+    chassis.setAngvel({ x: 0, y: motion.yawRate, z: 0 }, true);
   }
 
   physics.addSystem({
     needsStep: () => vehicle != null,
     fixedUpdate(h) {
       if (!vehicle) return;
-      apply();
-      vehicle.updateVehicle(h, undefined, rayGroups, notChassis);
+      apply(h);
     },
   });
 
@@ -172,7 +150,7 @@ export function createDrive(physics, scene) {
           .setTranslation(best.x + up.x * LIFT, y + up.y * LIFT, best.z + up.z * LIFT)
           .setRotation(quat)
           .setLinearDamping(0.35)
-          .setAngularDamping(8)
+          .setAngularDamping(0)
           .setCanSleep(false),
       );
       const hx = Math.max(10, w * 0.38);
@@ -216,11 +194,13 @@ export function createDrive(physics, scene) {
         vehicle.setWheelSuspensionRelaxation(i, 8);
         vehicle.setWheelMaxSuspensionTravel(i, 2.5);
         vehicle.setWheelMaxSuspensionForce(i, 80000);
-        vehicle.setWheelFrictionSlip(i, 250);
-        vehicle.setWheelSideFrictionStiffness(i, 1);
+        vehicle.setWheelFrictionSlip(i, 0);
+        vehicle.setWheelSideFrictionStiffness(i, 0);
       }
-      steering = 0;
       input = IDLE;
+      arcade = createArcadeVehicle();
+      arcade.syncYaw(yawOf(quat));
+      commanded = { x: 0, z: 0 };
       tracked = physics.track(chassis);
       best.held = true;
       occupied = best;
@@ -255,7 +235,8 @@ export function createDrive(physics, scene) {
       chassis = null;
       chassisCol = null;
       occupied = null;
-      steering = 0;
+      arcade = null;
+      commanded = { x: 0, z: 0 };
       input = IDLE;
       return spot;
     },
@@ -268,6 +249,20 @@ export function createDrive(physics, scene) {
       if (!occupied) return null;
       writePose(false);
       return { x: occupied.x, y: occupied.y, z: occupied.z };
+    },
+    // Throttle, drift, and the engine/skid levels, plus where the car is drawn.
+    sample() {
+      if (!occupied || !arcade) return null;
+      writePose(false);
+      return {
+        x: occupied.x,
+        y: occupied.y,
+        z: occupied.z,
+        angle: occupied.angle,
+        w: occupied.w,
+        h: occupied.h,
+        ...arcade.feel(),
+      };
     },
   };
 }

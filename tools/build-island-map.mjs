@@ -7,7 +7,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { STOP_TURN, checkRoads, placePiece } from "../js/road-sockets.js";
+import { STOP_TURN, checkRoads, pieceCells, placePiece } from "../js/road-sockets.js";
 
 const SVG_PATH = process.argv[2] || "/tmp/island-v2/island-map-inputs/city-grid-roads.svg";
 const U = 16;
@@ -439,10 +439,33 @@ export function unexpectedErrors(pieces, yellow, ground) {
   return checkRoads(pieces).filter((error) => !allowed(error, yellow, ground));
 }
 
+// Park paint covers every land cell inside the park, including the streets.
+// Trees grow on "g", so a road module stays plain land.
+function keepRoadsClear(ground, pieces) {
+  for (const piece of pieces) {
+    const cells = pieceCells(piece);
+    if (!cells) continue;
+    for (const cell of cells) {
+      const gx = cell.gx;
+      const gy = cell.gz;
+      if (!Number.isInteger(gx) || !Number.isInteger(gy)) continue;
+      for (let dz = 0; dz < 4; dz += 1) {
+        const row = ground[gy * 4 + dz];
+        if (!row) continue;
+        for (let dx = 0; dx < 4; dx += 1) {
+          const x = gx * 4 + dx;
+          if (row[x] === "g") row[x] = "l";
+        }
+      }
+    }
+  }
+}
+
 function main() {
   const svg = readFileSync(SVG_PATH, "utf8");
   const ground = paintGround(svg);
   const built = buildPieces(svg, ground);
+  keepRoadsClear(ground, built.pieces);
   const errors = checkRoads(built.pieces);
   const unexpected = errors.filter((error) => !allowed(error, built.yellow, ground));
   const report = {

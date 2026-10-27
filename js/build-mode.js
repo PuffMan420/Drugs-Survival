@@ -782,7 +782,7 @@ export async function loadWestMap() {
 
 // onPiecesChanged(pieces) runs after every edit that moves, adds, removes or
 // reshapes a placed piece, so physics can match what is on screen.
-export async function createBuildMode({ scene, camera, canvas, map, saved = null, roads = null, onPiecesChanged = null }) {
+export async function createBuildMode({ scene, camera, canvas, renderer, map, saved = null, roads = null, onPiecesChanged = null }) {
   const group = new Group();
   group.name = "west-build";
   scene.add(group);
@@ -921,6 +921,25 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
 
   function status() {}
 
+  // The camera looks steeply down, so building walls are glancing angles.
+  // Anisotropic samples keep the brick and graffiti maps sharp there.
+  function sharpenBuilding(root) {
+    const anisotropy = renderer.capabilities.getMaxAnisotropy();
+    root.traverse((obj) => {
+      if (!obj.isMesh) return;
+      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const mat of mats) {
+        if (!mat) continue;
+        for (const key of ["map", "normalMap", "roughnessMap"]) {
+          const tex = mat[key];
+          if (!tex) continue;
+          tex.anisotropy = anisotropy;
+          tex.needsUpdate = true;
+        }
+      }
+    });
+  }
+
   function loadTemplate(kit, file) {
     const key = `${kit}/${file}`;
     const item = catalog.get(key);
@@ -956,6 +975,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
         else paintStraightSkin(scene, texture);
       }
       linearize(scene);
+      if (file.includes("building")) sharpenBuilding(scene);
       templates.set(key, scene);
       return scene;
     }).catch((error) => {

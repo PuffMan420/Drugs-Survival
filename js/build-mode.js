@@ -17,6 +17,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { AO_SKIP_LAYER, TILE } from "./constants.js";
 import { KITS } from "./kenney-city-catalog.js";
 import { roadKey, roadRecord } from "./kenney-roads.js";
+import { createRoadBatches } from "./road-batch.js";
 
 // One Kenney unit is the same 4-tile module as the road pieces already on
 // the west bank. Scale is uniform so a building keeps the height in the file.
@@ -750,9 +751,9 @@ function layoutFrom(data) {
   };
 }
 
-function readStoredLayout() {
+function readStoredLayout(key = STORAGE_KEY) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     const data = JSON.parse(raw);
     if (!data || typeof data !== "object" || Array.isArray(data)) return null;
@@ -762,17 +763,21 @@ function readStoredLayout() {
   }
 }
 
-export async function loadWestMap() {
-  const stored = readStoredLayout();
+export async function loadNamedMap(url, storageKey) {
+  const stored = readStoredLayout(storageKey);
   if (stored) return stored;
   let data = null;
   try {
-    const response = await fetch(MAP_URL);
+    const response = await fetch(url);
     if (response.ok) data = await response.json();
   } catch {
     data = null;
   }
   return layoutFrom(data);
+}
+
+export async function loadWestMap() {
+  return loadNamedMap(MAP_URL, STORAGE_KEY);
 }
 
 // onPiecesChanged(pieces) runs after every edit that moves, adds, removes or
@@ -781,6 +786,9 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   const group = new Group();
   group.name = "west-build";
   scene.add(group);
+  const batches = createRoadBatches(group);
+  const storageKey = map.island ? "island-map" : STORAGE_KEY;
+  const downloadName = map.island ? "island-map.json" : "west-map.json";
 
   const loader = new GLTFLoader();
   const templates = new Map();
@@ -983,35 +991,37 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       scale: spec.scale ?? 1,
       mirror: spec.mirror === true,
     };
-    const root = wrapper(template, record);
-    root.userData.piece = record;
-    root.traverse((obj) => {
-      if (!obj.isMesh) return;
-      obj.castShadow = true;
-      obj.receiveShadow = true;
-    });
-    group.add(root);
+    if (spec.oneWay === true || spec.oneWay === "x" || spec.oneWay === "z" || spec.oneWay === "back") {
+      record.oneWay = spec.oneWay;
+    }
+    batches.track(record, template);
     pieces.push(record);
-    return root;
+    return record;
   }
 
   function normalize(raw) {
     if (!raw || typeof raw.kit !== "string" || typeof raw.file !== "string") return null;
     if (!catalog.has(`${raw.kit}/${raw.file}`)) return null;
-    if (!Number.isInteger(raw.x) || !Number.isInteger(raw.z) || !Number.isInteger(raw.turn)) return null;
-    if (raw.x < 0 || raw.z < 0 || raw.x >= map.cols || raw.z >= map.rows) return null;
+    if (!Number.isFinite(raw.x) || !Number.isFinite(raw.z) || !Number.isInteger(raw.turn)) return null;
+    const x = Math.round(Number(raw.x) * 1000) / 1000;
+    const z = Math.round(Number(raw.z) * 1000) / 1000;
+    if (x < 0 || z < 0 || x >= map.cols || z >= map.rows) return null;
     const turnValue = ((raw.turn % 4) + 4) % 4;
     const scaleValue = raw.scale == null ? 1 : Number(raw.scale);
     if (!Number.isFinite(scaleValue) || scaleValue <= 0) return null;
-    return {
+    const record = {
       kit: raw.kit,
       file: raw.file,
-      x: raw.x,
-      z: raw.z,
+      x,
+      z,
       turn: turnValue,
       scale: Math.round(scaleValue * 1000) / 1000,
       mirror: raw.mirror === true,
     };
+    if (raw.oneWay === true || raw.oneWay === "x" || raw.oneWay === "z" || raw.oneWay === "back") {
+      record.oneWay = raw.oneWay;
+    }
+    return record;
   }
 
   const layout = saved || await loadWestMap();
@@ -1053,13 +1063,6 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     dropPreview();
   }
 
-  function rootFor(record) {
-    for (const child of group.children) {
-      if (child.userData.piece === record) return child;
-    }
-    return null;
-  }
-
   function moveCarried(cell) {
     if (!carrying || !cell) return;
     const moved = carrying.record.x !== cell.x || carrying.record.z !== cell.z;
@@ -1072,12 +1075,25 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   function dropCarried(cell) {
     if (!carrying) return;
     moveCarried(cell);
+    carrying.root.removeFromParent();
+    batches.include(carrying.record);
     carrying = null;
+    batches.commit(pieces);
   }
 
   function pickUp(record, cell) {
-    const root = rootFor(record);
-    if (!root) return;
+    const template = batches.templateFor(record);
+    if (!template) return;
+    batches.omit(record);
+    batches.commit(pieces);
+    const root = wrapper(template, record);
+    root.userData.piece = record;
+    root.traverse((obj) => {
+      if (!obj.isMesh) return;
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+    });
+    group.add(root);
     carrying = { record, root };
     if (preview) preview.visible = false;
     moveCarried(cell);
@@ -1160,6 +1176,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
       if (selectToken !== token || selection !== chosen) return;
     } else if (selectToken !== token + 1) return;
     addPiece({ ...chosen, x: cell.x, z: cell.z, turn: placedTurn, scale: placedScale, mirror: placedMirror }, template);
+    batches.commit(pieces);
     changed();
     status("Placed.");
   }
@@ -1168,10 +1185,12 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     const index = pieces.indexOf(record);
     if (index < 0) return false;
     pieces.splice(index, 1);
-    if (carrying?.record === record) carrying = null;
-    for (const child of [...group.children]) {
-      if (child.userData.piece === record) child.removeFromParent();
+    batches.forget(record);
+    if (carrying?.record === record) {
+      carrying.root.removeFromParent();
+      carrying = null;
     }
+    batches.commit(pieces);
     changed();
     status("Removed.");
     return true;
@@ -1192,6 +1211,11 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   function pieceHit() {
     const hits = raycaster.intersectObjects(group.children, true);
     for (const item of hits) {
+      const records = item.object.userData.records;
+      if (records && item.instanceId != null) {
+        const record = records[item.instanceId];
+        if (record) return { record, distance: item.distance };
+      }
       let node = item.object;
       while (node && node !== group) {
         if (node.userData.piece) return { record: node.userData.piece, distance: item.distance };
@@ -1249,7 +1273,7 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   function download() {
     const body = `${JSON.stringify({ pieces, removedRoads }, null, 2)}\n`;
     try {
-      localStorage.setItem(STORAGE_KEY, body);
+      localStorage.setItem(storageKey, body);
     } catch {
       // The file download below still runs when storage is blocked.
     }
@@ -1257,10 +1281,10 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "west-map.json";
+    link.download = downloadName;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1500);
-    status("Downloaded west-map.json.");
+    status(`Downloaded ${downloadName}.`);
   }
 
   function setViewScale(next) {
@@ -1393,7 +1417,13 @@ export async function createBuildMode({ scene, camera, canvas, map, saved = null
   });
 
   await loadSaved();
+  batches.commit(pieces);
   changed();
   status(enabled ? "Build mode." : "Press B for build mode.");
-  return { download, pieceCount: () => pieces.length, isOpen: () => enabled };
+  return {
+    download,
+    pieceCount: () => pieces.length,
+    isOpen: () => enabled,
+    updateRoads: (camX, camZ, viewScale) => batches.update(camX, camZ, viewScale),
+  };
 }

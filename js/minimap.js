@@ -50,7 +50,7 @@ export function createMinimap(map, jumps = []) {
   for (let z = 0; z < map.rows; z += 1) {
     const row = map.ground[z];
     for (let x = 0; x < map.cols; x += 1) {
-      const bare = westOfCanal(x, z) && row[x] !== "~" && row[x] !== "d";
+      const bare = !map.island && westOfCanal(x, z) && row[x] !== "~" && row[x] !== "d";
       const hex = bare ? "#505b29" : (GROUND[row[x]] ?? "#ff00ff");
       const i = (z * map.cols + x) * 4;
       data[i] = Number.parseInt(hex.slice(1, 3), 16);

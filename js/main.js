@@ -34,7 +34,7 @@ import { createPedestrians } from "./pedestrians.js";
 import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
 import { createPlayer } from "./player.js";
-import { createBuildMode, loadWestMap } from "./build-mode.js";
+import { createBuildMode, loadNamedMap, loadWestMap } from "./build-mode.js";
 import { roadKey } from "./kenney-roads.js";
 import { westOfCanal } from "./kenney-road-plan.js";
 
@@ -391,6 +391,7 @@ function blocked(map, x, z) {
 }
 
 async function start() {
+  const island = new URLSearchParams(window.location.search).get("map") === "island";
   const renderer = new WebGLRenderer({
     canvas,
     antialias: true,
@@ -416,12 +417,13 @@ async function start() {
   window.addEventListener("resize", () => fitDisplay(renderer));
 
   fpsEl.textContent = "Loading map…";
-  const map = await fetch("./data/city.json").then((response) => {
+  const map = await fetch(island ? "./data/island.json" : "./data/city.json").then((response) => {
     if (!response.ok) throw new Error("The city map failed to load.");
     return response.json();
   });
+  if (island) map.island = true;
   fpsEl.textContent = "Loading saved layout…";
-  const savedLayout = await loadWestMap();
+  const savedLayout = island ? await loadNamedMap("./island-map.json", "island-map") : await loadWestMap();
   const removedRoadKeys = new Set();
   for (const item of savedLayout.removedRoads) {
     const key = roadKey(item);
@@ -451,7 +453,7 @@ async function start() {
   const glow = createGlow(scene, map);
   const sun = createSun(scene);
   const minimap = createMinimap(map, JUMPS);
-  const camera = new PerspectiveCamera(15, GROUND_W / GROUND_H, NEAR, FAR);
+  const camera = new PerspectiveCamera(15, GROUND_W / GROUND_H, NEAR, map.island ? 48000 : FAR);
   // Screen up stays north. Spherical phi is measured from +Y, so this up is
   // perpendicular to a view aimed CAMERA_ANGLE off straight down.
   const tiltUp = Math.sin(CAMERA_ANGLE);
@@ -601,6 +603,7 @@ async function start() {
     camera.position.add(cameraTarget);
     camera.lookAt(cameraTarget);
     updateChunks(city.chunks, camX, camZ, view);
+    buildMode.updateRoads(camX, camZ, view);
     lightVisibleCity(city.chunks);
     placeSun(sun, camX, camZ);
     renderer.shadowMap.needsUpdate = true;
@@ -616,9 +619,14 @@ async function start() {
   requestAnimationFrame(frame);
 }
 
+function activeJumps() {
+  if (session.map?.island && Array.isArray(session.map.views) && session.map.views.length) return session.map.views;
+  return JUMPS;
+}
+
 function jumpTo(index) {
   if (!session.ready || session.driving) return;
-  const view = JUMPS[index];
+  const view = activeJumps()[index];
   if (!view) return;
   const point = tileCenter(view.x, view.z);
   session.player.x = point.x;
@@ -657,7 +665,7 @@ window.addEventListener("keydown", (event) => {
   }
   if (event.code.startsWith("Digit")) {
     const index = Number(event.code.slice(5)) - 1;
-    if (index >= 0 && index < JUMPS.length) {
+    if (index >= 0 && index < activeJumps().length) {
       jumpTo(index);
       event.preventDefault();
     }

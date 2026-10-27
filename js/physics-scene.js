@@ -88,11 +88,103 @@ function addRoadBox(RAPIER, world, body, a, b, half) {
   );
 }
 
-// Same fields, in the same normal form, that builtRoadStrips reads.
-function pieceKey(piece) {
-  const turn = ((Number(piece.turn) % 4) + 4) % 4;
-  const scale = piece.scale == null ? 1 : Number(piece.scale);
-  return `${piece.file}|${piece.x}|${piece.z}|${turn}|${scale}|${piece.mirror === true}`;
+function colinearRun(a, b, c) {
+  let abx = b.x - a.x;
+  let aby = b.y - a.y;
+  let abz = b.z - a.z;
+  let bcx = c.x - b.x;
+  let bcy = c.y - b.y;
+  let bcz = c.z - b.z;
+  const ab = Math.hypot(abx, aby, abz) || 1;
+  const bc = Math.hypot(bcx, bcy, bcz) || 1;
+  abx /= ab;
+  aby /= ab;
+  abz /= ab;
+  bcx /= bc;
+  bcy /= bc;
+  bcz /= bc;
+  return abx * bcx + aby * bcy + abz * bcz > 0.999;
+}
+
+// One cuboid per straight run. Colinear samples inside a piece collapse first,
+// then flat axis-aligned runs that share a line collapse across pieces.
+export function roadBoxes(pieces) {
+  const spans = [];
+  for (const strip of builtRoadStrips(pieces)) {
+    const pts = strip.pts;
+    if (pts.length < 2) continue;
+    let start = 0;
+    const emit = (from, to) => {
+      const a = pts[from];
+      const b = pts[to];
+      if (Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) < 0.5) return;
+      spans.push({ a, b, half: strip.half });
+    };
+    for (let i = 1; i < pts.length - 1; i += 1) {
+      if (colinearRun(pts[start], pts[i], pts[i + 1])) continue;
+      emit(start, i);
+      start = i;
+    }
+    emit(start, pts.length - 1);
+  }
+  const loose = [];
+  const groups = new Map();
+  for (const box of spans) {
+    const dx = box.b.x - box.a.x;
+    const dy = box.b.y - box.a.y;
+    const dz = box.b.z - box.a.z;
+    const len = Math.hypot(dx, dy, dz) || 1;
+    const flat = Math.abs(dy) / len < 0.02;
+    const y = Math.round((box.a.y + box.b.y) / 2);
+    const half = Math.round(box.half);
+    if (flat && Math.abs(dx) / len > 0.98) {
+      const key = `x|${half}|${y}|${Math.round((box.a.z + box.b.z) / 2)}`;
+      let list = groups.get(key);
+      if (!list) {
+        list = [];
+        groups.set(key, list);
+      }
+      list.push({ lo: Math.min(box.a.x, box.b.x), hi: Math.max(box.a.x, box.b.x), y: (box.a.y + box.b.y) / 2, z: (box.a.z + box.b.z) / 2, half: box.half, axis: "x" });
+    } else if (flat && Math.abs(dz) / len > 0.98) {
+      const key = `z|${half}|${y}|${Math.round((box.a.x + box.b.x) / 2)}`;
+      let list = groups.get(key);
+      if (!list) {
+        list = [];
+        groups.set(key, list);
+      }
+      list.push({ lo: Math.min(box.a.z, box.b.z), hi: Math.max(box.a.z, box.b.z), y: (box.a.y + box.b.y) / 2, x: (box.a.x + box.b.x) / 2, half: box.half, axis: "z" });
+    } else {
+      loose.push(box);
+    }
+  }
+  const boxes = loose.slice();
+  for (const list of groups.values()) {
+    list.sort((p, q) => p.lo - q.lo);
+    let cur = { ...list[0] };
+    const flush = () => {
+      if (cur.axis === "x") {
+        boxes.push({ a: { x: cur.lo, y: cur.y, z: cur.z }, b: { x: cur.hi, y: cur.y, z: cur.z }, half: cur.half });
+      } else {
+        boxes.push({ a: { x: cur.x, y: cur.y, z: cur.lo }, b: { x: cur.x, y: cur.y, z: cur.hi }, half: cur.half });
+      }
+    };
+    for (let i = 1; i < list.length; i += 1) {
+      const next = list[i];
+      if (next.lo <= cur.hi + 4) {
+        cur.hi = Math.max(cur.hi, next.hi);
+        continue;
+      }
+      flush();
+      cur = { ...next };
+    }
+    flush();
+  }
+  return boxes;
+}
+
+function boxKey(box) {
+  const r = (n) => Math.round(n * 100) / 100;
+  return [r(box.a.x), r(box.a.y), r(box.a.z), r(box.b.x), r(box.b.y), r(box.b.z), r(box.half)].join("|");
 }
 
 // cars() lists the traffic cars; the followed one is skipped.
@@ -113,30 +205,19 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
 
   function setRoads(list) {
     const wanted = new Map();
-    const seen = new Map();
-    for (const piece of Array.isArray(list) ? list : []) {
-      if (!piece || piece.kit !== "roads") continue;
-      const base = pieceKey(piece);
-      const copy = seen.get(base) || 0;
-      seen.set(base, copy + 1);
-      wanted.set(`${base}#${copy}`, piece);
+    for (const box of roadBoxes(list)) {
+      const key = boxKey(box);
+      if (!wanted.has(key)) wanted.set(key, box);
     }
-    for (const [key, colliders] of roadColliders) {
+    for (const [key, collider] of roadColliders) {
       if (wanted.has(key)) continue;
-      for (const collider of colliders) world.removeCollider(collider, true);
+      world.removeCollider(collider, true);
       roadColliders.delete(key);
     }
-    for (const [key, piece] of wanted) {
+    for (const [key, box] of wanted) {
       if (roadColliders.has(key)) continue;
-      const colliders = [];
-      for (const strip of builtRoadStrips([piece])) {
-        const pts = strip.pts;
-        for (let i = 0; i < pts.length - 1; i += 1) {
-          const collider = addRoadBox(RAPIER, world, fixedBody, pts[i], pts[i + 1], strip.half);
-          if (collider) colliders.push(collider);
-        }
-      }
-      roadColliders.set(key, colliders);
+      const collider = addRoadBox(RAPIER, world, fixedBody, box.a, box.b, box.half);
+      if (collider) roadColliders.set(key, collider);
     }
   }
 
@@ -271,9 +352,7 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
       if (focus) streamBlocks(focus.x, focus.z);
     },
     roadColliderCount() {
-      let count = 0;
-      for (const colliders of roadColliders.values()) count += colliders.length;
-      return count;
+      return roadColliders.size;
     },
   };
 }

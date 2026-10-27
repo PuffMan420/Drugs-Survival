@@ -133,6 +133,10 @@ export const KITS = [
         "url": "GLB format/road-bridge.glb"
       },
       {
+        "file": "bridge-water.glb",
+        "url": "assets/roads/bridge-water.glb"
+      },
+      {
         "file": "road-bridge-2.glb",
         "url": "GLB format/road-bridge.glb",
         "texture": "assets/roads/road-straight-7.png",
@@ -446,6 +450,10 @@ export const KITS = [
         "url": "GLB format/road-split.glb"
       },
       {
+        "file": "road-split-2.glb",
+        "url": "assets/roads/road-split-2.glb"
+      },
+      {
         "file": "road-square-barrier.glb",
         "url": "GLB format/road-square-barrier.glb"
       },
@@ -517,6 +525,10 @@ export const KITS = [
         "file": "road-straight-7.glb",
         "url": "GLB format/road-straight.glb",
         "texture": "assets/roads/road-straight-7.png"
+      },
+      {
+        "file": "road-straight-stop.glb",
+        "url": "assets/roads/road-straight-stop.glb"
       },
       {
         "file": "sign-highway-detailed.glb",

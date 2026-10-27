@@ -42,7 +42,7 @@ const DRIFT_ON = 166;
 const DRIFT_OFF = 138;
 // Torque follows the throttle, a little behind it, so the pull-away is heavier.
 // Top speed is the same once the spool catches the throttle.
-const DRIVE_SPOOL = 4;
+const DRIVE_SPOOL = 3.5;
 // Four gears across the cruise. Each upshift starts lower than the gear before
 // it peaked, then climbs again. The rates stay under 1 so the loop sounds deeper.
 const GEARS = [
@@ -151,7 +151,9 @@ export function createArcadeVehicle() {
     const worldBefore = Math.hypot(vx, vz) * METERS_TO_WORLD;
     const steerBasis = Math.max(worldBefore, sliding ? DRIFT_ON : 0);
     const steerScale = clamp(steerBasis / DRIFT_ON, 0.34, 1);
-    const targetAngular = -inputX * steerScale * 3.2 * direction;
+    // 3.2 at a crawl, 2.8 once the lock is at full speed (about 12% slower).
+    const steerRate = lerp(3.2, 2.8, clamp((steerScale - 0.34) / 0.66, 0, 1));
+    const targetAngular = -inputX * steerScale * steerRate * direction;
     angularSpeed = lerp(angularSpeed, targetAngular, dt * 2.5);
     yaw += angularSpeed * dt;
 
@@ -199,7 +201,7 @@ export function createArcadeVehicle() {
     const sharp = Math.abs(inputX) > 0.5;
     if (sharp && worldSpeed > DRIFT_ON && Math.abs(drive) > 0.5) sliding = true;
     if (!sharp || worldSpeed < DRIFT_OFF || Math.abs(drive) < 0.2) sliding = false;
-    const align = 1 - Math.exp(-(sliding ? 0.7 : 16) * dt);
+    const align = 1 - Math.exp(-(sliding ? 0.8 : 18) * dt);
     const planar = Math.hypot(vx, vz);
     if (planar > 0.05) {
       const noseX = -Math.sin(yaw);

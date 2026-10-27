@@ -20,6 +20,8 @@ import {
   AO_SKIP_LAYER,
   CAMERA_ANGLE,
   CAMERA_RADIUS,
+  CAR_VIEW,
+  FOOT_VIEW,
   GROUND_H,
   GROUND_W,
   PLAYER_SIZE,
@@ -108,12 +110,16 @@ function frameCenter(value, half, mapSize) {
   return clamp(value, half, mapSize - half);
 }
 
-function lockPixelProjection(camera) {
+function playView(camera, driving) {
+  const user = camera.userData.viewScale > 0 ? camera.userData.viewScale : 1;
+  return user * (driving ? CAR_VIEW : FOOT_VIEW);
+}
+
+function lockPixelProjection(camera, viewFor) {
   const apply = () => {
     // The center ray is CAMERA_RADIUS long and meets the ground at the player.
-    // Frame the smaller ground rectangle there so the 12.5% closer view stays
-    // even across the same 840×472.5 world.
-    const view = camera.userData.viewScale > 0 ? camera.userData.viewScale : 1;
+    // viewFor widens that frame: 5% on foot, 10% in a car.
+    const view = viewFor();
     const scale = (camera.near / CAMERA_RADIUS) * view;
     camera.projectionMatrix.makePerspective(
       (-GROUND_W / 2) * scale,
@@ -466,7 +472,7 @@ async function start() {
   const tiltUp = Math.sin(CAMERA_ANGLE);
   const tiltNorth = Math.cos(CAMERA_ANGLE);
   camera.up.set(0, tiltUp, -tiltNorth);
-  lockPixelProjection(camera);
+  lockPixelProjection(camera, () => playView(camera, drive.driving));
   // theta 0 is +Z, which is south. The camera does not orbit.
   const cameraTheta = 0;
   const cameraTarget = new Vector3();
@@ -584,7 +590,8 @@ async function start() {
 
     let snappedX = Math.round(player.x);
     let snappedZ = Math.round(player.z);
-    const view = camera.userData.viewScale > 0 ? camera.userData.viewScale : 1;
+    const view = playView(camera, drive.driving);
+    camera.updateProjectionMatrix();
     const halfW = (GROUND_W * view) / 2;
     const halfH = (GROUND_H * view) / 2;
     let camX = frameCenter(snappedX, halfW, city.mapW);

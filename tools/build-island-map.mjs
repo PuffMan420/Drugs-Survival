@@ -1,8 +1,13 @@
-// Builds island-map.json and data/island.json from city-grid-roads.svg.
-//   node tools/build-island-map.mjs /path/to/city-grid-roads.svg
+// Full island from city-grid-roads.svg, placed from the connection table.
+// White streets and 4-lane carriageways use the original pieces, turned and
+// moved only. White-to-yellow joins, Y-splits and 4-lane crossings stay open.
+// A canal with land on both sides gets bridge-water plus the slant ramps.
+// Wet roads that run into the sea are left clear.
+//   node tools/build-island-map.mjs [path/to/city-grid-roads.svg]
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { planBuiltLanes } from "../js/built-lanes.js";
+import { fileURLToPath } from "node:url";
+import { STOP_TURN, checkRoads, pieceCells, placePiece } from "../js/road-sockets.js";
 
 const SVG_PATH = process.argv[2] || "/tmp/island-v2/island-map-inputs/city-grid-roads.svg";
 const U = 16;
@@ -22,14 +27,12 @@ const LINES = [
 ];
 
 const STEP = { E: [1, 0], W: [-1, 0], N: [0, -1], S: [0, 1] };
-const TURN = { E: 0, W: 2, N: 1, S: 3 };
 const OPP = { E: "W", W: "E", N: "S", S: "N" };
-// STOP sits at the far end of the straight (model +Z). That end faces the
-// junction, so the word is right-side up for the car driving toward it.
-const STOP_TURN = { E: 1, S: 0, W: 3, N: 2 };
+const STRAIGHT_TURN = { E: 0, W: 2, N: 1, S: 3 };
+const BEND_TURN = { SW: 0, ES: 1, NE: 2, NW: 3 };
+const TEE_TURN = { ESW: 0, NES: 1, NEW: 2, NSW: 3 };
 
 const key = (x, y) => `${x},${y}`;
-const round3 = (n) => Math.round(n * 1000) / 1000;
 
 function parsePoints(text) {
   return text.trim().split(/\s+/).map((pair) => pair.split(",").map(Number));
@@ -88,9 +91,9 @@ function bbox(poly) {
 
 function paintGround(svg) {
   const layers = [
-    [shapes(svg, "#e6d3a3"), "p", null],
-    [shapes(svg, "#ece5db"), "l", null],
-    [shapes(svg, "#a9d9fe"), "~", null],
+    [shapes(svg, "#e6d3a3"), "p"],
+    [shapes(svg, "#ece5db"), "l"],
+    [shapes(svg, "#a9d9fe"), "~"],
   ].map(([polys, glyph]) => ({ polys: polys.map((poly) => ({ poly, box: bbox(poly) })), glyph }));
   const ground = Array.from({ length: ROWS }, () => Array(COLS).fill("~"));
   for (let r = 0; r < ROWS; r += 1) {
@@ -112,14 +115,42 @@ function paintGround(svg) {
   return ground;
 }
 
-function wetPieces(ground) {
-  const wet = new Set();
-  for (let gy = 0; gy < GY; gy += 1) {
-    for (let gx = 0; gx < GX; gx += 1) {
-      if (ground[4 * gy + 2]?.[4 * gx + 2] === "~") wet.add(key(gx, gy));
+function glyphAt(ground, gx, gy) {
+  return ground[4 * gy + 2]?.[4 * gx + 2] || "~";
+}
+
+function land(glyph) {
+  return glyph === "l" || glyph === "g";
+}
+
+export function yellowCells() {
+  const cells = new Map();
+  LINES.forEach((line, index) => {
+    const altDir = OPP[line.primary];
+    const mark = (x, y, dir) => {
+      if (x < 0 || y < 0 || x >= GX || y >= GY) return;
+      const id = key(x, y);
+      let cell = cells.get(id);
+      if (!cell) {
+        cell = { dirs: [], lines: new Set() };
+        cells.set(id, cell);
+      }
+      cell.lines.add(index);
+      if (!cell.dirs.includes(dir)) cell.dirs.push(dir);
+    };
+    if (line.axis === "h") {
+      for (let x = line.a; x <= line.b; x += 1) {
+        mark(x, line.fixed, line.primary);
+        mark(x, line.fixed + line.side, altDir);
+      }
+    } else {
+      for (let y = line.a; y <= line.b; y += 1) {
+        mark(line.fixed, y, line.primary);
+        mark(line.fixed + line.side, y, altDir);
+      }
     }
-  }
-  return wet;
+  });
+  return cells;
 }
 
 function whiteCells(svg) {
@@ -143,508 +174,339 @@ function whiteCells(svg) {
   return cells;
 }
 
-function addFlow(flow, x, y, dir) {
-  if (x < 0 || y < 0 || x >= GX || y >= GY) return;
-  const id = key(x, y);
-  let list = flow.get(id);
-  if (!list) {
-    list = [];
-    flow.set(id, list);
-  }
-  if (!list.includes(dir)) list.push(dir);
-}
-
-function buildFlows() {
-  const flow = new Map();
-  for (const line of LINES) {
-    const alt = line.fixed + line.side;
-    const altDir = OPP[line.primary];
-    if (line.axis === "h") {
-      for (let x = line.a; x <= line.b; x += 1) {
-        addFlow(flow, x, line.fixed, line.primary);
-        addFlow(flow, x, alt, altDir);
-      }
-    } else {
-      for (let y = line.a; y <= line.b; y += 1) {
-        addFlow(flow, line.fixed, y, line.primary);
-        addFlow(flow, line.fixed + line.side, y, altDir);
-      }
-    }
-  }
-  return flow;
-}
-
-function road(file, gx, gy, turn, extra = {}) {
-  const piece = {
-    kit: "roads",
-    file,
-    x: extra.x != null ? round3(extra.x) : 4 * gx + 2,
-    z: extra.z != null ? round3(extra.z) : 4 * gy + 2,
-    turn,
-    scale: 1,
-    mirror: extra.mirror === true,
-  };
-  if (extra.oneWay) piece.oneWay = extra.oneWay;
-  return piece;
-}
-
-function shiftFor(turn, mirror) {
-  let x = mirror ? 0.4 : -0.4;
-  let z = 0;
-  if (turn === 1) {
-    const next = x;
-    x = z;
-    z = -next;
-  } else if (turn === 2) {
-    x = -x;
-    z = -z;
-  } else if (turn === 3) {
-    const next = x;
-    x = -z;
-    z = next;
-  }
-  return { dx: -x * 4, dz: -z * 4 };
-}
-
-function runs(values) {
-  const sorted = [...values].sort((a, b) => a - b);
-  const out = [];
-  for (const value of sorted) {
-    const last = out[out.length - 1];
-    if (last && value === last[last.length - 1] + 1) last.push(value);
-    else out.push([value]);
-  }
-  return out;
-}
-
-function crossTurn(dirs) {
-  const has = new Set(dirs);
-  if (has.has("E") && has.has("S")) return 0;
-  if (has.has("E") && has.has("N")) return 1;
-  if (has.has("W") && has.has("N")) return 2;
-  if (has.has("W") && has.has("S")) return 3;
-  return 0;
-}
-
-function bendTurn(dirs) {
-  const has = new Set(dirs);
-  if (has.has("W") && has.has("S")) return 0;
-  if (has.has("E") && has.has("S")) return 1;
-  if (has.has("E") && has.has("N")) return 2;
-  if (has.has("W") && has.has("N")) return 3;
-  return 0;
-}
-
-function worldOf(point, piece) {
-  const size = 192;
-  let x = (piece.mirror ? -size : size) * point.x;
-  const y = size * point.y + 0.35;
-  let z = size * point.z;
-  const turn = ((piece.turn % 4) + 4) % 4;
-  if (turn === 1) {
-    const next = x;
-    x = z;
-    z = -next;
-  } else if (turn === 2) {
-    x = -x;
-    z = -z;
-  } else if (turn === 3) {
-    const next = x;
-    x = -z;
-    z = next;
-  }
-  return { x: (piece.x + 0.5) * 48 + x, y, z: (piece.z + 0.5) * 48 + z };
-}
-
-function offsetPoint(pts, index) {
-  const lateral = 28.8;
-  const a = pts[Math.max(0, index - 1)];
-  const b = pts[Math.min(pts.length - 1, index + 1)];
-  let tx = b.x - a.x;
-  let tz = b.z - a.z;
-  const len = Math.hypot(tx, tz) || 1;
-  tx /= len;
-  tz /= len;
-  const p = pts[index];
-  return { x: p.x - tz * lateral, y: p.y, z: p.z + tx * lateral };
-}
-
-function linkAudit(pieces, plan, wet) {
-  const starts = plan.lanes.map((lane) => lane[0]);
-  function nearest(point) {
-    let best = Infinity;
-    for (const start of starts) {
-      if (Math.abs(point.y - start.y) > 10) continue;
-      const dist = Math.hypot(point.x - start.x, point.z - start.z);
-      if (dist < best) best = dist;
-    }
-    return best;
-  }
-  let exitJoined = 0;
-  let exitOpen = 0;
-  const branch = [
-    [[-0.4, -0.5], [0.1, -0.5]],
-    [[-0.4, 0.5], [0.1, 0.5]],
-  ];
-  for (const piece of pieces) {
-    if (piece.file !== "road-split-2.glb") continue;
-    for (const [a, b] of branch) {
-      const world = [a, b].map(([x, z]) => worldOf({ x, y: 0.01, z }, piece));
-      const end = offsetPoint(world, world.length - 1);
-      const dist = nearest(end);
-      if (dist < 18) exitJoined += 1;
-      else exitOpen += 1;
-    }
-  }
-  let rampFar = 0;
-  for (const piece of pieces) {
-    if (piece.file !== "road-slant-high-4.glb" && piece.file !== "bridge-water.glb") continue;
-    const along = piece.file === "bridge-water.glb"
-      ? [[0, -1], [0, 1]]
-      : [[-0.5, 0], [0.5, 0]];
-    const y = piece.file === "bridge-water.glb" ? 0.51 : 0.01;
-    const y2 = piece.file === "bridge-water.glb" ? 0.51 : 0.51;
-    const world = [
-      worldOf({ x: along[0][0], y, z: along[0][1] }, piece),
-      worldOf({ x: along[1][0], y: y2, z: along[1][1] }, piece),
-    ];
-    const end = offsetPoint(piece.oneWay === "back" ? [world[1], world[0]] : world, 1);
-    if (nearest(end) > 18) rampFar += 1;
-  }
-  const waterKeys = new Set();
-  let dupWater = 0;
-  let wetStraight = 0;
-  for (const piece of pieces) {
-    if (piece.file === "bridge-water.glb") {
-      const id = `${piece.x},${piece.z}`;
-      if (waterKeys.has(id)) dupWater += 1;
-      waterKeys.add(id);
-    }
-    if (piece.file !== "road-straight-7.glb" && piece.file !== "road-straight-stop.glb") continue;
-    const gx = Math.round((piece.x - 2) / 4);
-    const gy = Math.round((piece.z - 2) / 4);
-    if (piece.x === 4 * gx + 2 && piece.z === 4 * gy + 2 && wet.has(`${gx},${gy}`)) wetStraight += 1;
-  }
-  let eastHops = 0;
-  const east = pieces.find((piece) => piece.file === "road-straight-7.glb" && piece.x === 4 * 22 + 2 && piece.z === 4 * 12 + 2 && piece.oneWay === true);
-  if (east) {
-    const start = offsetPoint([
-      worldOf({ x: -0.5, y: 0.01, z: 0 }, east),
-      worldOf({ x: 0.5, y: 0.01, z: 0 }, east),
-    ], 0);
-    let idx = -1;
-    let best = 1;
-    for (let i = 0; i < starts.length; i += 1) {
-      const dist = Math.hypot(starts[i].x - start.x, starts[i].z - start.z);
-      if (dist < best) {
-        best = dist;
-        idx = i;
-      }
-    }
-    const seen = new Set();
-    while (idx >= 0 && !seen.has(idx) && eastHops < 80) {
-      seen.add(idx);
-      idx = plan.next[idx];
-      if (idx >= 0) eastHops += 1;
-    }
-  }
-  return { exitJoined, exitOpen, rampFar, dupWater, wetStraight, eastHops };
-}
-
-function goesOn(flow, x, y, dir) {
-  const [dx, dy] = STEP[dir];
-  const next = flow.get(key(x + dx, y + dy));
-  return next ? next.includes(dir) : false;
-}
-
-function maskOf(cells, x, y) {
+function neighbors(cells, x, y) {
   const dirs = [];
-  if (cells.has(key(x, y - 1))) dirs.push("N");
-  if (cells.has(key(x + 1, y))) dirs.push("E");
-  if (cells.has(key(x, y + 1))) dirs.push("S");
-  if (cells.has(key(x - 1, y))) dirs.push("W");
+  for (const dir of ["N", "E", "S", "W"]) {
+    const [dx, dy] = STEP[dir];
+    if (cells.has(key(x + dx, y + dy))) dirs.push(dir);
+  }
   return dirs;
 }
 
-function whitePiece(dirs) {
+function whiteSpec(dirs, x, y, junctionAt) {
   const mask = ["N", "E", "S", "W"].filter((dir) => dirs.includes(dir)).join("");
   if (mask === "NESW") return { file: "road-crossroad-3.glb", turn: 0 };
-  if (mask.length === 3) {
-    return { file: "road-intersection-3.glb", turn: { ESW: 0, NES: 1, NEW: 2, NSW: 3 }[mask] };
+  if (mask.length === 3) return { file: "road-intersection-3.glb", turn: TEE_TURN[mask] };
+  if (mask.length === 2 && BEND_TURN[mask] != null) return { file: "road-bend-3.glb", turn: BEND_TURN[mask] };
+  const axis = dirs.some((dir) => dir === "N" || dir === "S") ? "NS" : "EW";
+  let turn = axis === "NS" ? 1 : 0;
+  let file = "road-straight-7.glb";
+  if ((x + y) % 4 === 1) {
+    const facing = dirs.find((dir) => junctionAt.has(key(x + STEP[dir][0], y + STEP[dir][1])));
+    if (facing) {
+      file = "road-straight-stop.glb";
+      turn = STOP_TURN[facing];
+    }
   }
-  if (mask === "EW") return { file: "road-straight-7.glb", turn: 0 };
-  if (mask === "NS") return { file: "road-straight-7.glb", turn: 1 };
-  if (mask.length === 2) {
-    return { file: "road-bend-3.glb", turn: { SW: 0, ES: 1, NE: 2, NW: 3 }[mask] };
-  }
-  if (dirs[0] === "N" || dirs[0] === "S") return { file: "road-straight-7.glb", turn: 1 };
-  return { file: "road-straight-7.glb", turn: 0 };
+  return { file, turn };
 }
 
-function bridgeWater(x, y, axis, dir) {
-  const vertical = axis === "v";
-  const turn = vertical ? (dir === "N" ? 2 : 0) : (dir === "W" ? 3 : 1);
-  return road("bridge-water.glb", x, y, turn, {
-    oneWay: dir ? true : false,
-    x: vertical ? 4 * x + 2 : 4 * x + 4,
-    z: vertical ? 4 * y + 4 : 4 * y + 2,
-  });
+function wayOf(dir, authored) {
+  if (!dir) return false;
+  return dir === authored ? true : "back";
 }
 
-function ramp(gx, gy, dir, climb, twoWay) {
-  // High end of the slant is model +X. Climbing drives that way. A descent
-  // points +X back at the bridge and keeps only the reversed lane.
-  const face = climb ? dir : OPP[dir];
-  const oneWay = twoWay ? false : (climb ? true : "back");
-  return road("road-slant-high-4.glb", gx, gy, TURN[face], { oneWay });
+// bridge-water turn 0 runs north to south. Turn 3 runs east to west.
+function placeDeck(pieces, axis, x, y, dir) {
+  if (axis === "v") {
+    pieces.push(placePiece("bridge-water.glb", x, y, 0, { oneWay: wayOf(dir, "S") }));
+    return;
+  }
+  pieces.push(placePiece("bridge-water.glb", x, y, 3, { oneWay: wayOf(dir, "W") }));
+}
+
+function placeRamp(pieces, axis, end, x, y, dir) {
+  if (axis === "v") {
+    const climb = end === "south" ? "N" : "S";
+    const turn = end === "north" ? 3 : 1;
+    pieces.push(placePiece("road-slant-high-4.glb", x, y, turn, { oneWay: wayOf(dir, climb) }));
+    return;
+  }
+  const climb = end === "west" ? "E" : "W";
+  const turn = end === "west" ? 0 : 2;
+  pieces.push(placePiece("road-slant-high-4.glb", x, y, turn, { oneWay: wayOf(dir, climb) }));
+}
+
+function bridgeRuns(pieces, claimed, skipped, axis, dir, cells, bank) {
+  let run = [];
+  const flush = () => {
+    if (!run.length) return;
+    const span = run;
+    run = [];
+    if (span.some((cell) => cell.cross)) {
+      skipped.push(span.map((cell) => key(cell.x, cell.y)));
+      return;
+    }
+    const first = span[0];
+    const last = span[span.length - 1];
+    const before = cells.find((cell) => cell.t === first.t - 1);
+    const after = cells.find((cell) => cell.t === last.t + 1);
+    if (!before || !after || !bank(before) || !bank(after)) {
+      skipped.push(span.map((cell) => key(cell.x, cell.y)));
+      return;
+    }
+    const cover = [...span];
+    let rampBefore = before;
+    let rampAfter = after;
+    if (cover.length % 2 === 1) {
+      const further = cells.find((cell) => cell.t === after.t + 1);
+      if (!further || !bank(further)) {
+        skipped.push(span.map((cell) => key(cell.x, cell.y)));
+        return;
+      }
+      cover.push(after);
+      rampAfter = further;
+    }
+    for (let i = 0; i < cover.length; i += 2) {
+      const northOrWest = cover[i];
+      const southOrEast = cover[i + 1];
+      if (axis === "v") placeDeck(pieces, axis, northOrWest.x, northOrWest.y, dir);
+      else placeDeck(pieces, axis, southOrEast.x, southOrEast.y, dir);
+    }
+    if (axis === "v") {
+      placeRamp(pieces, axis, "north", rampBefore.x, rampBefore.y, dir);
+      placeRamp(pieces, axis, "south", rampAfter.x, rampAfter.y, dir);
+    } else {
+      placeRamp(pieces, axis, "west", rampBefore.x, rampBefore.y, dir);
+      placeRamp(pieces, axis, "east", rampAfter.x, rampAfter.y, dir);
+    }
+    for (const cell of cover) claimed.add(key(cell.x, cell.y));
+    claimed.add(key(rampBefore.x, rampBefore.y));
+    claimed.add(key(rampAfter.x, rampAfter.y));
+  };
+  for (const cell of cells) {
+    if (claimed.has(key(cell.x, cell.y))) {
+      flush();
+      continue;
+    }
+    if (cell.glyph === "~") run.push(cell);
+    else flush();
+  }
+  flush();
+}
+
+function buildPieces(svg, ground) {
+  const yellow = yellowCells();
+  const drawn = whiteCells(svg);
+  const pieces = [];
+  const claimed = new Set();
+  const skipped = [];
+  const module = (x, y) => glyphAt(ground, x, y);
+
+  for (const line of LINES) {
+    const lanes = [
+      { fixed: line.fixed, dir: line.primary },
+      { fixed: line.fixed + line.side, dir: OPP[line.primary] },
+    ];
+    for (const lane of lanes) {
+      const cells = [];
+      if (line.axis === "h") {
+        for (let x = line.a; x <= line.b; x += 1) {
+          const info = yellow.get(key(x, lane.fixed));
+          cells.push({
+            t: x,
+            x,
+            y: lane.fixed,
+            glyph: module(x, lane.fixed),
+            cross: info ? info.lines.size > 1 : false,
+          });
+        }
+      } else {
+        for (let y = line.a; y <= line.b; y += 1) {
+          const info = yellow.get(key(lane.fixed, y));
+          cells.push({
+            t: y,
+            x: lane.fixed,
+            y,
+            glyph: module(lane.fixed, y),
+            cross: info ? info.lines.size > 1 : false,
+          });
+        }
+      }
+      const bank = (cell) => land(cell.glyph) && !cell.cross;
+      bridgeRuns(pieces, claimed, skipped, line.axis, lane.dir, cells, bank);
+    }
+  }
+
+  const columns = new Map();
+  const rows = new Map();
+  for (const id of drawn) {
+    if (yellow.has(id)) continue;
+    const [x, y] = id.split(",").map(Number);
+    if (!columns.has(x)) columns.set(x, []);
+    columns.get(x).push(y);
+    if (!rows.has(y)) rows.set(y, []);
+    rows.get(y).push(x);
+  }
+  const along = (x, y, axis) => {
+    const dirs = neighbors(drawn, x, y).filter((dir) => {
+      const [dx, dy] = STEP[dir];
+      return land(module(x + dx, y + dy)) && !yellow.has(key(x + dx, y + dy));
+    });
+    if (axis === "v") return dirs.every((dir) => dir === "N" || dir === "S");
+    return dirs.every((dir) => dir === "E" || dir === "W");
+  };
+  for (const [x, ys] of columns) {
+    const cells = [...ys].sort((a, b) => a - b).map((y) => ({
+      t: y,
+      x,
+      y,
+      glyph: module(x, y),
+      cross: false,
+    }));
+    bridgeRuns(pieces, claimed, skipped, "v", null, cells, (cell) => land(cell.glyph) && along(cell.x, cell.y, "v"));
+  }
+  for (const [y, xs] of rows) {
+    const cells = [...xs].sort((a, b) => a - b).map((x) => ({
+      t: x,
+      x,
+      y,
+      glyph: module(x, y),
+      cross: false,
+    }));
+    bridgeRuns(pieces, claimed, skipped, "h", null, cells, (cell) => land(cell.glyph) && along(cell.x, cell.y, "h") && !claimed.has(key(cell.x, cell.y)));
+  }
+
+  const streets = new Set();
+  let coastSkipped = 0;
+  for (const id of drawn) {
+    if (yellow.has(id) || claimed.has(id)) continue;
+    const [x, y] = id.split(",").map(Number);
+    if (!land(module(x, y))) {
+      coastSkipped += 1;
+      continue;
+    }
+    streets.add(id);
+  }
+  const junctionAt = new Set();
+  for (const id of streets) {
+    const [x, y] = id.split(",").map(Number);
+    if (neighbors(streets, x, y).length >= 3) junctionAt.add(id);
+  }
+  for (const id of streets) {
+    const [x, y] = id.split(",").map(Number);
+    const spec = whiteSpec(neighbors(streets, x, y), x, y, junctionAt);
+    pieces.push(placePiece(spec.file, x, y, spec.turn));
+  }
+
+  let crossings = 0;
+  for (const [id, cell] of yellow) {
+    if (claimed.has(id)) continue;
+    if (cell.lines.size > 1) {
+      crossings += 1;
+      continue;
+    }
+    const [x, y] = id.split(",").map(Number);
+    if (!land(module(x, y))) {
+      coastSkipped += 1;
+      continue;
+    }
+    pieces.push(placePiece("road-straight-7.glb", x, y, STRAIGHT_TURN[cell.dirs[0]], { oneWay: true }));
+  }
+
+  return {
+    pieces,
+    yellow,
+    coastSkipped,
+    crossings,
+    streets: streets.size,
+    skippedCanals: skipped,
+    bridges: pieces.filter((piece) => piece.file === "bridge-water.glb").length,
+    ramps: pieces.filter((piece) => piece.file === "road-slant-high-4.glb").length,
+  };
+}
+
+function allowed(error, yellow, ground) {
+  const step = STEP[error.side];
+  if (!step) return false;
+  const nx = error.gx + step[0];
+  const nz = error.gz + step[1];
+  const outside = nx < 0 || nx >= GX || nz < 0 || nz >= GY;
+  const thereYellow = yellow.has(key(nx, nz));
+  const hereYellow = yellow.has(key(error.gx, error.gz));
+  if (error.kind === "open") {
+    if (outside || thereYellow) return true;
+    const glyph = glyphAt(ground, nx, nz);
+    if (glyph === "~" || glyph === "p") return true;
+    // A straight keeps both mouths. The drawn road ends, so one mouth faces bare land.
+    return (glyph === "l" || glyph === "g") && error.socket === "g";
+  }
+  if (error.kind === "mismatch") return hereYellow !== thereYellow;
+  return false;
+}
+
+export function unexpectedErrors(pieces, yellow, ground) {
+  return checkRoads(pieces).filter((error) => !allowed(error, yellow, ground));
+}
+
+// Park paint covers every land cell inside the park, including the streets.
+// Trees grow on "g", so a road module stays plain land.
+function keepRoadsClear(ground, pieces) {
+  for (const piece of pieces) {
+    const cells = pieceCells(piece);
+    if (!cells) continue;
+    for (const cell of cells) {
+      const gx = cell.gx;
+      const gy = cell.gz;
+      if (!Number.isInteger(gx) || !Number.isInteger(gy)) continue;
+      for (let dz = 0; dz < 4; dz += 1) {
+        const row = ground[gy * 4 + dz];
+        if (!row) continue;
+        for (let dx = 0; dx < 4; dx += 1) {
+          const x = gx * 4 + dx;
+          if (row[x] === "g") row[x] = "l";
+        }
+      }
+    }
+  }
 }
 
 function main() {
   const svg = readFileSync(SVG_PATH, "utf8");
   const ground = paintGround(svg);
-  const wet = wetPieces(ground);
-  const white = whiteCells(svg);
-  const flow = buildFlows();
-  const special = new Set();
-  const pieces = [];
-
-  function take(x, y) {
-    special.add(key(x, y));
-  }
-
-  function addWater(axis, fixed, dir, a, b) {
-    const values = [];
-    for (let t = a; t <= b; t += 1) {
-      const x = axis === "v" ? fixed : t;
-      const y = axis === "v" ? t : fixed;
-      if (wet.has(key(x, y))) values.push(t);
-    }
-    if (!values.length) return;
-    const twoWay = !dir;
-    const face = dir || (axis === "v" ? "S" : "E");
-    for (const run of runs(values)) {
-      const starts = [];
-      for (let i = 0; i < run.length; i += 2) starts.push(run[i]);
-      let lo = Infinity;
-      let hi = -Infinity;
-      for (const start of starts) {
-        const covered = [start, start + 1];
-        if (axis === "v") {
-          pieces.push(bridgeWater(fixed, start, "v", dir));
-          for (const cell of covered) take(fixed, cell);
-        } else {
-          pieces.push(bridgeWater(start, fixed, "h", dir));
-          for (const cell of covered) take(cell, fixed);
-        }
-        lo = Math.min(lo, start);
-        hi = Math.max(hi, start + 1);
-      }
-      const before = lo - 1;
-      const after = hi + 1;
-      const climbBefore = face === "S" || face === "E";
-      if (axis === "v") {
-        pieces.push(ramp(fixed, before, face, climbBefore, twoWay));
-        pieces.push(ramp(fixed, after, face, !climbBefore, twoWay));
-        take(fixed, before);
-        take(fixed, after);
-      } else {
-        pieces.push(ramp(before, fixed, face, climbBefore, twoWay));
-        pieces.push(ramp(after, fixed, face, !climbBefore, twoWay));
-        take(before, fixed);
-        take(after, fixed);
-      }
-    }
-  }
-
-  addWater("v", 13, "N", 8, 64);
-  addWater("v", 14, "S", 8, 64);
-  addWater("v", 34, null, 6, 40);
-  addWater("h", 12, "E", 20, 118);
-  addWater("h", 11, "W", 20, 118);
-
-  const overs = [
-    { x: 80, north: 11, south: 12 },
-    { x: 92, north: 11, south: 12 },
-    { x: 80, north: 32, south: 33 },
-    { x: 92, north: 32, south: 33 },
-  ];
-  for (const site of overs) {
-    pieces.push(road("road-bridge-2.glb", site.x, site.north, 2, { oneWay: "x" }));
-    pieces.push(road("road-bridge-2.glb", site.x, site.south, 0, { oneWay: "x" }));
-    pieces.push(road("road-slant-high-4.glb", site.x, site.north - 1, 3));
-    pieces.push(road("road-slant-high-4.glb", site.x, site.south + 1, 1));
-    take(site.x, site.north);
-    take(site.x, site.south);
-    take(site.x, site.north - 1);
-    take(site.x, site.south + 1);
-  }
-
-  function onLand(x, y) {
-    const glyph = ground[4 * y + 2]?.[4 * x + 2];
-    return glyph === "l" || glyph === "g";
-  }
-
-  const yellowStraight = new Map();
-  for (const [id, dirs] of flow) {
-    if (special.has(id)) continue;
-    const [x, y] = id.split(",").map(Number);
-    // The beach and the sea stay clear. Water crossings were already bridged.
-    if (!onLand(x, y)) continue;
-    if (dirs.length >= 2) {
-      const ending = dirs.every((dir) => !goesOn(flow, x, y, dir));
-      pieces.push(ending
-        ? road("road-bend-3.glb", x, y, bendTurn(dirs), { oneWay: true })
-        : road("road-crossroad-3.glb", x, y, crossTurn(dirs), { oneWay: true }));
-      take(x, y);
-      continue;
-    }
-    const piece = road("road-straight-7.glb", x, y, TURN[dirs[0]], { oneWay: true });
-    pieces.push(piece);
-    yellowStraight.set(id, piece);
-  }
-
-  const usedPairs = new Set();
-  for (const id of white) {
-    if (flow.has(id)) continue;
-    const [x, y] = id.split(",").map(Number);
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const jx = x + dx;
-      const jy = y + dy;
-      const jid = key(jx, jy);
-      const dirs = flow.get(jid);
-      if (!dirs || dirs.length !== 1 || special.has(jid) || !yellowStraight.has(jid)) continue;
-      const dir = dirs[0];
-      const along = dir === "E" || dir === "W";
-      if ((dx !== 0) === along) continue;
-      const [sx, sy] = STEP[dir];
-      let ox = jx + sx;
-      let oy = jy + sy;
-      if (!yellowStraight.has(key(ox, oy))) {
-        ox = jx - sx;
-        oy = jy - sy;
-      }
-      if (!yellowStraight.has(key(ox, oy)) || special.has(key(ox, oy))) continue;
-      const pair = [jid, key(ox, oy)].sort().join("|");
-      if (usedPairs.has(pair)) continue;
-      usedPairs.add(pair);
-      const turn = { E: 1, W: 3, N: 2, S: 0 }[dir];
-      const towardWhite = OPP[dx > 0 ? "E" : dx < 0 ? "W" : dy > 0 ? "S" : "N"];
-      const faces = { 0: "E", 1: "N", 2: "W", 3: "S" }[turn];
-      const mirror = faces !== towardWhite;
-      const shift = shiftFor(turn, mirror);
-      const mx = ((4 * jx + 2) + (4 * ox + 2)) / 2 + shift.dx;
-      const mz = ((4 * jy + 2) + (4 * oy + 2)) / 2 + shift.dz;
-      pieces.push(road("road-split-2.glb", jx, jy, turn, { oneWay: true, mirror, x: mx, z: mz }));
-      for (const cell of [jid, key(ox, oy)]) {
-        const straight = yellowStraight.get(cell);
-        const at = pieces.indexOf(straight);
-        if (at >= 0) pieces.splice(at, 1);
-        yellowStraight.delete(cell);
-        special.add(cell);
-      }
-    }
-  }
-
-  for (const id of yellowStraight.keys()) {
-    const [x, y] = id.split(",").map(Number);
-    take(x, y);
-  }
-
-  const openWhite = new Set([...white].filter((id) => !special.has(id)));
-  const placedWhite = [];
-  for (const id of openWhite) {
-    const [x, y] = id.split(",").map(Number);
-    const dirs = maskOf(openWhite, x, y);
-    const spec = whitePiece(dirs);
-    placedWhite.push({ piece: road(spec.file, x, y, spec.turn), x, y, dirs });
-  }
-  for (const item of placedWhite) {
-    if (item.piece.file !== "road-straight-7.glb") continue;
-    if ((item.x + item.y) % 4 !== 1) continue;
-    let toward = null;
-    for (const dir of item.dirs) {
-      const [dx, dy] = STEP[dir];
-      const next = placedWhite.find((other) => other.x === item.x + dx && other.y === item.y + dy);
-      if (!next) continue;
-      if (next.piece.file !== "road-crossroad-3.glb" && next.piece.file !== "road-intersection-3.glb") continue;
-      toward = dir;
-      break;
-    }
-    if (!toward) continue;
-    item.piece.file = "road-straight-stop.glb";
-    item.piece.turn = STOP_TURN[toward];
-    item.piece.mirror = false;
-  }
-  for (const item of placedWhite) pieces.push(item.piece);
-
-  const plan = planBuiltLanes(pieces);
-  const linked = plan.next.filter((next) => next >= 0).length;
-  const gaps = linkAudit(pieces, plan, wet);
-  const interior = [];
-  for (const piece of pieces) {
-    const gx = Math.round((piece.x - 2) / 4);
-    const gy = Math.round((piece.z - 2) / 4);
-    if (gx >= 81 && gx <= 91 && gy >= 13 && gy <= 31) interior.push({ gx, gy, file: piece.file });
-  }
-  const parkBad = interior.filter((piece) => piece.gy !== 22);
-  const cross = (gx, gy) => pieces.some((piece) => piece.file === "road-crossroad-3.glb" && piece.x === 4 * gx + 2 && piece.z === 4 * gy + 2);
-  const mirroredStop = pieces.some((piece) => piece.file === "road-straight-stop.glb" && piece.mirror);
+  const built = buildPieces(svg, ground);
+  keepRoadsClear(ground, built.pieces);
+  const errors = checkRoads(built.pieces);
+  const unexpected = errors.filter((error) => !allowed(error, built.yellow, ground));
   const report = {
-    pieces: pieces.length,
-    linked,
-    lanes: plan.lanes.length,
-    stops: pieces.filter((piece) => piece.file === "road-straight-stop.glb").length,
-    splits: pieces.filter((piece) => piece.file === "road-split-2.glb").length,
-    bridges: pieces.filter((piece) => piece.file === "road-bridge-2.glb").length,
-    water: pieces.filter((piece) => piece.file === "bridge-water.glb").length,
-    interior: interior.length,
-    parkBad: parkBad.length,
-    cross80: cross(80, 22),
-    cross92: cross(92, 22),
-    mirroredStop,
-    ...gaps,
+    pieces: built.pieces.length,
+    streets: built.streets,
+    crossingsLeftOpen: built.crossings,
+    coastSkipped: built.coastSkipped,
+    bridges: built.bridges,
+    ramps: built.ramps,
+    skippedCanals: built.skippedCanals.length,
+    allowedOpen: errors.filter((error) => error.kind === "open").length,
+    allowedMismatch: errors.filter((error) => error.kind === "mismatch").length,
+    unexpected: unexpected.length,
   };
   console.log(JSON.stringify(report, null, 2));
-  if (parkBad.length || !report.cross80 || !report.cross92 || mirroredStop || report.stops < 1 || gaps.dupWater || gaps.wetStraight) {
-    throw new Error("Island map failed its road checks.");
-  }
-
-  let spawn = { x: 4 * 100 + 2, z: 4 * 40 + 2 };
-  if (ground[spawn.z]?.[spawn.x] !== "l") {
-    outer: for (let gy = 36; gy < 48; gy += 1) {
-      for (let gx = 70; gx < 100; gx += 1) {
-        const x = 4 * gx + 2;
-        const z = 4 * gy + 2;
-        if (ground[z]?.[x] === "l") {
-          spawn = { x, z };
-          break outer;
-        }
-      }
-    }
+  if (built.skippedCanals.length) {
+    console.log("canals left open", built.skippedCanals.map((run) => run.join(" ")).join(" | "));
   }
   const map = {
     cols: COLS,
     rows: ROWS,
     tile: 48,
     island: true,
-    spawn,
+    spawn: { x: 4 * 24 + 2, z: 4 * 50 + 2 },
     views: [
-      { name: "Park crossing", x: 4 * 80 + 2, z: 4 * 22 + 2 },
-      { name: "Green overpass", x: 4 * 80 + 2, z: 4 * 12 + 2 },
-      { name: "Water bridge", x: 4 * 34 + 2, z: 4 * 23 + 2 },
-      { name: "East arterial", x: 4 * 100 + 2, z: 4 * 12 + 2 },
-      { name: "South arterial", x: 4 * 70 + 2, z: 4 * 64 + 2 },
-      { name: "West canal", x: 4 * 13 + 2, z: 4 * 40 + 2 },
-      { name: "Mid grid", x: 4 * 60 + 2, z: 4 * 40 + 2 },
-      { name: "North coast", x: 4 * 40 + 2, z: 4 * 8 + 2 },
-      { name: "Harbor gap", x: 4 * 34 + 2, z: 4 * 18 + 2 },
+      { name: "Northwest", x: 4 * 34 + 2, z: 4 * 16 + 2 },
+      { name: "Northeast", x: 4 * 80 + 2, z: 4 * 22 + 2 },
+      { name: "Southwest", x: 4 * 24 + 2, z: 4 * 50 + 2 },
+      { name: "Southeast", x: 4 * 70 + 2, z: 4 * 54 + 2 },
+      { name: "Canal", x: 4 * 13 + 4, z: 4 * 23 + 2 },
     ],
     buildings: [],
     ground: ground.map((row) => row.join("")),
   };
-  writeFileSync(new URL("../island-map.json", import.meta.url), `${JSON.stringify({ pieces, removedRoads: [] }, null, 2)}\n`);
-  writeFileSync(new URL("../data/island.json", import.meta.url), `${JSON.stringify(map)}\n`);
-  console.log("wrote island-map.json and data/island.json", spawn);
+  writeFileSync(new URL("../island-map.json", import.meta.url), `${JSON.stringify({ pieces: built.pieces, removedRoads: [] }, null, 2)}\n`);
+  writeFileSync(new URL("../data/island.json", import.meta.url), JSON.stringify(map));
+  console.log("wrote island-map.json and data/island.json");
+  if (unexpected.length) {
+    console.log(unexpected.slice(0, 40).map((error) => `${error.kind} ${error.file} ${error.gx},${error.gz} ${error.side || ""}`).join("\n"));
+    process.exit(1);
+  }
 }
 
-main();
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();

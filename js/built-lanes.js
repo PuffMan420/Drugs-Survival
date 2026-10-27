@@ -7,6 +7,7 @@
 // build mode: scale, then yaw, then the piece center.
 
 import { TILE } from "./constants.js";
+import { modelPolylines } from "./road-sockets.js";
 
 const UNIT = 4 * TILE;
 // Build mode sets the piece origin here. The tire sits just above the asphalt.
@@ -103,6 +104,18 @@ function arc(cx, cz, radius, a0, a1, steps) {
   return pts;
 }
 
+function polylines(file, y) {
+  return modelPolylines(file).map((pts) => {
+    const out = [];
+    for (let i = 0; i < pts.length - 1; i += 1) {
+      const seg = line(pts[i].x, pts[i].z, pts[i + 1].x, pts[i + 1].z, y, y, 4);
+      if (i > 0) seg.shift();
+      out.push(...seg);
+    }
+    return out;
+  });
+}
+
 function centerlines(kind) {
   if (kind === "x") return [line(-0.5, 0, 0.5, 0, Y_ROAD, Y_ROAD, 4)];
   if (kind === "half") return [line(-0.25, 0, 0.25, 0, Y_ROAD, Y_ROAD, 2)];
@@ -134,17 +147,9 @@ function centerlines(kind) {
   }
   // Water bridge: deck only, two modules along Z, centered on the piece origin.
   if (kind === "water") return [line(0, -1, 0, 1, Y_DECK, Y_DECK, 6)];
-  // Split is two modules along Z. The through road sits at x=-0.4 and the
-  // piece is shifted so that line is the carriageway. Side mouths at x=0.1
-  // meet a two-way street. Only the exit is a lane: the linker allows one
-  // successor, so an entrance would cut the street and die in the median.
-  if (kind === "split") {
-    return [
-      line(-0.4, -1, -0.4, 1, Y_ROAD, Y_ROAD, 6),
-      line(-0.4, -0.5, 0.1, -0.5, Y_ROAD, Y_ROAD, 3),
-      line(-0.4, 0.5, 0.1, 0.5, Y_ROAD, Y_ROAD, 3),
-    ];
-  }
+  // Split openings come from the connection table. The through road is the
+  // north module. The south mouth merges into it, then the through road continues.
+  if (kind === "split") return polylines("road-split-2.glb", Y_ROAD);
   if (kind === "cross") {
     return [
       line(-0.5, 0, 0.5, 0, Y_ROAD, Y_ROAD, 4),

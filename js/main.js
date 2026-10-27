@@ -81,6 +81,18 @@ const JUMPS = [
   { name: "Southeast ring", x: 214, z: 205 },
 ];
 
+// Same digit-key jumps as JUMPS, eight of them, spread across the island.
+const ISLAND_JUMPS = [
+  { name: "Northwest", x: 82, z: 66 },
+  { name: "North", x: 186, z: 66 },
+  { name: "Park", x: 302, z: 90 },
+  { name: "Northeast", x: 410, z: 90 },
+  { name: "Southwest", x: 82, z: 194 },
+  { name: "South", x: 202, z: 194 },
+  { name: "East", x: 302, z: 194 },
+  { name: "Southeast", x: 410, z: 202 },
+];
+
 const session = {
   ready: false,
   map: null,
@@ -391,7 +403,10 @@ function blocked(map, x, z) {
 }
 
 async function start() {
-  const island = new URLSearchParams(window.location.search).get("map") === "island";
+  const mapName = new URLSearchParams(window.location.search).get("map");
+  const island = mapName === "island";
+  const islandSw = mapName === "island-sw";
+  const roadtest = mapName === "roadtest";
   const renderer = new WebGLRenderer({
     canvas,
     antialias: true,
@@ -417,13 +432,28 @@ async function start() {
   window.addEventListener("resize", () => fitDisplay(renderer));
 
   fpsEl.textContent = "Loading map…";
-  const map = await fetch(island ? "./data/island.json" : "./data/city.json").then((response) => {
+  const mapFile = island
+    ? "./data/island.json"
+    : islandSw
+      ? "./data/island-sw.json"
+      : roadtest
+        ? "./data/roadtest.json"
+        : "./data/city.json";
+  const map = await fetch(mapFile).then((response) => {
     if (!response.ok) throw new Error("The city map failed to load.");
     return response.json();
   });
   if (island) map.island = true;
+  if (islandSw) map.islandSw = true;
+  if (roadtest) map.roadtest = true;
   fpsEl.textContent = "Loading saved layout…";
-  const savedLayout = island ? await loadNamedMap("./island-map.json", "island-map") : await loadWestMap();
+  const savedLayout = island
+    ? await loadNamedMap("./island-map.json", "island-map")
+    : islandSw
+      ? await loadNamedMap("./island-sw-map.json", "island-sw-map")
+      : roadtest
+        ? await loadNamedMap("./roadtest-map.json", "roadtest-map")
+        : await loadWestMap();
   const removedRoadKeys = new Set();
   for (const item of savedLayout.removedRoads) {
     const key = roadKey(item);
@@ -452,8 +482,8 @@ async function start() {
   window.pedestrians = pedestrians;
   const glow = createGlow(scene, map);
   const sun = createSun(scene);
-  const minimap = createMinimap(map, JUMPS);
-  const camera = new PerspectiveCamera(15, GROUND_W / GROUND_H, NEAR, map.island ? 48000 : FAR);
+  const minimap = createMinimap(map, island ? ISLAND_JUMPS : JUMPS, island ? savedLayout.pieces : null);
+  const camera = new PerspectiveCamera(15, GROUND_W / GROUND_H, NEAR, map.island || map.islandSw ? 48000 : FAR);
   // Screen up stays north. Spherical phi is measured from +Y, so this up is
   // perpendicular to a view aimed CAMERA_ANGLE off straight down.
   const tiltUp = Math.sin(CAMERA_ANGLE);
@@ -620,7 +650,8 @@ async function start() {
 }
 
 function activeJumps() {
-  if (session.map?.island && Array.isArray(session.map.views) && session.map.views.length) return session.map.views;
+  if (session.map?.island) return ISLAND_JUMPS;
+  if ((session.map?.islandSw || session.map?.roadtest) && Array.isArray(session.map.views) && session.map.views.length) return session.map.views;
   return JUMPS;
 }
 

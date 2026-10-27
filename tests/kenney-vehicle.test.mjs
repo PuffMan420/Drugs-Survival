@@ -58,6 +58,34 @@ test("a hard turn drifts: heading and velocity split, and the tires smoke", () =
   assert.ok(slipped > 0.35, `slip only ${slipped}`);
 });
 
+test("mixed inputs: a held turn is a tight drift spin, opposites cancel, steer release recovers", () => {
+  const vehicle = createArcadeVehicle();
+  run(2, () => ({ forward: true }), vehicle);
+  let smoked = false;
+  let minSpeed = Infinity;
+  for (let i = 0; i < 180; i += 1) {
+    const frame = vehicle.step(STEP, { forward: true, right: true }, true);
+    const speed = Math.hypot(frame.vx, frame.vz);
+    if (frame.emit) smoked = true;
+    if (speed < minSpeed) minSpeed = speed;
+    assert.ok(Number.isFinite(speed) && Number.isFinite(frame.yaw), "spin state left the finite range");
+  }
+  const spinning = vehicle.feel();
+  assert.ok(smoked, "the tight spin never smoked");
+  assert.ok(Math.abs(spinning.yawRate) > 3.5, `yaw rate ${spinning.yawRate}`);
+  assert.ok(minSpeed < 80, `the turn never tightened (${minSpeed})`);
+  const recovered = run(3, () => ({ forward: true }), vehicle);
+  const recoveredSpeed = Math.hypot(recovered.vx, recovered.vz);
+  assert.ok(recoveredSpeed > 150, `releasing steer did not recover (${recoveredSpeed})`);
+
+  const opposed = createArcadeVehicle();
+  run(2, () => ({ forward: true }), opposed);
+  const cancelled = run(2, () => ({ forward: true, brake: true, left: true, right: true }), opposed);
+  assert.ok(Math.abs(cancelled.linearSpeed) < 0.05, `W+S did not cancel (${cancelled.linearSpeed})`);
+  assert.ok(Math.abs(cancelled.yawRate) < 0.2, `A+D did not cancel steer (${cancelled.yawRate})`);
+  assert.ok(cancelled.vz < 20, `cancel reversed (${cancelled.vz})`);
+});
+
 test("engine and skid gains follow the kit's decibel curve", () => {
   assert.ok(Math.abs(dbToGain(-15) - 10 ** (-15 / 20)) < 1e-9);
   assert.ok(dbToGain(0) === 1);

@@ -1,18 +1,14 @@
 import {
+  Color,
   DynamicDrawUsage,
   Float32BufferAttribute,
-  FrontSide,
   InstancedBufferAttribute,
   InstancedMesh,
-  LinearFilter,
-  LinearMipmapLinearFilter,
   LoadingManager,
-  MeshLambertMaterial,
+  MeshStandardMaterial,
   Object3D,
   SRGBColorSpace,
-  TextureLoader,
 } from "three";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { isBulkyCar } from "./car-kind.js";
 import { pushOutOfCars } from "./car-push.js";
@@ -47,7 +43,7 @@ const CARS = [
 ];
 
 const RARE = new Set(["police", "ambulance", "fire_truck"]);
-// Job and service liveries stay on the colours built into the model.
+// Job and service liveries stay on the colours baked into the weathered model.
 const SERVICE = new Set([
   "ambulance",
   "box_truck",
@@ -61,42 +57,60 @@ const SERVICE = new Set([
   "taco_truck",
   "taxi",
 ]);
+// Sports bodies only have an L2 bake. Every other file has L2 and L3.
+const SPORTS = new Set(["hatchback-sports", "sedan-sports"]);
 const BUCKET = 96;
 // Tires sit just above the road.
 const GROUND_Y = 0.6;
 // The mesh is drawn 10% past the footprint w and h. Routes and the push test keep those.
 const DRAW_SCALE = 1.1;
-// colormap.png is 16 columns by 4 rows. Each colour is a flat column beside a
-// gradient column (lighter at the top of the row, darkest at the bottom).
-// The model UVs already sit on the gradient column. A shell vertex is repainted
-// down that column so the roof is the light end and the lower body is darker.
-// The sample starts a step below the pale tip, so the body reads slightly darker.
-// The dark grey bumper, sill, and underbody stay on the UVs built into the model.
-const COLUMNS = 16;
-const ROWS = 4;
-const GRADIENT_INSET = 0.008;
-const GRADIENT_SPAN = 1 / ROWS - GRADIENT_INSET * 2;
-const BODY_DARKEN = 0.05;
-const GREY_TRIM = new Set([5 + 2 * COLUMNS, 7 + 2 * COLUMNS]);
-// Every painted swatch except the empty black block on the top row.
-const BODY_COLOURS = [];
-for (let row = 0; row < ROWS; row += 1) {
-  for (let pair = 0; pair < 8; pair += 1) {
-    if (row === 0 && pair >= 3) continue;
-    BODY_COLOURS.push({
-      u: (pair * 2 + 1.5) / COLUMNS,
-      v: row / ROWS,
-    });
-  }
-}
-
-function cellCol(u) {
-  return Math.min(COLUMNS - 1, Math.max(0, Math.floor(u * COLUMNS + 1e-4)));
-}
-
-function cellRow(v) {
-  return Math.min(ROWS - 1, Math.max(0, Math.floor(v * ROWS + 1e-4)));
-}
+// colormap.png gradient columns, sampled at the old mid-body UV
+// (row start + 0.058 + 0.5 * 0.184). Civilians swap the baked paint hue for one
+// of these, then the roof-to-sill shade below still runs pale to bright.
+// Jobs keep the baked hue and only get that shade.
+const PALETTE_RGB = [
+  [145, 181, 232],
+  [121, 82, 202],
+  [197, 119, 235],
+  [148, 89, 65],
+  [217, 154, 115],
+  [247, 211, 170],
+  [54, 159, 118],
+  [255, 173, 67],
+  [255, 131, 68],
+  [226, 94, 73],
+  [93, 110, 199],
+  [203, 167, 147],
+  [74, 74, 92],
+  [60, 60, 66],
+  [112, 114, 135],
+  [69, 71, 85],
+  [149, 156, 187],
+  [214, 214, 229],
+  [202, 118, 82],
+  [227, 243, 255],
+  [255, 210, 46],
+  [226, 72, 62],
+  [74, 102, 202],
+  [74, 158, 141],
+  [153, 139, 230],
+  [220, 165, 62],
+  [226, 126, 153],
+];
+const PALETTE = PALETTE_RGB.map(([r, g, b]) => new Color().setRGB(r / 255, g / 255, b / 255, SRGBColorSpace));
+const WHITE = new Color(0xffffff);
+// Mean luma of the old gradient tip versus its mid, and the dark end versus its mid.
+const PAINT_DARK = 0.88;
+const PAINT_PALE = 1.12;
+// Original colormap cells, in the V-flipped space the weather bake classified.
+// glTF v=0 is the top of the sheet; Blender's row is 3 - that row.
+const CELL_GLASS = 1;
+const CELL_HEAD = 3;
+const CELL_TAIL = 5;
+const CELL_SIREN = 7;
+const CELL_TYRE = 5 + 16;
+const CELL_TRIM = 7 + 16;
+const CELL_SMALL = 13 + 16;
 
 function isWheel(obj) {
   return obj.name.startsWith("wheel") || (obj.parent && obj.parent.name.startsWith("wheel"));
@@ -105,158 +119,449 @@ function isWheel(obj) {
 function colourIndex(salt) {
   let h = Math.imul(salt | 0, 0x9e3779b1);
   h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
-  return (h >>> 0) % BODY_COLOURS.length;
+  return (h >>> 0) % PALETTE.length;
 }
 
-function bakeGeometry(scene) {
+function wearLevel(file, salt) {
+  if (SPORTS.has(file)) return 2;
+  return ((salt | 0) & 1) === 0 ? 2 : 3;
+}
+
+function levelsFor(file) {
+  return SPORTS.has(file) ? [2] : [2, 3];
+}
+
+function srgbToLinear(byte) {
+  const c = byte / 255;
+  return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+}
+
+function triangleArea(ax, ay, az, bx, by, bz, cx, cy, cz) {
+  const abx = bx - ax;
+  const aby = by - ay;
+  const abz = bz - az;
+  const acx = cx - ax;
+  const acy = cy - ay;
+  const acz = cz - az;
+  const nx = aby * acz - abz * acy;
+  const ny = abz * acx - abx * acz;
+  const nz = abx * acy - aby * acx;
+  return 0.5 * Math.hypot(nx, ny, nz);
+}
+
+function triKey(position, i0, i1, i2) {
+  const q = (index) => [
+    Math.round(position.getX(index) * 1000),
+    Math.round(position.getY(index) * 1000),
+    Math.round(position.getZ(index) * 1000),
+  ].join(",");
+  const pts = [q(i0), q(i1), q(i2)];
+  pts.sort();
+  return pts.join("|");
+}
+
+function cornerIndex(index, tri, corner) {
+  return index ? index.getX(tri * 3 + corner) : tri * 3 + corner;
+}
+
+function triCountOf(geometry) {
+  const index = geometry.getIndex();
+  const position = geometry.getAttribute("position");
+  return index ? index.count / 3 : position.count / 3;
+}
+
+function worldGeometry(mesh) {
+  const geometry = mesh.geometry.clone();
+  geometry.applyMatrix4(mesh.matrixWorld);
+  for (const name of Object.keys(geometry.attributes)) {
+    if (name !== "position" && name !== "normal" && name !== "uv") geometry.deleteAttribute(name);
+  }
+  if (!geometry.getAttribute("normal")) geometry.computeVertexNormals();
+  return geometry;
+}
+
+// Paint faces come from the original GLB's colormap UVs. The weathered file
+// has a new unwrap, so each triangle is matched by its vertex positions.
+function faceCatalog(scene) {
   scene.updateMatrixWorld(true);
-  const meshes = [];
+  const prepared = [];
   scene.traverse((obj) => {
-    if (obj.isMesh) meshes.push(obj);
+    if (!obj.isMesh || isWheel(obj)) return;
+    prepared.push({ name: obj.name, geometry: worldGeometry(obj) });
   });
-  const stats = new Map();
-  for (const obj of meshes) {
-    if (isWheel(obj)) continue;
-    const uv = obj.geometry.getAttribute("uv");
-    const normal = obj.geometry.getAttribute("normal");
-    for (let i = 0; i < uv.count; i += 1) {
-      const key = cellCol(uv.getX(i)) + cellRow(uv.getY(i)) * COLUMNS;
-      const entry = stats.get(key);
-      const ny = normal ? normal.getY(i) : 0;
-      if (entry) {
-        entry.n += 1;
-        entry.ny += ny;
-      } else {
-        stats.set(key, { n: 1, ny });
-      }
-    }
-  }
-  // Large panels that do not face the road. Glass, lamps, and the underside stay put.
-  const shell = new Set();
-  for (const [key, entry] of stats) {
-    if (entry.n >= 100 && entry.ny / entry.n > -0.15) shell.add(key);
-  }
-  const parts = [];
-  for (const obj of meshes) {
-    const geometry = obj.geometry.clone();
-    geometry.applyMatrix4(obj.matrixWorld);
-    for (const name of Object.keys(geometry.attributes)) {
-      if (name !== "position" && name !== "normal" && name !== "uv") geometry.deleteAttribute(name);
-    }
+  let zMin = Infinity;
+  let zMax = -Infinity;
+  const area = new Map();
+  for (const part of prepared) {
+    const { geometry } = part;
+    const index = geometry.getIndex();
+    const position = geometry.getAttribute("position");
     const uv = geometry.getAttribute("uv");
-    const paint = new Float32Array(uv.count);
-    const shellMask = new Float32Array(uv.count);
-    const cell = new Float32Array(uv.count * 2);
-    const wheel = isWheel(obj);
-    for (let i = 0; i < uv.count; i += 1) {
-      const col = cellCol(uv.getX(i));
-      const row = cellRow(uv.getY(i));
-      const gradCol = col % 2 === 0 ? col + 1 : col;
-      cell[i * 2] = (gradCol + 0.5) / COLUMNS;
-      cell[i * 2 + 1] = row / ROWS;
-      if (wheel) continue;
-      paint[i] = 1;
-      if (shell.has(col + row * COLUMNS)) shellMask[i] = 1;
+    const tris = triCountOf(geometry);
+    for (let tri = 0; tri < tris; tri += 1) {
+      const i0 = cornerIndex(index, tri, 0);
+      const i1 = cornerIndex(index, tri, 1);
+      const i2 = cornerIndex(index, tri, 2);
+      const z0 = position.getZ(i0);
+      const z1 = position.getZ(i1);
+      const z2 = position.getZ(i2);
+      if (z0 < zMin) zMin = z0;
+      if (z1 < zMin) zMin = z1;
+      if (z2 < zMin) zMin = z2;
+      if (z0 > zMax) zMax = z0;
+      if (z1 > zMax) zMax = z1;
+      if (z2 > zMax) zMax = z2;
+      const col = Math.min(15, Math.max(0, Math.floor(((uv.getX(i0) % 1) + 1) % 1 * 16)));
+      const rawRow = Math.min(3, Math.max(0, Math.floor(((uv.getY(i0) % 1) + 1) % 1 * 4)));
+      const cell = col + (3 - rawRow) * 16;
+      const size = triangleArea(
+        position.getX(i0), position.getY(i0), z0,
+        position.getX(i1), position.getY(i1), z1,
+        position.getX(i2), position.getY(i2), z2,
+      );
+      area.set(cell, (area.get(cell) || 0) + size);
     }
-    geometry.setAttribute("aPaint", new Float32BufferAttribute(paint, 1));
-    geometry.setAttribute("aShell", new Float32BufferAttribute(shellMask, 1));
-    geometry.setAttribute("aCell", new Float32BufferAttribute(cell, 2));
-    parts.push(geometry);
   }
-  const merged = mergeGeometries(parts, false);
-  for (const geometry of parts) geometry.dispose();
-  if (!merged) throw new Error("The car model could not be combined.");
-  merged.computeBoundingBox();
-  const box = merged.boundingBox;
-  const cx = (box.max.x + box.min.x) / 2;
-  const cz = (box.max.z + box.min.z) / 2;
-  merged.translate(-cx, -box.min.y, -cz);
-  // Kenney cars face +Z. A heading of 0 drives toward -Z, same as the sprites.
-  merged.rotateY(Math.PI);
-  const paintAttr = merged.getAttribute("aPaint");
-  const shellAttr = merged.getAttribute("aShell");
-  const cellAttr = merged.getAttribute("aCell");
-  const position = merged.getAttribute("position");
+  const catalog = new Map();
+  for (const part of prepared) {
+    const { geometry } = part;
+    const index = geometry.getIndex();
+    const position = geometry.getAttribute("position");
+    const uv = geometry.getAttribute("uv");
+    const keys = new Map();
+    const tris = triCountOf(geometry);
+    for (let tri = 0; tri < tris; tri += 1) {
+      const i0 = cornerIndex(index, tri, 0);
+      const i1 = cornerIndex(index, tri, 1);
+      const i2 = cornerIndex(index, tri, 2);
+      const col = Math.min(15, Math.max(0, Math.floor(((uv.getX(i0) % 1) + 1) % 1 * 16)));
+      const rawRow = Math.min(3, Math.max(0, Math.floor(((uv.getY(i0) % 1) + 1) % 1 * 4)));
+      const cell = col + (3 - rawRow) * 16;
+      let cat = 0;
+      if (cell === CELL_GLASS) cat = 1;
+      else if (cell === CELL_HEAD) cat = 2;
+      else if (cell === CELL_TAIL) cat = 3;
+      else if (cell === CELL_SIREN) cat = 7;
+      else if (cell === CELL_TYRE) cat = 6;
+      else if (cell === CELL_TRIM) cat = 5;
+      else if (cell === CELL_SMALL && (area.get(cell) || 0) < 1) cat = 5;
+      if (cat === 5) {
+        let maxAbsX = 0;
+        let sx = 0;
+        let sy = 0;
+        let sz = 0;
+        for (const indexOf of [i0, i1, i2]) {
+          const x = position.getX(indexOf);
+          maxAbsX = Math.max(maxAbsX, Math.abs(x));
+          sx += x;
+          sy += position.getY(indexOf);
+          sz += position.getZ(indexOf);
+        }
+        const nearEnd = Math.abs(sz / 3 - zMin) < 0.08 || Math.abs(sz / 3 - zMax) < 0.08;
+        if (maxAbsX < 0.22 && nearEnd && sy / 3 < 0.5) cat = 4;
+      }
+      keys.set(triKey(position, i0, i1, i2), cat);
+    }
+    catalog.set(part.name, keys);
+    geometry.dispose();
+  }
+  return catalog;
+}
+
+function applyPaintMask(geometry, keys, label) {
+  const index = geometry.getIndex();
+  const position = geometry.getAttribute("position");
+  const count = position.count;
+  const blocked = new Uint8Array(count);
+  const marked = new Uint8Array(count);
+  const tris = triCountOf(geometry);
+  let misses = 0;
+  for (let tri = 0; tri < tris; tri += 1) {
+    const i0 = cornerIndex(index, tri, 0);
+    const i1 = cornerIndex(index, tri, 1);
+    const i2 = cornerIndex(index, tri, 2);
+    const cat = keys ? keys.get(triKey(position, i0, i1, i2)) : undefined;
+    const paintTri = cat === 0;
+    if (cat == null) misses += 1;
+    for (const indexOf of [i0, i1, i2]) {
+      if (paintTri) marked[indexOf] = 1;
+      else blocked[indexOf] = 1;
+    }
+  }
+  if (misses > 0) console.warn(`Car paint mask missed ${misses} triangles on ${label}`);
+  const paint = new Float32Array(count);
+  let any = false;
+  for (let i = 0; i < count; i += 1) {
+    if (marked[i] && !blocked[i]) {
+      paint[i] = 1;
+      any = true;
+    }
+  }
+  if (any) geometry.setAttribute("aPaint", new Float32BufferAttribute(paint, 1));
+  return any;
+}
+
+function averagePaintLuma(material, geometry) {
+  const texture = material && material.map;
+  const image = texture && texture.image;
+  if (!image || !image.width || !image.height) return 0.2;
+  const width = image.width;
+  const height = image.height;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(image, 0, 0, width, height);
+  const pixels = ctx.getImageData(0, 0, width, height).data;
+  const uv = geometry.getAttribute("uv");
+  const paint = geometry.getAttribute("aPaint");
+  const index = geometry.getIndex();
+  const tris = triCountOf(geometry);
+  let sum = 0;
+  let n = 0;
+  for (let tri = 0; tri < tris; tri += 1) {
+    const i0 = cornerIndex(index, tri, 0);
+    const i1 = cornerIndex(index, tri, 1);
+    const i2 = cornerIndex(index, tri, 2);
+    if (paint.getX(i0) < 0.5 || paint.getX(i1) < 0.5 || paint.getX(i2) < 0.5) continue;
+    const u = (uv.getX(i0) + uv.getX(i1) + uv.getX(i2)) / 3;
+    const v = (uv.getY(i0) + uv.getY(i1) + uv.getY(i2)) / 3;
+    const x = Math.min(width - 1, Math.max(0, Math.floor((((u % 1) + 1) % 1) * width)));
+    const y = Math.min(height - 1, Math.max(0, Math.floor((((v % 1) + 1) % 1) * height)));
+    const pixel = (y * width + x) * 4;
+    const luma = srgbToLinear(pixels[pixel]) * 0.2126
+      + srgbToLinear(pixels[pixel + 1]) * 0.7152
+      + srgbToLinear(pixels[pixel + 2]) * 0.0722;
+    sum += luma;
+    n += 1;
+  }
+  return n > 0 ? sum / n : 0.2;
+}
+
+// One material per baked mesh. Instances share it. The hue lives on instanceColor
+// and aRecolor, so a different tint does not clone the material or its textures.
+function installPaintShader(material, baseLum) {
+  if (!material || !material.isMeshStandardMaterial || material.userData.paintShader) return;
+  material.userData.paintShader = true;
+  material.toneMapped = false;
+  material.onBeforeCompile = function onBeforeCompile(shader, renderer) {
+    MeshStandardMaterial.prototype.onBeforeCompile.call(this, shader, renderer);
+    shader.uniforms.uPaintBase = { value: baseLum };
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        "#include <uv_pars_vertex>",
+        `#include <uv_pars_vertex>
+        attribute float aPaint;
+        attribute float aPaintT;
+        attribute float aRecolor;
+        varying float vPaint;
+        varying float vPaintT;
+        varying float vRecolor;
+        varying vec3 vTint;`,
+      )
+      .replace(
+        "#include <color_vertex>",
+        `#include <color_vertex>
+        vPaint = aPaint;
+        vPaintT = aPaintT;
+        vRecolor = aRecolor;
+        #ifdef USE_INSTANCING_COLOR
+          vTint = instanceColor;
+        #else
+          vTint = vec3(1.0);
+        #endif`,
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <uv_pars_fragment>",
+        `#include <uv_pars_fragment>
+        varying float vPaint;
+        varying float vPaintT;
+        varying float vRecolor;
+        varying vec3 vTint;
+        uniform float uPaintBase;`,
+      )
+      .replace(
+        "#include <map_fragment>",
+        `#include <map_fragment>
+        float carShade = mix(${PAINT_DARK.toFixed(2)}, ${PAINT_PALE.toFixed(2)}, clamp(vPaintT, 0.0, 1.0));
+        float carLum = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+        float carWear = carLum / max(uPaintBase, 0.045);
+        vec3 carRespray = vTint * carWear * carShade;
+        vec3 carKept = diffuseColor.rgb * carShade;
+        vec3 carPainted = mix(carKept, carRespray, clamp(vRecolor, 0.0, 1.0));
+        diffuseColor.rgb = mix(diffuseColor.rgb, carPainted, step(0.5, vPaint));`,
+      );
+  };
+  material.customProgramCacheKey = function customProgramCacheKey() {
+    const prior = MeshStandardMaterial.prototype.customProgramCacheKey.call(this);
+    return `${prior}|car-paint-1`;
+  };
+}
+
+function bakeLevel(scene, catalog) {
+  scene.updateMatrixWorld(true);
+  const parts = [];
+  scene.traverse((obj) => {
+    if (!obj.isMesh) return;
+    const geometry = worldGeometry(obj);
+    const wheel = isWheel(obj);
+    const paintable = !wheel && applyPaintMask(geometry, catalog.get(obj.name), obj.name);
+    const material = Array.isArray(obj.material) ? obj.material[0] : obj.material;
+    if (material) material.toneMapped = false;
+    if (paintable) installPaintShader(material, averagePaintLuma(material, geometry));
+    parts.push({ name: obj.name, geometry, material, paintable });
+  });
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const part of parts) {
+    part.geometry.computeBoundingBox();
+    const box = part.geometry.boundingBox;
+    if (box.min.x < minX) minX = box.min.x;
+    if (box.max.x > maxX) maxX = box.max.x;
+    if (box.min.y < minY) minY = box.min.y;
+    if (box.min.z < minZ) minZ = box.min.z;
+    if (box.max.z > maxZ) maxZ = box.max.z;
+  }
+  const cx = (minX + maxX) / 2;
+  const cz = (minZ + maxZ) / 2;
+  for (const part of parts) {
+    part.geometry.translate(-cx, -minY, -cz);
+    // Kenney cars face +Z. A heading of 0 drives toward -Z, same as the sprites.
+    part.geometry.rotateY(Math.PI);
+  }
   let yMin = Infinity;
   let yMax = -Infinity;
-  for (let i = 0; i < paintAttr.count; i += 1) {
-    if (paintAttr.getX(i) < 0.5) continue;
-    const y = position.getY(i);
-    if (y < yMin) yMin = y;
-    if (y > yMax) yMax = y;
+  for (const part of parts) {
+    if (!part.paintable) continue;
+    const position = part.geometry.getAttribute("position");
+    const paint = part.geometry.getAttribute("aPaint");
+    for (let i = 0; i < paint.count; i += 1) {
+      if (paint.getX(i) < 0.5) continue;
+      const y = position.getY(i);
+      if (y < yMin) yMin = y;
+      if (y > yMax) yMax = y;
+    }
   }
   const span = Math.max(0.001, yMax - yMin);
-  const paintT = new Float32Array(paintAttr.count);
-  for (let i = 0; i < paintAttr.count; i += 1) {
-    if (paintAttr.getX(i) < 0.5) continue;
-    const col = Math.round(cellAttr.getX(i) * COLUMNS - 0.5);
-    const row = Math.round(cellAttr.getY(i) * ROWS);
-    if (GREY_TRIM.has(col + row * COLUMNS)) {
-      paintAttr.setX(i, 0);
-      shellAttr.setX(i, 0);
-      continue;
+  for (const part of parts) {
+    if (!part.paintable) continue;
+    const position = part.geometry.getAttribute("position");
+    const paint = part.geometry.getAttribute("aPaint");
+    const paintT = new Float32Array(paint.count);
+    for (let i = 0; i < paint.count; i += 1) {
+      if (paint.getX(i) < 0.5) continue;
+      paintT[i] = (position.getY(i) - yMin) / span;
     }
-    paintT[i] = (position.getY(i) - yMin) / span;
+    part.geometry.setAttribute("aPaintT", new Float32BufferAttribute(paintT, 1));
+    part.geometry.computeBoundingBox();
+    part.geometry.computeBoundingSphere();
   }
-  merged.setAttribute("aPaintT", new Float32BufferAttribute(paintT, 1));
-  merged.computeBoundingBox();
-  merged.computeBoundingSphere();
-  return merged;
+  for (const part of parts) {
+    if (part.paintable) continue;
+    part.geometry.computeBoundingBox();
+    part.geometry.computeBoundingSphere();
+  }
+  let widthMin = Infinity;
+  let widthMax = -Infinity;
+  let lengthMin = Infinity;
+  let lengthMax = -Infinity;
+  for (const part of parts) {
+    const box = part.geometry.boundingBox;
+    if (box.min.x < widthMin) widthMin = box.min.x;
+    if (box.max.x > widthMax) widthMax = box.max.x;
+    if (box.min.z < lengthMin) lengthMin = box.min.z;
+    if (box.max.z > lengthMax) lengthMax = box.max.z;
+  }
+  return {
+    parts,
+    width: Math.max(0.001, widthMax - widthMin),
+    length: Math.max(0.001, lengthMax - lengthMin),
+  };
 }
 
 function disposeModel(scene) {
+  const textures = new Set();
   scene.traverse((obj) => {
     if (!obj.isMesh) return;
     obj.geometry.dispose();
     const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
     for (const material of materials) {
-      if (material.map) material.map.dispose();
+      if (!material) continue;
+      for (const key of ["map", "roughnessMap", "metalnessMap", "emissiveMap", "normalMap", "aoMap"]) {
+        if (material[key]) textures.add(material[key]);
+      }
       material.dispose();
     }
   });
+  for (const texture of textures) texture.dispose();
+}
+
+function releaseGeometries(scene) {
+  scene.traverse((obj) => {
+    if (obj.isMesh) obj.geometry.dispose();
+  });
+}
+
+async function loadScene(loader, url, label) {
+  try {
+    const gltf = await loader.loadAsync(url);
+    return gltf.scene;
+  } catch {
+    throw new Error(`The car model failed to load: ${label}`);
+  }
 }
 
 export async function createTraffic(scene, map, pieces = []) {
   const colormapUrl = new URL("../assets/cars3d/colormap.png", import.meta.url).href;
-  const manager = new LoadingManager();
-  manager.setURLModifier((url) => (url.includes("colormap.png") ? colormapUrl : url));
-  const loader = new GLTFLoader(manager);
-  const mapTexture = await new TextureLoader(manager).loadAsync(colormapUrl);
-  // glTF uvs already match a top-left image. TextureLoader flips by default.
-  mapTexture.flipY = false;
-  mapTexture.colorSpace = SRGBColorSpace;
-  mapTexture.magFilter = LinearFilter;
-  mapTexture.minFilter = LinearMipmapLinearFilter;
-  mapTexture.generateMipmaps = true;
-  mapTexture.needsUpdate = true;
-
-  const geometries = new Map();
+  const maskManager = new LoadingManager();
+  // The original GLBs still point at the shared sheet. Their UVs classify paint.
+  maskManager.setURLModifier((url) => (url.includes("colormap.png") ? colormapUrl : url));
+  const maskLoader = new GLTFLoader(maskManager);
+  const loader = new GLTFLoader();
   const files = [...new Set(CARS.map((car) => car.file))];
+  const baked = new Map();
   await Promise.all(files.map(async (file) => {
-    const url = new URL(`../assets/cars3d/${file}.glb`, import.meta.url).href;
-    let gltf;
-    try {
-      gltf = await loader.loadAsync(url);
-    } catch {
-      throw new Error(`The car model failed to load: ${file}.glb`);
+    const maskScene = await loadScene(
+      maskLoader,
+      new URL(`../assets/cars3d/${file}.glb`, import.meta.url).href,
+      `${file}.glb`,
+    );
+    const catalog = faceCatalog(maskScene);
+    const levels = {};
+    let measured = null;
+    for (const level of levelsFor(file)) {
+      const weathered = await loadScene(
+        loader,
+        new URL(`../assets/cars3d/weathered/${file}-L${level}.glb`, import.meta.url).href,
+        `${file}-L${level}.glb`,
+      );
+      const built = bakeLevel(weathered, catalog);
+      levels[level] = built.parts;
+      if (level === 2) measured = built;
+      releaseGeometries(weathered);
     }
-    geometries.set(file, bakeGeometry(gltf.scene));
-    disposeModel(gltf.scene);
+    disposeModel(maskScene);
+    baked.set(file, {
+      width: measured.width,
+      length: measured.length,
+      levels,
+    });
   }));
 
   const models = CARS.map((car) => {
-    const geometry = geometries.get(car.file);
-    const box = geometry.boundingBox;
-    const width = Math.max(0.001, box.max.x - box.min.x);
-    const length = Math.max(0.001, box.max.z - box.min.z);
+    const file = baked.get(car.file);
     return {
       ...car,
       bulky: isBulkyCar(car),
-      geometry,
       weight: RARE.has(car.name) ? 1 : 6,
-      scaleX: car.w / width * DRAW_SCALE,
-      scaleY: car.h / length * DRAW_SCALE,
-      scaleZ: car.h / length * DRAW_SCALE,
+      scaleX: car.w / file.width * DRAW_SCALE,
+      scaleY: car.h / file.length * DRAW_SCALE,
+      scaleZ: car.h / file.length * DRAW_SCALE,
+      levels: file.levels,
     };
   });
   const weightTotal = models.reduce((sum, model) => sum + model.weight, 0);
@@ -277,6 +582,7 @@ export async function createTraffic(scene, map, pieces = []) {
     car.bulky = !!models[car.model].bulky;
     car.y = GROUND_Y;
     car.angle = headingAngle(car.hx, car.hz);
+    car.level = wearLevel(models[car.model].file, car.hash);
     settleParked(car, map);
   }
   const parked = plan.parked;
@@ -294,83 +600,62 @@ export async function createTraffic(scene, map, pieces = []) {
   const parkedBodies = [];
   const buckets = new Map();
   const groups = [];
-  const material = new MeshLambertMaterial({
-    map: mapTexture,
-    color: 0xffffff,
-    toneMapped: false,
-    side: FrontSide,
-  });
-  material.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader
-      .replace(
-        "#include <uv_pars_vertex>",
-        `#include <uv_pars_vertex>
-        attribute float aPaint;
-        attribute float aShell;
-        attribute float aPaintT;
-        attribute vec2 aCell;
-        attribute vec2 aBodyCell;
-        attribute float aRecolor;`,
-      )
-      .replace(
-        "#include <uv_vertex>",
-        `#include <uv_vertex>
-        if (aPaint > 0.5) {
-          vec2 cell = aCell;
-          if (aShell > 0.5 && aRecolor > 0.5) cell = aBodyCell;
-          vMapUv = vec2(cell.x, cell.y + ${(GRADIENT_INSET + BODY_DARKEN).toFixed(3)} + (1.0 - aPaintT) * ${(GRADIENT_SPAN - BODY_DARKEN).toFixed(3)});
-        }`,
-      );
-  };
-  material.customProgramCacheKey = () => "car-body-gradient-2";
+  for (const car of parked) {
+    const model = models[car.model];
+    const body = {
+      x: car.x,
+      z: car.z,
+      y: car.y,
+      w: model.w,
+      h: model.h,
+      angle: car.angle,
+      src: car,
+    };
+    parkedBodies.push(body);
+    const id = `${Math.floor(car.x / BUCKET)},${Math.floor(car.z / BUCKET)}`;
+    let list = buckets.get(id);
+    if (!list) {
+      list = [];
+      buckets.set(id, list);
+    }
+    list.push(body);
+  }
 
   for (let modelIndex = 0; modelIndex < models.length; modelIndex += 1) {
     const model = models[modelIndex];
-    const parkedHere = parked.filter((car) => car.model === modelIndex);
-    const capacity = parkedHere.length + 32;
-    if (capacity === 0) continue;
-    const geometry = model.geometry.clone();
-    const bodyCell = new InstancedBufferAttribute(new Float32Array(capacity * 2), 2);
-    const recolor = new InstancedBufferAttribute(new Float32Array(capacity), 1);
-    bodyCell.setUsage(DynamicDrawUsage);
-    recolor.setUsage(DynamicDrawUsage);
-    geometry.setAttribute("aBodyCell", bodyCell);
-    geometry.setAttribute("aRecolor", recolor);
-    const mesh = new InstancedMesh(geometry, material, capacity);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    mesh.frustumCulled = false;
-    mesh.renderOrder = 1;
-    mesh.matrixAutoUpdate = false;
-    mesh.count = 0;
-    scene.add(mesh);
-    for (const car of parkedHere) {
-      const body = {
-        x: car.x,
-        z: car.z,
-        y: car.y,
-        w: model.w,
-        h: model.h,
-        angle: car.angle,
-        src: car,
-      };
-      parkedBodies.push(body);
-      const id = `${Math.floor(car.x / BUCKET)},${Math.floor(car.z / BUCKET)}`;
-      let list = buckets.get(id);
-      if (!list) {
-        list = [];
-        buckets.set(id, list);
+    for (const level of levelsFor(model.file)) {
+      const parkedHere = parked.filter((car) => car.model === modelIndex && car.level === level);
+      const capacity = parkedHere.length + 32;
+      const partDraws = [];
+      for (const part of model.levels[level]) {
+        const geometry = part.geometry.clone();
+        let recolor = null;
+        if (part.paintable) {
+          recolor = new InstancedBufferAttribute(new Float32Array(capacity), 1);
+          recolor.setUsage(DynamicDrawUsage);
+          geometry.setAttribute("aRecolor", recolor);
+        }
+        const mesh = new InstancedMesh(geometry, part.material, capacity);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.frustumCulled = false;
+        mesh.renderOrder = 1;
+        mesh.matrixAutoUpdate = false;
+        mesh.count = 0;
+        if (part.paintable) {
+          mesh.instanceColor = new InstancedBufferAttribute(new Float32Array(capacity * 3).fill(1), 3);
+        }
+        scene.add(mesh);
+        partDraws.push({ mesh, recolor, paintable: part.paintable });
       }
-      list.push(body);
+      groups.push({
+        parts: partDraws,
+        model,
+        modelIndex,
+        level,
+        parked: parkedHere,
+      });
     }
-    groups.push({
-      mesh,
-      model,
-      modelIndex,
-      parked: parkedHere,
-      bodyCell,
-      recolor,
-    });
   }
 
   const inView = (x, z, camX, camZ) => x > camX - 560 && x < camX + 560 && z > camZ - 420 && z < camZ + 560;
@@ -398,30 +683,41 @@ export async function createTraffic(scene, map, pieces = []) {
       for (const group of groups) {
         let count = 0;
         const civilian = !SERVICE.has(group.model.name);
-        const stamp = (salt) => {
-          group.recolor.setX(count, civilian ? 1 : 0);
-          if (civilian) {
-            const cell = BODY_COLOURS[colourIndex(salt)];
-            group.bodyCell.setXY(count, cell.u, cell.v);
+        const place = (car, salt) => {
+          const matrix = matrixAt(
+            car.x,
+            car.y == null ? GROUND_Y : car.y,
+            car.z,
+            car.angle,
+            group.model,
+            car.quat,
+          );
+          const tint = civilian ? PALETTE[colourIndex(salt)] : WHITE;
+          for (const part of group.parts) {
+            part.mesh.setMatrixAt(count, matrix);
+            if (!part.paintable) continue;
+            part.recolor.setX(count, civilian ? 1 : 0);
+            part.mesh.setColorAt(count, tint);
           }
+          count += 1;
         };
         for (const car of group.parked) {
           if (!inView(car.x, car.z, camX, camZ)) continue;
-          group.mesh.setMatrixAt(count, matrixAt(car.x, car.y == null ? GROUND_Y : car.y, car.z, car.angle, group.model, car.quat));
-          stamp(car.hash);
-          count += 1;
+          place(car, car.hash);
         }
         for (const car of sim.drivers) {
           if (car.model !== group.modelIndex) continue;
+          if (wearLevel(group.model.file, car.id) !== group.level) continue;
           if (!inView(car.x, car.z, camX, camZ)) continue;
-          group.mesh.setMatrixAt(count, matrixAt(car.x, car.y == null ? GROUND_Y : car.y, car.z, car.angle, group.model, car.quat));
-          stamp(car.id);
-          count += 1;
+          place(car, car.id);
         }
-        group.mesh.count = count;
-        group.mesh.instanceMatrix.needsUpdate = count > 0;
-        group.bodyCell.needsUpdate = count > 0;
-        group.recolor.needsUpdate = count > 0;
+        for (const part of group.parts) {
+          part.mesh.count = count;
+          part.mesh.instanceMatrix.needsUpdate = count > 0;
+          if (!part.paintable) continue;
+          part.recolor.needsUpdate = count > 0;
+          part.mesh.instanceColor.needsUpdate = count > 0;
+        }
       }
     },
     lights(camX, camZ) {

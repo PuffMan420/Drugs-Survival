@@ -454,54 +454,6 @@ function stoneData(image) {
   return ctx.getImageData(0, 0, 48, 48);
 }
 
-function plot(ctx, x, y) {
-  const px = ((x % 48) + 48) % 48;
-  const py = ((y % 48) + 48) % 48;
-  ctx.fillRect(px, py, 1, 1);
-}
-
-function stroke(ctx, x0, y0, x1, y1) {
-  const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
-  for (let i = 0; i <= steps; i += 1) {
-    const x = Math.round(x0 + ((x1 - x0) * i) / Math.max(1, steps));
-    const y = Math.round(y0 + ((y1 - y0) * i) / Math.max(1, steps));
-    plot(ctx, x, y);
-  }
-}
-
-function drawCracks(ctx) {
-  ctx.fillStyle = "#2a2e28";
-  const cracks = [
-    [[2, 10], [8, 14], [14, 13], [22, 20], [28, 28]],
-    [[30, 4], [36, 9], [34, 16], [42, 18], [47, 22], [1, 24], [7, 30]],
-    [[10, 36], [16, 42], [24, 47], [30, 2], [36, 8]],
-    [[8, 4], [6, 12], [12, 18]],
-  ];
-  for (const crack of cracks) {
-    for (let i = 0; i < crack.length - 1; i += 1) stroke(ctx, ...crack[i], ...crack[i + 1]);
-  }
-}
-
-function drawStains(ctx) {
-  const stains = [
-    [18, 16, 5, "#3e4638"],
-    [30, 28, 4, "#4a4034"],
-    [14, 32, 3, "#33382e"],
-  ];
-  for (const [cx, cy, rad, color] of stains) {
-    ctx.fillStyle = color;
-    for (let y = -rad; y <= rad; y += 1) {
-      for (let x = -rad; x <= rad; x += 1) {
-        if (x * x + y * y > rad * rad) continue;
-        const px = cx + x;
-        const py = cy + y;
-        if (px < 4 || py < 4 || px > 43 || py > 43) continue;
-        ctx.fillRect(px, py, 1, 1);
-      }
-    }
-  }
-}
-
 function tintStone(src) {
   const { canvas, ctx } = canvas2d();
   const out = ctx.createImageData(48, 48);

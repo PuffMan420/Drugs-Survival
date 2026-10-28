@@ -1,8 +1,16 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { pieceCells } from "../js/road-sockets.js";
-import { unexpectedErrors, yellowCells } from "../tools/build-island-map.mjs";
+import { resolveSvgPath, unexpectedErrors, yellowCells } from "../tools/build-island-map.mjs";
+
+test("the island tool requires an SVG that exists", () => {
+  assert.throws(() => resolveSvgPath(), /Missing island SVG/);
+  assert.throws(() => resolveSvgPath("tools/no-such-city-grid.svg"), /Island SVG not found/);
+  const here = fileURLToPath(import.meta.url);
+  assert.equal(resolveSvgPath(here), here);
+});
 
 test("the full island leaves joins, splits and 4-lane crossings open", () => {
   const pieces = JSON.parse(readFileSync(new URL("../island-map.json", import.meta.url), "utf8")).pieces;

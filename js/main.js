@@ -40,7 +40,6 @@ import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
 import { createPlayer } from "./player.js";
 import { createBuildMode, loadNamedMap } from "./build-mode.js";
-import { roadKey } from "./kenney-roads.js";
 import { westOfCanal } from "./kenney-road-plan.js";
 
 const NEAR = 10;
@@ -508,16 +507,11 @@ async function start() {
   map.island = true;
   fpsEl.textContent = "Loading saved layout…";
   const savedLayout = await loadNamedMap("./island-map.json", "island-map");
-  const removedRoadKeys = new Set();
-  for (const item of savedLayout.removedRoads) {
-    const key = roadKey(item);
-    if (key) removedRoadKeys.add(key);
-  }
   fpsEl.textContent = "Building city…";
   await new Promise((resolve) => requestAnimationFrame(resolve));
 
   const scene = new Scene();
-  const city = await buildCity(scene, map, removedRoadKeys);
+  const city = await buildCity(scene, map);
   city.playerMesh.removeFromParent();
   city.playerMesh.geometry.dispose();
   for (const material of city.playerMesh.material) material.dispose();

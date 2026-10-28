@@ -5,7 +5,7 @@ import { PropertyBinding } from "three";
 // bun is a second skinned mesh weighted only to Head, so it follows this
 // scale instead of being resized on its own.
 const HEAD_BONE = "Head";
-export const HEAD_SCALE = 0.95;
+const HEAD_SCALE = 0.95;
 
 function isHeadScaleTrack(track) {
   const parsed = PropertyBinding.parseTrackName(track.name);

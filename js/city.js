@@ -157,17 +157,6 @@ function addPierAlongZ(buf, x, z, vWest, vEast) {
   buf.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
 }
 
-function cellUV(col, row, cols, rows) {
-  const insetU = 0.5 / (cols * 48);
-  const insetV = 0.5 / (rows * 48);
-  return [
-    col / cols + insetU,
-    1 - (row + 1) / rows + insetV,
-    (col + 1) / cols - insetU,
-    1 - row / rows - insetV,
-  ];
-}
-
 function addQuad(buf, pts, color) {
   const base = buf.pos.length / 3;
   for (const p of pts) {
@@ -177,9 +166,6 @@ function addQuad(buf, pts, color) {
   }
   buf.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
 }
-
-const CURB_TOP = [0.78, 0.74, 0.58];
-const CURB_SIDE = [0.32, 0.3, 0.22];
 
 // One sun, from the northwest. Shadows fall southeast and scale with height.
 // The sheet sits just above the road and below the tires (cars start at y = 0.6).
@@ -229,31 +215,6 @@ function addBuildingShadow(buf, x0, z0, x1, z1, height) {
   addShadowTri(buf, ...P3, ...Q1, ...Q2);
   addShadowTri(buf, ...P3, ...Q2, ...P4);
   return { sx: sx + f, sz: sz + f };
-}
-
-function addCurb(buf, x0, z0, x1, z1, outward) {
-  const y0 = 0.5;
-  const y1 = 8;
-  const inset = 8;
-  if (outward === "s") {
-    addQuad(buf, [[x0, y1, z1 - inset], [x1, y1, z1 - inset], [x1, y1, z1], [x0, y1, z1]], CURB_TOP);
-    addQuad(buf, [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], CURB_SIDE);
-  } else if (outward === "n") {
-    addQuad(buf, [[x0, y1, z0], [x1, y1, z0], [x1, y1, z0 + inset], [x0, y1, z0 + inset]], CURB_TOP);
-    addQuad(buf, [[x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0]], CURB_SIDE);
-  } else if (outward === "e") {
-    addQuad(buf, [[x1 - inset, y1, z0], [x1, y1, z0], [x1, y1, z1], [x1 - inset, y1, z1]], CURB_TOP);
-    addQuad(buf, [[x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1]], CURB_SIDE);
-  } else {
-    addQuad(buf, [[x0, y1, z0], [x0 + inset, y1, z0], [x0 + inset, y1, z1], [x0, y1, z1]], CURB_TOP);
-    addQuad(buf, [[x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0]], CURB_SIDE);
-  }
-}
-
-function isCurbNeighbor(cell) {
-  return cell === "H" || cell === "V" || cell === "+" || cell === "h" || cell === "v"
-    || cell === "X" || cell === "A" || cell === "E" || cell === "a" || cell === "e" || cell === "n"
-    || cell === "1" || cell === "2" || cell === "4" || cell === "5" || cell === "6" || cell === "8";
 }
 
 function roofHash(x, z) {
@@ -618,7 +579,7 @@ const EMPTY_QUAY = {
   draw: { strips: [], diags: [], corners: [], wallCorners: [], cornerFit: [true] },
 };
 
-export async function buildCity(scene, map, _removedRoadKeys) {
+export async function buildCity(scene, map) {
   // The west bank keeps its ground, water, piers, and quay. Houses are not built there.
   map.buildings = (map.buildings || []).filter((building) => {
     const cx = building.x + building.w / 2;

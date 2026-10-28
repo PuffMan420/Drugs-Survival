@@ -44,7 +44,7 @@ function sideOf(ax, az, bx, bz, p) {
   return (bx - ax) * (p.z - az) - (bz - az) * (p.x - ax);
 }
 
-export function clipHalfPlane(poly, ax, az, bx, bz, keepPositive) {
+function clipHalfPlane(poly, ax, az, bx, bz, keepPositive) {
   if (!poly || poly.length === 0) return [];
   const inside = (p) => {
     const s = sideOf(ax, az, bx, bz, p);
@@ -86,7 +86,7 @@ function clipToConvex(subject, cutter) {
   return out;
 }
 
-export function subtractConvex(subject, cutter) {
+function subtractConvex(subject, cutter) {
   if (!subject || subject.length < 3 || !cutter || cutter.length < 3) return subject ? [subject] : [];
   const [cx, cz] = centroid(cutter);
   let rest = subject;
@@ -217,7 +217,7 @@ function dockRects(dockIds) {
   return rects;
 }
 
-export function splitFromDocks(poly, rects) {
+function splitFromDocks(poly, rects) {
   let land = [poly];
   const under = [];
   for (const rect of rects) {

@@ -15,7 +15,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
 import { GROUND_H, GROUND_W, TILE } from "./constants.js";
-import { westOfCanal } from "./kenney-road-plan.js";
+import { walkableCells } from "./pedestrian-walk.js";
 
 // Same height fit as the player, including both extra 10% bumps and another 5%, so these figures stand with him.
 const SEDAN_LENGTH = 71;
@@ -359,22 +359,13 @@ function fitModel(model) {
   shrinkHead(model);
 }
 
-function sidewalkGraph(map) {
-  const { cols, rows, ground } = map;
+function sidewalkGraph(map, pieces) {
+  const { cols, rows } = map;
   const span = map.tile || TILE;
   const cells = new Set();
-  const list = [];
+  const list = walkableCells(map, pieces);
   const key = (x, z) => x + z * cols;
-  for (let z = 0; z < rows; z += 1) {
-    const row = ground[z];
-    for (let x = 0; x < cols; x += 1) {
-      // The west bank is empty grass. Old sidewalk cells there are not a path.
-      if (row[x] === "s" && !westOfCanal(x, z)) {
-        cells.add(key(x, z));
-        list.push([x, z]);
-      }
-    }
-  }
+  for (const [x, z] of list) cells.add(key(x, z));
   function neighbors(x, z) {
     const found = [];
     for (const [dx, dz] of DIRS) {
@@ -397,7 +388,7 @@ function sidewalkGraph(map) {
         }
       }
     }
-    throw new Error("No sidewalk was found for a pedestrian.");
+    throw new Error("No walkable ground was found for a pedestrian.");
   }
   return { span, neighbors, nearest, cells: list };
 }
@@ -410,9 +401,9 @@ function clipNamed(animations, name) {
   return animations.find((clip) => clip.name === name) || null;
 }
 
-export async function createPedestrians(scene, map) {
+export async function createPedestrians(scene, map, pieces = []) {
   const loader = new GLTFLoader();
-  const graph = sidewalkGraph(map);
+  const graph = sidewalkGraph(map, pieces);
   const { span } = graph;
   let donor = null;
 

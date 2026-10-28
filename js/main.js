@@ -532,7 +532,7 @@ async function start() {
   const drive = createDrive(physics, physicsScene);
   const hintEl = document.getElementById("hint");
   const hintWalk = hintEl.textContent;
-  const pedestrians = await createPedestrians(scene, map);
+  const pedestrians = await createPedestrians(scene, map, savedLayout.pieces);
   window.pedestrians = pedestrians;
   const glow = createGlow(scene, map);
   const sun = createSun(scene);

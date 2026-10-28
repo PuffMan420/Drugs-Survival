@@ -1,4 +1,3 @@
-import { westOfCanal } from "./kenney-road-plan.js";
 import { pieceCells } from "./road-sockets.js";
 
 const GROUND = {
@@ -127,8 +126,7 @@ export function createMinimap(map, jumps = [], pieces = null) {
   for (let z = 0; z < map.rows; z += 1) {
     const row = map.ground[z];
     for (let x = 0; x < map.cols; x += 1) {
-      const bare = !map.island && westOfCanal(x, z) && row[x] !== "~" && row[x] !== "d";
-      const hex = bare ? "#505b29" : (GROUND[row[x]] ?? "#ff00ff");
+      const hex = GROUND[row[x]] ?? "#ff00ff";
       const i = (z * map.cols + x) * 4;
       data[i] = Number.parseInt(hex.slice(1, 3), 16);
       data[i + 1] = Number.parseInt(hex.slice(3, 5), 16);

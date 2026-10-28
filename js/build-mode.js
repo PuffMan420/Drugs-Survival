@@ -4,7 +4,6 @@ import {
   Group,
   LinearFilter,
   LinearMipmapLinearFilter,
-  Matrix4,
   Plane,
   Raycaster,
   RepeatWrapping,
@@ -16,7 +15,7 @@ import {
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { AO_SKIP_LAYER, TILE } from "./constants.js";
 import { KITS } from "./kenney-city-catalog.js";
-import { roadKey, roadRecord } from "./kenney-roads.js";
+import { layoutFrom, roadKey, roadRecord } from "./kenney-roads.js";
 import { createRoadBatches } from "./road-batch.js";
 
 // One Kenney unit is the same 4-tile module as the road pieces.
@@ -782,13 +781,6 @@ function disposeGhost(root) {
   root.removeFromParent();
 }
 
-function layoutFrom(data) {
-  return {
-    pieces: Array.isArray(data?.pieces) ? data.pieces : [],
-    removedRoads: Array.isArray(data?.removedRoads) ? data.removedRoads : [],
-  };
-}
-
 function readStoredLayout(key = STORAGE_KEY) {
   try {
     const raw = localStorage.getItem(key);
@@ -816,7 +808,7 @@ export async function loadNamedMap(url, storageKey) {
 
 // onPiecesChanged(pieces) runs after every edit that moves, adds, removes or
 // reshapes a placed piece, so physics can match what is on screen.
-export async function createBuildMode({ scene, camera, canvas, renderer, map, saved = null, roads = null, onPiecesChanged = null }) {
+export async function createBuildMode({ scene, camera, canvas, renderer, map, saved = null, onPiecesChanged = null }) {
   const group = new Group();
   group.name = "build";
   scene.add(group);
@@ -1253,16 +1245,6 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   }
 
   let removedAt = 0;
-  const hiddenRoad = new Matrix4().makeTranslation(0, -1000, 0);
-
-  function rememberRoad(record) {
-    const savedRoad = roadRecord(record);
-    if (!savedRoad) return;
-    const key = roadKey(savedRoad);
-    if (removedKeys.has(key)) return;
-    removedKeys.add(key);
-    removedRoads.push(savedRoad);
-  }
 
   function pieceHit() {
     const hits = raycaster.intersectObjects(group.children, true);
@@ -1281,18 +1263,6 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     return null;
   }
 
-  function roadHit() {
-    if (!roads) return null;
-    const hits = raycaster.intersectObjects(roads.children, true);
-    for (const item of hits) {
-      const list = item.object.userData.pieces;
-      const record = list?.[item.instanceId];
-      if (!record || record.removed) continue;
-      return { mesh: item.object, index: item.instanceId, record, distance: item.distance };
-    }
-    return null;
-  }
-
   function removeAt(event) {
     const now = performance.now();
     if (now - removedAt < 80) return;
@@ -1303,17 +1273,8 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
     const piece = pieceHit();
-    const road = roadHit();
-    if (piece && (!road || piece.distance <= road.distance)) {
+    if (piece) {
       removeRecord(piece.record);
-      return;
-    }
-    if (road) {
-      road.record.removed = true;
-      road.mesh.setMatrixAt(road.index, hiddenRoad);
-      road.mesh.instanceMatrix.needsUpdate = true;
-      rememberRoad(road.record);
-      status("Removed road.");
       return;
     }
     const cell = cellAt(event);

@@ -26,3 +26,12 @@ export function roadKey(item) {
   if (!record) return null;
   return `${record.piece}:${record.turn}:${record.x}:${record.z}`;
 }
+
+// Build mode reads and writes this shape. removedRoads stays in the file
+// even though the island has no old west-bank road meshes to click.
+export function layoutFrom(data) {
+  return {
+    pieces: Array.isArray(data?.pieces) ? data.pieces : [],
+    removedRoads: Array.isArray(data?.removedRoads) ? data.removedRoads : [],
+  };
+}

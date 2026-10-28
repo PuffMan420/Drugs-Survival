@@ -1,4 +1,3 @@
-import { westOfCanal } from "./kenney-road-plan.js";
 import {
   AdditiveBlending,
   CanvasTexture,
@@ -9,26 +8,6 @@ import {
   PlaneGeometry,
   SRGBColorSpace,
 } from "three";
-
-const CENTER_H = new Set(["H", "h"]);
-const CENTER_V = new Set(["V", "v"]);
-const ROAD = new Set(["H", "h", "V", "v", "+", "X", "1", "2", "5", "6"]);
-const NEIGHBORS = [
-  [1, 0],
-  [-1, 0],
-  [0, 1],
-  [0, -1],
-  [1, 1],
-  [1, -1],
-  [-1, 1],
-  [-1, -1],
-];
-
-function tileHash(x, z) {
-  let h = Math.imul(x | 0, 374761393) ^ Math.imul(z | 0, 668265263);
-  h = Math.imul(h ^ (h >>> 13), 1274126177);
-  return h >>> 0;
-}
 
 function radialTexture(stops) {
   const canvas = document.createElement("canvas");
@@ -69,69 +48,7 @@ function spriteMesh(texture, capacity, size) {
   return mesh;
 }
 
-function collectLights(map) {
-  const span = map.tile || 48;
-  const { cols, rows, ground } = map;
-  const at = (x, z) => {
-    if (x < 0 || z < 0 || x >= cols || z >= rows) return "~";
-    return ground[z][x];
-  };
-  const lamps = [];
-  const signals = [];
-  const seen = new Set();
-  const add = (list, x, z) => {
-    const key = `${list === lamps ? "l" : "s"}:${x},${z}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    list.push({ x: (x + 0.5) * span, z: (z + 0.5) * span });
-  };
-
-  for (let z = 1; z < rows - 1; z += 1) {
-    for (let x = 1; x < cols - 1; x += 1) {
-      if (westOfCanal(x, z)) continue;
-      const cell = at(x, z);
-      if (cell === "s") {
-        let facesRoad = false;
-        for (let i = 0; i < 4; i += 1) {
-          const [dx, dz] = NEIGHBORS[i];
-          if (ROAD.has(at(x + dx, z + dz))) facesRoad = true;
-        }
-        if (!facesRoad || tileHash(x, z) % 28 !== 0) continue;
-        add(lamps, x, z);
-        continue;
-      }
-      if (!CENTER_H.has(cell)) continue;
-      const touchesVertical = (
-        CENTER_V.has(at(x, z - 1))
-        || CENTER_V.has(at(x, z + 1))
-        || CENTER_V.has(at(x - 1, z))
-        || CENTER_V.has(at(x + 1, z))
-      );
-      if (!touchesVertical) continue;
-      add(signals, x, z);
-      for (const [dx, dz] of NEIGHBORS) {
-        if (at(x + dx, z + dz) !== "s") continue;
-        add(lamps, x + dx, z + dz);
-        break;
-      }
-    }
-  }
-  return { lamps, signals };
-}
-
-export function createGlow(scene, map) {
-  const { lamps, signals } = collectLights(map);
-  const lampTexture = radialTexture([
-    [0, "rgba(255, 210, 150, 0.55)"],
-    [0.22, "rgba(255, 120, 30, 0.18)"],
-    [0.55, "rgba(160, 40, 0, 0.04)"],
-    [1, "rgba(80, 20, 0, 0)"],
-  ]);
-  const signalTexture = radialTexture([
-    [0, "rgba(255, 80, 60, 0.95)"],
-    [0.35, "rgba(220, 20, 10, 0.35)"],
-    [1, "rgba(80, 0, 0, 0)"],
-  ]);
+export function createGlow(scene) {
   const headTexture = radialTexture([
     [0, "rgba(255, 236, 200, 0.95)"],
     [0.4, "rgba(255, 170, 60, 0.28)"],
@@ -143,12 +60,9 @@ export function createGlow(scene, map) {
     [1, "rgba(40, 0, 0, 0)"],
   ]);
 
-  // Street lamps were 70 units across. A third of that is the largest pool allowed.
-  const pools = spriteMesh(lampTexture, lamps.length, 22);
   const heads = spriteMesh(headTexture, 64, 8);
   const tails = spriteMesh(tailTexture, 64, 7);
-  const cores = spriteMesh(signalTexture, signals.length, 9);
-  scene.add(pools, heads, tails, cores);
+  scene.add(heads, tails);
 
   const dummy = new Object3D();
   const place = (mesh, index, x, y, z) => {
@@ -158,30 +72,9 @@ export function createGlow(scene, map) {
     dummy.updateMatrix();
     mesh.setMatrixAt(index, dummy.matrix);
   };
-  const inView = (light, camX, camZ) => (
-    light.x > camX - 640 && light.x < camX + 640 && light.z > camZ - 500 && light.z < camZ + 640
-  );
 
   return {
-    update(camX, camZ, carLights) {
-      let poolCount = 0;
-      for (const lamp of lamps) {
-        if (!inView(lamp, camX, camZ)) continue;
-        place(pools, poolCount, lamp.x, 7, lamp.z);
-        poolCount += 1;
-      }
-      pools.count = poolCount;
-      pools.instanceMatrix.needsUpdate = poolCount > 0;
-
-      let signalCount = 0;
-      for (const signal of signals) {
-        if (!inView(signal, camX, camZ)) continue;
-        place(cores, signalCount, signal.x, 16, signal.z);
-        signalCount += 1;
-      }
-      cores.count = signalCount;
-      cores.instanceMatrix.needsUpdate = signalCount > 0;
-
+    update(_camX, _camZ, carLights) {
       let headCount = 0;
       let tailCount = 0;
       for (const light of carLights) {

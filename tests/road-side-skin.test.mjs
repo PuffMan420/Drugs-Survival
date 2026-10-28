@@ -4,11 +4,12 @@ import test from "node:test";
 import { KITS } from "../js/kenney-city-catalog.js";
 import { distanceToOuterCurb, outerCurbSamples, sideRoadUV } from "../js/road-side-skin.js";
 
-const SKIN = "assets/roads/road-straight-2_v3.png";
+const STAINED = "assets/roads/road-straight-2_v3.png";
+const CLEAN = "assets/roads/road-straight-2_v3-clean.png";
 const SKINNED = [
-  ["road-side-entry-2.glb", "GLB format/road-side-entry.glb"],
-  ["road-side-exit-2.glb", "GLB format/road-side-exit.glb"],
-  ["road-side-2.glb", "GLB format/road-side.glb"],
+  ["road-side-entry-2.glb", "GLB format/road-side-entry.glb", CLEAN],
+  ["road-side-exit-2.glb", "GLB format/road-side-exit.glb", CLEAN],
+  ["road-side-2.glb", "GLB format/road-side.glb", STAINED],
 ];
 
 function roads() {
@@ -71,9 +72,9 @@ function straightV(y, z, nz) {
   return z + 0.5;
 }
 
-test("the catalog keeps the plain side pieces and adds one straight-2 skin each", () => {
+test("the catalog keeps the plain side pieces and skins entry and exit clean", () => {
   const files = roads();
-  for (const [file, url] of SKINNED) {
+  for (const [file, url, texture] of SKINNED) {
     const plain = file.replace("-2.glb", ".glb");
     const original = files.find((item) => item.file === plain);
     const skinned = files.find((item) => item.file === file);
@@ -82,7 +83,7 @@ test("the catalog keeps the plain side pieces and adds one straight-2 skin each"
     assert.equal(original.url, url);
     assert.ok(skinned, file);
     assert.equal(skinned.url, url);
-    assert.equal(skinned.texture, SKIN);
+    assert.equal(skinned.texture, texture);
     assert.equal(skinned.sideTexture, undefined);
   }
 });

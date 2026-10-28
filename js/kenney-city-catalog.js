@@ -396,7 +396,7 @@ export const KITS = [
       {
         "file": "road-side-entry-2.glb",
         "url": "GLB format/road-side-entry.glb",
-        "texture": "assets/roads/road-straight-2_v3.png"
+        "texture": "assets/roads/road-straight-2_v3-clean.png"
       },
       {
         "file": "road-side-exit-barrier.glb",
@@ -409,7 +409,7 @@ export const KITS = [
       {
         "file": "road-side-exit-2.glb",
         "url": "GLB format/road-side-exit.glb",
-        "texture": "assets/roads/road-straight-2_v3.png"
+        "texture": "assets/roads/road-straight-2_v3-clean.png"
       },
       {
         "file": "road-side.glb",

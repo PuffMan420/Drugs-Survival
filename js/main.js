@@ -640,7 +640,7 @@ async function start() {
     camX = frameCenter(snappedX, halfW, city.mapW);
     camZ = frameCenter(snappedZ, halfH, city.mapH);
     glow.update(camX, camZ, traffic.lights(camX, camZ));
-    driveFx.update(dt, drive.driving ? drive.sample() : null);
+    driveFx.update(dt, drive.driving ? drive.sample() : null, traffic.cars(), camX, camZ);
     camera.position.setFromSphericalCoords(CAMERA_RADIUS, CAMERA_ANGLE, cameraTheta);
     cameraTarget.set(camX, 0, camZ);
     camera.position.add(cameraTarget);

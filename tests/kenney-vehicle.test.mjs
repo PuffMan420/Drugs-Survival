@@ -2,7 +2,20 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createArcadeVehicle, dbToGain, METERS_TO_WORLD } from "../js/kenney-vehicle.js";
+import { readFileSync } from "node:fs";
+import { BULKY_FILES } from "../js/car-kind.js";
+import {
+  BULKY_LOWPASS,
+  ENGINE_LOWPASS,
+  TRAFFIC_FAR,
+  TRAFFIC_NEAR,
+  createArcadeVehicle,
+  dbToGain,
+  METERS_TO_WORLD,
+  nearestTraffic,
+  trafficEngine,
+  trafficFalloff,
+} from "../js/kenney-vehicle.js";
 
 const STEP = 1 / 60;
 
@@ -167,4 +180,81 @@ test("engine pitch climbs with speed, drops a gear at a time, and stays quiet", 
     }
   }
   assert.ok(drops >= 2, `heard ${drops} gear drops`);
+});
+
+test("a bulky body pulls away slower, coasts farther, and rumbles lower", () => {
+  const car = run(2, () => ({ forward: true }));
+  const truck = run(2, () => ({ forward: true }), createArcadeVehicle({ bulky: true }));
+  const carSpeed = Math.hypot(car.vx, car.vz);
+  const truckSpeed = Math.hypot(truck.vx, truck.vz);
+  assert.ok(truckSpeed < carSpeed - 18, `truck ${truckSpeed} vs car ${carSpeed}`);
+  assert.ok(truckSpeed > 60, `truck barely moved ${truckSpeed}`);
+
+  const carLater = createArcadeVehicle();
+  const truckLater = createArcadeVehicle({ bulky: true });
+  const carCruise = run(8, () => ({ forward: true }), carLater);
+  const truckCruise = run(8, () => ({ forward: true }), truckLater);
+  const carTop = Math.hypot(carCruise.vx, carCruise.vz);
+  const truckTop = Math.hypot(truckCruise.vx, truckCruise.vz);
+  assert.ok(truckTop > 145, `truck never got up to speed ${truckTop}`);
+  assert.ok(truckTop < carTop + 12, `truck outran the car ${truckTop} vs ${carTop}`);
+  assert.ok(truckCruise.enginePitch < carCruise.enginePitch - 0.08, `pitch ${truckCruise.enginePitch} vs ${carCruise.enginePitch}`);
+  assert.equal(truckCruise.bulky, true);
+  assert.equal(carCruise.bulky, false);
+  assert.equal(truckCruise.lowpass, BULKY_LOWPASS);
+  assert.equal(carCruise.lowpass, ENGINE_LOWPASS);
+  assert.ok(BULKY_LOWPASS < ENGINE_LOWPASS - 300);
+
+  const carCoast = run(0.7, () => ({}), carLater);
+  const truckCoast = run(0.7, () => ({}), truckLater);
+  const carLeft = Math.hypot(carCoast.vx, carCoast.vz);
+  const truckLeft = Math.hypot(truckCoast.vx, truckCoast.vz);
+  assert.ok(truckLeft > carLeft + 6, `truck did not carry more speed (${truckLeft} vs ${carLeft})`);
+});
+
+test("traffic engines are quieter, rumble when bulky, and keep the nearest four", () => {
+  const player = run(6, () => ({ forward: true }));
+  const moving = trafficEngine(140, false);
+  const rumble = trafficEngine(140, true);
+  const idle = trafficEngine(0, false);
+  assert.ok(moving.engineGain < player.engineGain * 0.5, `traffic ${moving.engineGain} vs player ${player.engineGain}`);
+  assert.ok(moving.engineGain < dbToGain(-24), `traffic gain ${moving.engineGain}`);
+  assert.ok(idle.engineGain < moving.engineGain, "idle was louder than cruise");
+  assert.ok(rumble.enginePitch < moving.enginePitch - 0.08, `rumble pitch ${rumble.enginePitch}`);
+  assert.equal(rumble.lowpass, BULKY_LOWPASS);
+  assert.equal(moving.lowpass, ENGINE_LOWPASS);
+  assert.equal(trafficFalloff(TRAFFIC_NEAR), 1);
+  assert.equal(trafficFalloff(0), 1);
+  assert.equal(trafficFalloff(TRAFFIC_FAR), 0);
+  assert.ok(trafficFalloff((TRAFFIC_NEAR + TRAFFIC_FAR) / 2) < 0.3);
+
+  const cars = [];
+  for (let i = 0; i < 6; i += 1) {
+    cars.push({ id: i, x: i * 40, z: 0, speed: 110, file: i === 1 ? "truck" : "sedan" });
+  }
+  cars.push({ id: 7, x: 20, z: 0, speed: 90, held: true, file: "truck" });
+  cars.push({ id: 8, x: 30, z: 0, file: "van" });
+  cars.push({ id: 9, x: TRAFFIC_FAR + 40, z: 0, speed: 130, file: "firetruck" });
+  const heard = nearestTraffic(cars, 0, 0);
+  assert.equal(heard.length, 4);
+  assert.deepEqual(heard.map((car) => car.id), [0, 1, 2, 3]);
+  assert.equal(heard[1].bulky, true);
+  assert.equal(heard[0].bulky, false);
+  assert.equal(heard[0].falloff, 1);
+
+  const src = readFileSync(new URL("../js/cars.js", import.meta.url), "utf8");
+  const rows = [...src.matchAll(/\{\s*name:\s*"([^"]+)",\s*file:\s*"([^"]+)"/g)];
+  const bulkyNames = rows.filter(([, , file]) => BULKY_FILES.has(file)).map(([ , name]) => name);
+  assert.deepEqual(bulkyNames, [
+    "ambulance",
+    "box_truck",
+    "delivery_van",
+    "fire_truck",
+    "garbage_truck",
+    "icecream_van",
+    "pickup",
+    "school_bus",
+    "swat_van",
+    "taco_truck",
+  ]);
 });

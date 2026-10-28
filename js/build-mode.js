@@ -17,6 +17,7 @@ import { AO_SKIP_LAYER, TILE } from "./constants.js";
 import { KITS } from "./kenney-city-catalog.js";
 import { layoutFrom, roadKey, roadRecord } from "./kenney-roads.js";
 import { createRoadBatches } from "./road-batch.js";
+import { outerCurbSamples, sideRoadUV } from "./road-side-skin.js";
 
 // One Kenney unit is the same 4-tile module as the road pieces.
 // Scale is uniform so a building keeps the height in the file.
@@ -242,6 +243,56 @@ function paintStraightSkin(root, texture) {
           const edge = outer ? d : 0.1 - d;
           uv.setY(i, z < 0 ? edge : 1 - edge);
         }
+      }
+      uv.needsUpdate = true;
+    }
+    obj.geometry = geometry;
+    skinMesh(obj, texture);
+  });
+}
+
+// road-side, road-side-entry and road-side-exit keep the Kenney mesh. The
+// positive curb is the straight-road curb. The negative curb flares outward;
+// sideRoadUV parks the same 10% curb band on that lip. Geometry is cloned
+// first so the shared Kenney file stays untouched.
+const SIDE_MESH = new Set([
+  "road-side.glb",
+  "road-side-entry.glb",
+  "road-side-exit.glb",
+]);
+
+function paintSideSkin(root, texture) {
+  root.traverse((obj) => {
+    if (!obj.isMesh || !obj.geometry) return;
+    let geometry = obj.geometry.clone();
+    if (!geometry.getAttribute("normal")) {
+      geometry = geometry.toNonIndexed();
+      geometry.computeVertexNormals();
+    }
+    geometry.computeBoundingBox();
+    const minX = geometry.boundingBox.min.x;
+    const maxX = geometry.boundingBox.max.x;
+    const position = geometry.getAttribute("position");
+    const normal = geometry.getAttribute("normal");
+    const uv = geometry.getAttribute("uv");
+    if (position && uv) {
+      const points = [];
+      for (let i = 0; i < position.count; i += 1) {
+        points.push({ x: position.getX(i), y: position.getY(i), z: position.getZ(i) });
+      }
+      const samples = outerCurbSamples(points);
+      for (let i = 0; i < position.count; i += 1) {
+        const nz = normal ? normal.getZ(i) : 0;
+        const pair = sideRoadUV(
+          position.getX(i),
+          position.getY(i),
+          position.getZ(i),
+          nz,
+          minX,
+          maxX,
+          samples,
+        );
+        uv.setXY(i, pair[0], pair[1]);
       }
       uv.needsUpdate = true;
     }
@@ -917,6 +968,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
         const mesh = item.url.slice(item.url.lastIndexOf("/") + 1);
         if (mesh === "road-end.glb") paintEndSkin(scene, texture, false);
         else if (mesh === "road-end-round.glb") paintEndSkin(scene, texture, true);
+        else if (SIDE_MESH.has(mesh)) paintSideSkin(scene, texture);
         else if (PLANAR_MESH.has(mesh)) paintPlanarSkin(scene, texture);
         else paintStraightSkin(scene, texture);
       }

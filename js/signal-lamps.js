@@ -91,12 +91,13 @@ function compileSignal(shader) {
       {
         vec3 lens = texture2D(uLensMask, vMapUv).rgb;
         float cover = max(lens.r, max(lens.g, lens.b));
-        float active = dot(lens, uSignalOn);
+        // "active" is reserved in GLSL ES 3.00. Using it fails the compile and the mesh is dropped.
+        float lampOn = dot(lens, uSignalOn);
         vec3 lit = vec3(1.0, 0.05, 0.03) * lens.r
           + vec3(1.0, 0.62, 0.05) * lens.g
           + vec3(0.08, 1.0, 0.22) * lens.b;
-        totalEmissiveRadiance += lit * active * 3.5;
-        diffuseColor.rgb *= mix(1.0, 0.12, clamp(cover * (1.0 - active), 0.0, 1.0));
+        totalEmissiveRadiance += lit * lampOn * 3.5;
+        diffuseColor.rgb *= mix(1.0, 0.12, clamp(cover * (1.0 - lampOn), 0.0, 1.0));
       }`,
     );
 }

@@ -6,6 +6,7 @@
 // Medians 4 and 8 are never driven.
 
 import { planBuiltLanes } from "./built-lanes.js";
+import { DRIVEN_ROAD, tileHash } from "./cells.js";
 import { planKenneyRoads, westOfCanal } from "./kenney-road-plan.js";
 
 const CENTER_H = new Set(["H", "h"]);
@@ -34,25 +35,8 @@ const STUCK_TIME = 2.6;
 const REJOIN_GAP = 12;
 const REJOIN_TURN = 0.6;
 
-function tileHash(x, z) {
-  let h = Math.imul(x | 0, 374761393) ^ Math.imul(z | 0, 668265263);
-  h = Math.imul(h ^ (h >>> 13), 1274126177);
-  return h >>> 0;
-}
-
 function isRoad(cell) {
-  return (
-    cell === "H" ||
-    cell === "h" ||
-    cell === "V" ||
-    cell === "v" ||
-    cell === "+" ||
-    cell === "X" ||
-    cell === "1" ||
-    cell === "2" ||
-    cell === "5" ||
-    cell === "6"
-  );
+  return DRIVEN_ROAD.has(cell);
 }
 
 // Same three west-side places as the quay tidy. Parked cars elsewhere stay put.

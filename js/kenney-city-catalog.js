@@ -399,6 +399,11 @@ export const KITS = [
         "texture": "assets/roads/road-straight-2_v3-clean.png"
       },
       {
+        "file": "road-side-entry-3.glb",
+        "url": "GLB format/road-side-entry.glb",
+        "texture": "assets/roads/road-side-entry-3.png"
+      },
+      {
         "file": "road-side-exit-barrier.glb",
         "url": "GLB format/road-side-exit-barrier.glb"
       },
@@ -412,6 +417,11 @@ export const KITS = [
         "texture": "assets/roads/road-straight-2_v3-clean.png"
       },
       {
+        "file": "road-side-exit-3.glb",
+        "url": "GLB format/road-side-exit.glb",
+        "texture": "assets/roads/road-side-exit-3.png"
+      },
+      {
         "file": "road-side.glb",
         "url": "GLB format/road-side.glb"
       },
@@ -419,6 +429,11 @@ export const KITS = [
         "file": "road-side-2.glb",
         "url": "GLB format/road-side.glb",
         "texture": "assets/roads/road-straight-2_v3.png"
+      },
+      {
+        "file": "road-side-3.glb",
+        "url": "GLB format/road-side.glb",
+        "texture": "assets/roads/road-side-3.png"
       },
       {
         "file": "road-sign-empty-hanging.glb",

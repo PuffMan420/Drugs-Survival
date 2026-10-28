@@ -743,12 +743,76 @@ export const KITS = [
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-skyscraper-a.glb"
       },
       {
-        "file": "building-brick.glb",
-        "url": "assets/buildings/building-brick.glb"
+        "file": "building-skyscraper-a-brown.glb",
+        "url": "assets/buildings/building-skyscraper-a-brown.glb"
       },
       {
-        "file": "building-brick-scuffed.glb",
-        "url": "assets/buildings/building-brick-scuffed.glb"
+        "file": "building-skyscraper-a-brown-scuffed.glb",
+        "url": "assets/buildings/building-skyscraper-a-brown-scuffed.glb"
+      },
+      {
+        "file": "building-skyscraper-b-brown.glb",
+        "url": "assets/buildings/building-skyscraper-b-brown.glb"
+      },
+      {
+        "file": "building-skyscraper-b-brown-scuffed.glb",
+        "url": "assets/buildings/building-skyscraper-b-brown-scuffed.glb"
+      },
+      {
+        "file": "building-skyscraper-b-white.glb",
+        "url": "assets/buildings/building-skyscraper-b-white.glb"
+      },
+      {
+        "file": "building-skyscraper-b-white-scuffed.glb",
+        "url": "assets/buildings/building-skyscraper-b-white-scuffed.glb"
+      },
+      {
+        "file": "building-skyscraper-c-brown.glb",
+        "url": "assets/buildings/building-skyscraper-c-brown.glb"
+      },
+      {
+        "file": "building-skyscraper-c-brown-scuffed.glb",
+        "url": "assets/buildings/building-skyscraper-c-brown-scuffed.glb"
+      },
+      {
+        "file": "building-skyscraper-c-white.glb",
+        "url": "assets/buildings/building-skyscraper-c-white.glb"
+      },
+      {
+        "file": "building-skyscraper-c-white-scuffed.glb",
+        "url": "assets/buildings/building-skyscraper-c-white-scuffed.glb"
+      },
+      {
+        "file": "building-skyscraper-d-brown.glb",
+        "url": "assets/buildings/building-skyscraper-d-brown.glb"
+      },
+      {
+        "file": "building-skyscraper-d-brown-scuffed.glb",
+        "url": "assets/buildings/building-skyscraper-d-brown-scuffed.glb"
+      },
+      {
+        "file": "building-skyscraper-d-white.glb",
+        "url": "assets/buildings/building-skyscraper-d-white.glb"
+      },
+      {
+        "file": "building-skyscraper-d-white-scuffed.glb",
+        "url": "assets/buildings/building-skyscraper-d-white-scuffed.glb"
+      },
+      {
+        "file": "building-skyscraper-e-brown.glb",
+        "url": "assets/buildings/building-skyscraper-e-brown.glb"
+      },
+      {
+        "file": "building-skyscraper-e-brown-scuffed.glb",
+        "url": "assets/buildings/building-skyscraper-e-brown-scuffed.glb"
+      },
+      {
+        "file": "building-skyscraper-e-white.glb",
+        "url": "assets/buildings/building-skyscraper-e-white.glb"
+      },
+      {
+        "file": "building-skyscraper-e-white-scuffed.glb",
+        "url": "assets/buildings/building-skyscraper-e-white-scuffed.glb"
       },
       {
         "file": "building-white.glb",

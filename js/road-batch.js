@@ -23,6 +23,43 @@ function pieceMatrix(record, target) {
   return target.matrix;
 }
 
+// Negative scale mirrors positions and normals, and it also reverses the
+// triangle winding. Three.js flips the front face for an object whose own
+// matrix has a negative determinant, which is why a carried piece stays lit.
+// An InstancedMesh keeps that scale in the instance matrix, so the front face
+// stays put and the mirrored piece is shaded and shadowed as a back face.
+// A copy with the winding reversed puts the front face back on the outside.
+function reversedWinding(geometry) {
+  const copy = geometry.clone();
+  const index = copy.getIndex();
+  if (index) {
+    const array = index.array;
+    for (let i = 0; i + 2 < array.length; i += 3) {
+      const first = array[i];
+      array[i] = array[i + 2];
+      array[i + 2] = first;
+    }
+    index.needsUpdate = true;
+    return copy;
+  }
+  const position = copy.getAttribute("position");
+  if (!position) return copy;
+  for (let i = 0; i + 2 < position.count; i += 3) {
+    for (const name of Object.keys(copy.attributes)) {
+      const attribute = copy.getAttribute(name);
+      if (!attribute || attribute.isInterleavedBufferAttribute) continue;
+      const item = attribute.itemSize;
+      for (let k = 0; k < item; k += 1) {
+        const value = attribute.getComponent(i, k);
+        attribute.setComponent(i, k, attribute.getComponent(i + 2, k));
+        attribute.setComponent(i + 2, k, value);
+      }
+      attribute.needsUpdate = true;
+    }
+  }
+  return copy;
+}
+
 function bakeTemplate(template) {
   template.updateMatrixWorld(true);
   const parts = [];
@@ -72,13 +109,21 @@ export function createRoadBatches(parent) {
   const composed = new Matrix4();
   let records = [];
 
-  function partsFor(template) {
-    let parts = baked.get(template);
-    if (!parts) {
-      parts = bakeTemplate(template);
-      baked.set(template, parts);
+  function partsFor(template, mirrored) {
+    let entry = baked.get(template);
+    if (!entry) {
+      entry = { straight: bakeTemplate(template), mirrored: null };
+      baked.set(template, entry);
     }
-    return parts;
+    if (!mirrored) return entry.straight;
+    if (!entry.mirrored) {
+      entry.mirrored = entry.straight.map((part) => ({
+        geometry: reversedWinding(part.geometry),
+        material: part.material,
+        local: part.local,
+      }));
+    }
+    return entry.mirrored;
   }
 
   function track(record, template) {
@@ -111,7 +156,7 @@ export function createRoadBatches(parent) {
         bucket = new Map();
         next.set(key, bucket);
       }
-      const fileKey = `${record.kit}/${record.file}`;
+      const fileKey = `${record.kit}/${record.file}${record.mirror ? "#mirror" : ""}`;
       let group = bucket.get(fileKey);
       if (!group) {
         group = [];
@@ -144,7 +189,7 @@ export function createRoadBatches(parent) {
       for (const [fileKey, group] of files) {
         seen.add(fileKey);
         const template = templates.get(group[0]);
-        const parts = partsFor(template);
+        const parts = partsFor(template, group[0].mirror === true);
         let batch = chunk.files.get(fileKey);
         const same = batch && batch.count === group.length && batch.parts.length === parts.length;
         if (!same) {

@@ -659,6 +659,22 @@ export async function createTraffic(scene, map, pieces = []) {
   }
 
   const inView = (x, z, camX, camZ) => x > camX - 560 && x < camX + 560 && z > camZ - 420 && z < camZ + 560;
+  const groupAt = models.map(() => [0, 0, 0, 0]);
+  for (let index = 0; index < groups.length; index += 1) {
+    const group = groups[index];
+    groupAt[group.modelIndex][group.level] = index + 1;
+  }
+  const driversByGroup = groups.map(() => []);
+  const listed = [];
+  const LIGHT_CAP = 192;
+  const lightPool = Array.from({ length: LIGHT_CAP }, () => ({ kind: "head", x: 0, y: 0, z: 0 }));
+  const lightList = [];
+  const nearPool = parkedBodies.map(() => ({ car: null, dist: 0 }));
+  const nearList = [];
+
+  function byDist(a, b) {
+    return a.dist - b.dist;
+  }
 
   function syncParked() {
     for (const body of parkedBodies) {
@@ -670,9 +686,42 @@ export async function createTraffic(scene, map, pieces = []) {
     }
   }
 
+  function placeCar(group, car, salt, count) {
+    const matrix = matrixAt(
+      car.x,
+      car.y == null ? GROUND_Y : car.y,
+      car.z,
+      car.angle,
+      group.model,
+      car.quat,
+    );
+    const civilian = !SERVICE.has(group.model.name);
+    const tint = civilian ? PALETTE[colourIndex(salt)] : WHITE;
+    for (const part of group.parts) {
+      part.mesh.setMatrixAt(count, matrix);
+      if (!part.paintable) continue;
+      part.recolor.setX(count, civilian ? 1 : 0);
+      part.mesh.setColorAt(count, tint);
+    }
+    return count + 1;
+  }
+
+  function pushLight(kind, x, y, z) {
+    const slot = lightPool[lightList.length];
+    slot.kind = kind;
+    slot.x = x;
+    slot.y = y;
+    slot.z = z;
+    lightList.push(slot);
+  }
+
   return {
     cars() {
-      return parked.concat(sim.drivers);
+      const total = parked.length + sim.drivers.length;
+      listed.length = total;
+      for (let i = 0; i < parked.length; i += 1) listed[i] = parked[i];
+      for (let i = 0; i < sim.drivers.length; i += 1) listed[parked.length + i] = sim.drivers[i];
+      return listed;
     },
     roadHeight(x, z, y) {
       return plan.heightAt ? plan.heightAt(x, z, y) : null;
@@ -680,36 +729,24 @@ export async function createTraffic(scene, map, pieces = []) {
     update(dt, camX, camZ, playerX, playerZ) {
       sim.step(dt, camX, camZ, playerX, playerZ);
       syncParked();
-      for (const group of groups) {
+      for (const list of driversByGroup) list.length = 0;
+      for (const car of sim.drivers) {
+        const row = groupAt[car.model];
+        if (!row) continue;
+        const index = row[wearLevel(models[car.model].file, car.id)] - 1;
+        if (index < 0) continue;
+        driversByGroup[index].push(car);
+      }
+      for (let index = 0; index < groups.length; index += 1) {
+        const group = groups[index];
         let count = 0;
-        const civilian = !SERVICE.has(group.model.name);
-        const place = (car, salt) => {
-          const matrix = matrixAt(
-            car.x,
-            car.y == null ? GROUND_Y : car.y,
-            car.z,
-            car.angle,
-            group.model,
-            car.quat,
-          );
-          const tint = civilian ? PALETTE[colourIndex(salt)] : WHITE;
-          for (const part of group.parts) {
-            part.mesh.setMatrixAt(count, matrix);
-            if (!part.paintable) continue;
-            part.recolor.setX(count, civilian ? 1 : 0);
-            part.mesh.setColorAt(count, tint);
-          }
-          count += 1;
-        };
         for (const car of group.parked) {
           if (!inView(car.x, car.z, camX, camZ)) continue;
-          place(car, car.hash);
+          count = placeCar(group, car, car.hash, count);
         }
-        for (const car of sim.drivers) {
-          if (car.model !== group.modelIndex) continue;
-          if (wearLevel(group.model.file, car.id) !== group.level) continue;
+        for (const car of driversByGroup[index]) {
           if (!inView(car.x, car.z, camX, camZ)) continue;
-          place(car, car.id);
+          count = placeCar(group, car, car.id, count);
         }
         for (const part of group.parts) {
           part.mesh.count = count;
@@ -721,9 +758,9 @@ export async function createTraffic(scene, map, pieces = []) {
       }
     },
     lights(camX, camZ) {
-      const out = [];
+      lightList.length = 0;
       const pushCar = (car) => {
-        if (out.length >= 192) return;
+        if (lightList.length >= LIGHT_CAP) return;
         if (!inView(car.x, car.z, camX, camZ)) return;
         const fx = -Math.sin(car.angle);
         const fz = -Math.cos(car.angle);
@@ -733,42 +770,25 @@ export async function createTraffic(scene, map, pieces = []) {
         const tail = car.h * 0.38;
         const side = Math.min(12, car.w * 0.22);
         const y = car.y == null ? 4.2 : car.y + 3.6;
-        out.push({
-          kind: "head",
-          y,
-          x: car.x + fx * nose + rx * side,
-          z: car.z + fz * nose + rz * side,
-        });
-        out.push({
-          kind: "head",
-          y,
-          x: car.x + fx * nose - rx * side,
-          z: car.z + fz * nose - rz * side,
-        });
-        out.push({
-          kind: "tail",
-          y,
-          x: car.x - fx * tail + rx * side,
-          z: car.z - fz * tail + rz * side,
-        });
-        out.push({
-          kind: "tail",
-          y,
-          x: car.x - fx * tail - rx * side,
-          z: car.z - fz * tail - rz * side,
-        });
+        pushLight("head", car.x + fx * nose + rx * side, y, car.z + fz * nose + rz * side);
+        pushLight("head", car.x + fx * nose - rx * side, y, car.z + fz * nose - rz * side);
+        pushLight("tail", car.x - fx * tail + rx * side, y, car.z - fz * tail + rz * side);
+        pushLight("tail", car.x - fx * tail - rx * side, y, car.z - fz * tail - rz * side);
       };
       for (const car of sim.drivers) pushCar(car);
-      const parkedNear = [];
+      nearList.length = 0;
       for (const car of parkedBodies) {
         if (!inView(car.x, car.z, camX, camZ)) continue;
         const dx = car.x - camX;
         const dz = car.z - camZ;
-        parkedNear.push({ car, dist: dx * dx + dz * dz });
+        const slot = nearPool[nearList.length];
+        slot.car = car;
+        slot.dist = dx * dx + dz * dz;
+        nearList.push(slot);
       }
-      parkedNear.sort((a, b) => a.dist - b.dist);
-      for (let i = 0; i < parkedNear.length && i < 16; i += 1) pushCar(parkedNear[i].car);
-      return out;
+      nearList.sort(byDist);
+      for (let i = 0; i < nearList.length && i < 16; i += 1) pushCar(nearList[i].car);
+      return lightList;
     },
     shove(x, z, radius, blocked) {
       syncParked();

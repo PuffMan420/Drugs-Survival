@@ -198,7 +198,7 @@ export function createDrive(physics, scene) {
         vehicle.setWheelSideFrictionStiffness(i, 0);
       }
       input = IDLE;
-      arcade = createArcadeVehicle();
+      arcade = createArcadeVehicle({ bulky: !!best.bulky });
       arcade.syncYaw(yawOf(quat));
       commanded = { x: 0, z: 0 };
       tracked = physics.track(chassis);

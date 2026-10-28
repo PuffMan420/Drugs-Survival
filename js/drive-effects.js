@@ -1,4 +1,5 @@
-// Drift smoke and engine/skid loops for the player car. Particle layout and
+// Drift smoke and engine/skid loops for the player car, plus a short pool of
+// quieter engine loops for the nearest traffic. Particle layout and
 // the curves are the TrailLeft / TrailRight GPUParticles3D on
 // scenes/vehicle.tscn in Kenney's Starter Kit Racing. The sounds are that
 // kit's engine.ogg and skid.ogg (CC0; skid by Landeplage).
@@ -35,6 +36,13 @@ import {
   TextureLoader,
 } from "three";
 import { AO_SKIP_LAYER } from "./constants.js";
+import {
+  BULKY_LOWPASS,
+  ENGINE_LOWPASS,
+  nearestTraffic,
+  trafficEngine,
+  TRAFFIC_VOICES,
+} from "./kenney-vehicle.js";
 
 // Truck underside in vehicle-truck-yellow.glb spans about this many metres.
 const KENNEY_LENGTH = 1.714;
@@ -94,14 +102,38 @@ export function createDriveEffects(scene, camera) {
   // Keeps the lowered playback range from coming through thin and bright.
   const engineLowpass = listener.context.createBiquadFilter();
   engineLowpass.type = "lowpass";
-  engineLowpass.frequency.value = 1100;
+  engineLowpass.frequency.value = ENGINE_LOWPASS;
   engineLowpass.Q.value = 0.55;
   engine.setFilter(engineLowpass);
+  const trafficVoices = [];
+  for (let i = 0; i < TRAFFIC_VOICES; i += 1) {
+    const audio = new Audio(listener);
+    const filter = listener.context.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = ENGINE_LOWPASS;
+    filter.Q.value = 0.55;
+    audio.setFilter(filter);
+    trafficVoices.push({ audio, filter, id: null, pitch: 0.36, gain: 0 });
+  }
   const status = { engine: "loading", skid: "loading", smoke: "loading" };
   const engineUrl = new URL("../assets/kenney-racing/engine.ogg", import.meta.url).href;
   const skidUrl = new URL("../assets/kenney-racing/skid.ogg", import.meta.url).href;
   const mapUrl = new URL("../assets/kenney-racing/smoke.png", import.meta.url).href;
-  loadSound(loader, engine, engineUrl, "engine", status);
+  loader.load(engineUrl, (buffer) => {
+    engine.setBuffer(buffer);
+    engine.setLoop(true);
+    engine.setVolume(0);
+    for (const slot of trafficVoices) {
+      slot.audio.setBuffer(buffer);
+      slot.audio.setLoop(true);
+      slot.audio.setVolume(0);
+    }
+    status.engine = "ready";
+    console.info("Kenney engine sound loaded");
+  }, undefined, (error) => {
+    status.engine = "error";
+    console.error("Kenney engine sound failed to load", error);
+  });
   loadSound(loader, skid, skidUrl, "skid", status);
 
   const base = new SpriteMaterial({
@@ -143,6 +175,7 @@ export function createDriveEffects(scene, camera) {
   let spawnLeft = 0;
   let spawnRight = 0;
   let playing = false;
+  let resumeAt = 0;
 
   function emitOne(sample, side) {
     const sprite = pool[cursor];
@@ -178,9 +211,19 @@ export function createDriveEffects(scene, camera) {
 
   async function voice(audio, gain, pitch) {
     if (!audio.buffer) return;
+    const context = audio.context;
+    if (context.state === "suspended") {
+      const now = performance.now();
+      if (now < resumeAt) return;
+      resumeAt = now + 1000;
+      try {
+        await context.resume();
+      } catch {
+        return;
+      }
+      if (context.state === "suspended") return;
+    }
     try {
-      const context = audio.context;
-      if (context.state === "suspended") await context.resume();
       if (!audio.isPlaying) audio.play();
       audio.setVolume(Math.max(0, gain));
       audio.setPlaybackRate(Math.max(0.05, pitch));
@@ -189,12 +232,55 @@ export function createDriveEffects(scene, camera) {
     }
   }
 
-  function update(dt, sample) {
+  function shape(filter, bulky) {
+    filter.frequency.value = bulky ? BULKY_LOWPASS : ENGINE_LOWPASS;
+    filter.Q.value = bulky ? 0.9 : 0.55;
+  }
+
+  function updateTraffic(dt, cars, x, z) {
+    const heard = nearestTraffic(cars, x, z);
+    const used = new Set();
+    const step = Math.max(0, dt);
+    const pitchBlend = 1 - Math.exp(-9 * step);
+    const gainBlend = 1 - Math.exp(-5 * step);
+    for (const slot of trafficVoices) {
+      const match = slot.id == null ? null : heard.find((car) => car.id === slot.id);
+      if (!match) {
+        slot.id = null;
+        slot.gain = 0;
+        if (slot.audio.isPlaying) slot.audio.stop();
+        continue;
+      }
+      used.add(slot.id);
+      const target = trafficEngine(match.speed, match.bulky);
+      slot.pitch += (target.enginePitch - slot.pitch) * pitchBlend;
+      const want = target.engineGain * match.falloff;
+      slot.gain += (want - slot.gain) * gainBlend;
+      shape(slot.filter, match.bulky);
+      voice(slot.audio, slot.gain, slot.pitch);
+    }
+    for (const car of heard) {
+      if (used.has(car.id)) continue;
+      const slot = trafficVoices.find((entry) => entry.id == null);
+      if (!slot) continue;
+      const target = trafficEngine(car.speed, car.bulky);
+      slot.id = car.id;
+      slot.pitch = target.enginePitch;
+      slot.gain = target.engineGain * car.falloff;
+      shape(slot.filter, car.bulky);
+      voice(slot.audio, slot.gain, slot.pitch);
+      used.add(car.id);
+    }
+  }
+
+  function update(dt, sample, cars, hearX, hearZ) {
+    updateTraffic(dt, cars, hearX || 0, hearZ || 0);
     if (!sample) {
       if (playing) silence();
       return;
     }
     playing = true;
+    shape(engineLowpass, sample.bulky);
     voice(engine, sample.engineGain, sample.enginePitch);
     voice(skid, sample.skidGain, sample.skidPitch);
     const step = Math.max(0, dt);

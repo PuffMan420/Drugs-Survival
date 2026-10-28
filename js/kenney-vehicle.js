@@ -27,6 +27,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+import { isBulkyCar } from "./car-kind.js";
+
 // The sphere settles near 11 m/s. This city's roads are tuned around 180 units/s.
 export const METERS_TO_WORLD = 180 / 11;
 
@@ -43,6 +45,15 @@ const DRIFT_OFF = 138;
 // Torque follows the throttle, a little behind it, so the pull-away is heavier.
 // Top speed is the same once the spool catches the throttle.
 const DRIVE_SPOOL = 3.5;
+// A truck or van spools slower and sheds the throttle slower, so it pulls
+// away late and carries speed after the pedal lifts. Top speed stays put.
+const BULKY_SPOOL = 1.7;
+const BULKY_THROTTLE = 2.6;
+const BULKY_BRAKE = 4.5;
+const BULKY_OVERRUN = 2.2;
+const BULKY_STEER_CRAWL = 2.75;
+const BULKY_STEER_FAST = 2.4;
+const BULKY_STEER_FOLLOW = 1.8;
 // Four gears across the cruise. Each upshift starts lower than the gear before
 // it peaked, then climbs again. The rates stay under 1 so the loop sounds deeper.
 const GEARS = [
@@ -51,6 +62,21 @@ const GEARS = [
   { at: 114, lo: 0.42, hi: 0.64 },
   { at: 156, lo: 0.44, hi: 0.76 },
 ];
+// Same shift points, about a fourth lower, for the heavy bodies.
+const BULKY_GEARS = [
+  { at: 0, lo: 0.27, hi: 0.39 },
+  { at: 70, lo: 0.30, hi: 0.44 },
+  { at: 114, lo: 0.32, hi: 0.48 },
+  { at: 156, lo: 0.33, hi: 0.56 },
+];
+export const ENGINE_LOWPASS = 1100;
+export const BULKY_LOWPASS = 680;
+// Traffic uses the same loop, about 10 dB under the player's -28..-16 curve.
+export const TRAFFIC_DB_IDLE = -38;
+export const TRAFFIC_DB_CRUISE = -26;
+export const TRAFFIC_VOICES = 4;
+export const TRAFFIC_NEAR = 160;
+export const TRAFFIC_FAR = 520;
 const GEAR_DROP = 16;
 const GEAR_HOLD = 0.22;
 const PITCH_TOP_SPEED = 188;
@@ -98,7 +124,17 @@ function axes(controls) {
   };
 }
 
-export function createArcadeVehicle() {
+export function createArcadeVehicle(options = {}) {
+  const bulky = !!options.bulky;
+  const gears = bulky ? BULKY_GEARS : GEARS;
+  const pullRate = bulky ? BULKY_SPOOL : DRIVE_SPOOL;
+  const throttleBlend = bulky ? BULKY_THROTTLE : 6;
+  const brakeBlend = bulky ? BULKY_BRAKE : 8;
+  const reverseBlend = bulky ? 1.3 : 2;
+  const overrun = bulky ? BULKY_OVERRUN : 8;
+  const steerCrawl = bulky ? BULKY_STEER_CRAWL : 3.2;
+  const steerFast = bulky ? BULKY_STEER_FAST : 2.8;
+  const steerFollow = bulky ? BULKY_STEER_FOLLOW : 2.5;
   let yaw = 0;
   let vx = 0;
   let vz = 0;
@@ -113,7 +149,7 @@ export function createArcadeVehicle() {
   let inputX = 0;
   let inputZ = 0;
   let engineDb = -28;
-  let enginePitch = 0.36;
+  let enginePitch = gears[0].lo;
   let gear = 0;
   let shiftHold = 0;
   let skidDb = -80;
@@ -152,16 +188,17 @@ export function createArcadeVehicle() {
     const steerBasis = Math.max(worldBefore, sliding ? DRIFT_ON : 0);
     const steerScale = clamp(steerBasis / DRIFT_ON, 0.34, 1);
     // 3.2 at a crawl, 2.8 once the lock is at full speed (about 12% slower).
-    const steerRate = lerp(3.2, 2.8, clamp((steerScale - 0.34) / 0.66, 0, 1));
+    // A bulky body uses 2.75 and 2.4, and the wheel follows a little later.
+    const steerRate = lerp(steerCrawl, steerFast, clamp((steerScale - 0.34) / 0.66, 0, 1));
     const targetAngular = -inputX * steerScale * steerRate * direction;
-    angularSpeed = lerp(angularSpeed, targetAngular, dt * 2.5);
+    angularSpeed = lerp(angularSpeed, targetAngular, dt * steerFollow);
     yaw += angularSpeed * dt;
 
     const targetSpeed = inputZ;
-    if (targetSpeed < 0 && linearSpeed > 0.01) linearSpeed = lerp(linearSpeed, 0, dt * 8);
-    else if (targetSpeed < 0) linearSpeed = lerp(linearSpeed, targetSpeed / 2, dt * 2);
-    else linearSpeed = lerp(linearSpeed, targetSpeed, dt * 6);
-    const spool = Math.abs(linearSpeed) + 0.002 < Math.abs(drive) ? 8 : DRIVE_SPOOL;
+    if (targetSpeed < 0 && linearSpeed > 0.01) linearSpeed = lerp(linearSpeed, 0, dt * brakeBlend);
+    else if (targetSpeed < 0) linearSpeed = lerp(linearSpeed, targetSpeed / 2, dt * reverseBlend);
+    else linearSpeed = lerp(linearSpeed, targetSpeed, dt * throttleBlend);
+    const spool = Math.abs(linearSpeed) + 0.002 < Math.abs(drive) ? overrun : pullRate;
     drive = lerp(drive, linearSpeed, dt * spool);
 
     const spin = Math.hypot(wx, wy, wz);
@@ -229,14 +266,14 @@ export function createArcadeVehicle() {
     const throttleFactor = clamp(Math.abs(inputZ), 0, 1);
     const targetVolume = remap(pace * 0.65 + throttleFactor * 0.35, 0, 1, -28, -16);
     engineDb = lerp(engineDb, targetVolume, dt * 5);
-    if (gear < GEARS.length - 1 && worldSpeed >= GEARS[gear + 1].at) {
+    if (gear < gears.length - 1 && worldSpeed >= gears[gear + 1].at) {
       gear += 1;
       shiftHold = GEAR_HOLD;
-    } else if (gear > 0 && worldSpeed <= GEARS[gear].at - GEAR_DROP) {
+    } else if (gear > 0 && worldSpeed <= gears[gear].at - GEAR_DROP) {
       gear -= 1;
     }
-    const band = GEARS[gear];
-    const bandTop = gear < GEARS.length - 1 ? GEARS[gear + 1].at : PITCH_TOP_SPEED;
+    const band = gears[gear];
+    const bandTop = gear < gears.length - 1 ? gears[gear + 1].at : PITCH_TOP_SPEED;
     if (shiftHold > 0) shiftHold = Math.max(0, shiftHold - dt);
     const ratio = shiftHold > 0 ? 0 : clamp((worldSpeed - band.at) / (bandTop - band.at), 0, 1);
     const targetPitch = lerp(band.lo, band.hi, ratio);
@@ -260,6 +297,8 @@ export function createArcadeVehicle() {
       lean,
       drift,
       emit,
+      bulky,
+      lowpass: bulky ? BULKY_LOWPASS : ENGINE_LOWPASS,
       engineGain: dbToGain(engineDb),
       enginePitch,
       skidGain: dbToGain(skidDb),
@@ -268,4 +307,55 @@ export function createArcadeVehicle() {
   }
 
   return { syncYaw, scalePlanar, step, feel };
+}
+
+function gearPitch(worldSpeed, gears) {
+  const speed = Math.max(0, worldSpeed || 0);
+  let gear = 0;
+  for (let i = 1; i < gears.length; i += 1) {
+    if (speed >= gears[i].at) gear = i;
+  }
+  const band = gears[gear];
+  const bandTop = gear < gears.length - 1 ? gears[gear + 1].at : PITCH_TOP_SPEED;
+  const ratio = clamp((speed - band.at) / (bandTop - band.at), 0, 1);
+  return lerp(band.lo, band.hi, ratio);
+}
+
+// The traffic loop, before distance falloff. Same gear curve as the player car.
+export function trafficEngine(worldSpeed, bulky) {
+  const heavy = !!bulky;
+  const pace = clamp(Math.max(0, worldSpeed || 0) / 180, 0, 1);
+  return {
+    enginePitch: gearPitch(worldSpeed, heavy ? BULKY_GEARS : GEARS),
+    engineGain: dbToGain(remap(pace, 0, 1, TRAFFIC_DB_IDLE, TRAFFIC_DB_CRUISE)),
+    lowpass: heavy ? BULKY_LOWPASS : ENGINE_LOWPASS,
+  };
+}
+
+export function trafficFalloff(dist) {
+  if (dist >= TRAFFIC_FAR) return 0;
+  if (dist <= TRAFFIC_NEAR) return 1;
+  const t = (dist - TRAFFIC_NEAR) / (TRAFFIC_FAR - TRAFFIC_NEAR);
+  return (1 - t) * (1 - t);
+}
+
+// The nearest moving cars inside the audible radius. Parked cars have no speed.
+export function nearestTraffic(cars, x, z, limit = TRAFFIC_VOICES) {
+  const heard = [];
+  if (!cars) return heard;
+  for (const car of cars) {
+    if (!car || car.held || car.speed == null || car.id == null) continue;
+    const dist = Math.hypot((car.x || 0) - x, (car.z || 0) - z);
+    const falloff = trafficFalloff(dist);
+    if (falloff <= 0) continue;
+    heard.push({
+      id: car.id,
+      speed: car.speed,
+      bulky: isBulkyCar(car),
+      dist,
+      falloff,
+    });
+  }
+  heard.sort((a, b) => a.dist - b.dist || a.id - b.id);
+  return heard.slice(0, limit);
 }

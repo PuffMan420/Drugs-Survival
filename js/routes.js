@@ -776,6 +776,7 @@ export function createSim(plan, models, pick) {
       driver.model = pick(hash);
       driver.w = models[driver.model].w;
       driver.h = models[driver.model].h;
+      driver.bulky = !!(models[driver.model] && models[driver.model].bulky);
       if (!place(driver, node.index, exit)) continue;
       return driver;
     }

@@ -23,6 +23,7 @@ import {
   CAR_VIEW,
   FOOT_VIEW,
   GROUND_H,
+  VIEW_EASE,
   GROUND_W,
   PLAYER_SIZE,
   TILE,
@@ -110,15 +111,38 @@ function frameCenter(value, half, mapSize) {
   return clamp(value, half, mapSize - half);
 }
 
-function playView(camera, driving) {
+let viewBlend = 0;
+let viewFrom = 0;
+let viewTo = 0;
+let viewClock = 1;
+
+function smoothstep(t) {
+  const x = clamp(t, 0, 1);
+  return x * x * (3 - 2 * x);
+}
+
+function stepView(dt, driving) {
+  const target = driving ? 1 : 0;
+  if (target !== viewTo) {
+    viewFrom = viewBlend;
+    viewTo = target;
+    viewClock = 0;
+  }
+  if (viewClock < 1) {
+    viewClock = Math.min(1, viewClock + Math.max(0, dt) / VIEW_EASE);
+    viewBlend = viewFrom + (viewTo - viewFrom) * smoothstep(viewClock);
+  }
+}
+
+function playView(camera) {
   const user = camera.userData.viewScale > 0 ? camera.userData.viewScale : 1;
-  return user * (driving ? CAR_VIEW : FOOT_VIEW);
+  return user * (FOOT_VIEW + (CAR_VIEW - FOOT_VIEW) * viewBlend);
 }
 
 function lockPixelProjection(camera, viewFor) {
   const apply = () => {
     // The center ray is CAMERA_RADIUS long and meets the ground at the player.
-    // viewFor widens that frame: 5% on foot, 10% in a car.
+    // viewFor widens that frame: 5% on foot, 20% in a car, eased over 2 seconds.
     const view = viewFor();
     const scale = (camera.near / CAMERA_RADIUS) * view;
     camera.projectionMatrix.makePerspective(
@@ -472,7 +496,7 @@ async function start() {
   const tiltUp = Math.sin(CAMERA_ANGLE);
   const tiltNorth = Math.cos(CAMERA_ANGLE);
   camera.up.set(0, tiltUp, -tiltNorth);
-  lockPixelProjection(camera, () => playView(camera, drive.driving));
+  lockPixelProjection(camera, () => playView(camera));
   // theta 0 is +Z, which is south. The camera does not orbit.
   const cameraTheta = 0;
   const cameraTarget = new Vector3();
@@ -590,7 +614,8 @@ async function start() {
 
     let snappedX = Math.round(player.x);
     let snappedZ = Math.round(player.z);
-    const view = playView(camera, drive.driving);
+    stepView(dt, drive.driving);
+    const view = playView(camera);
     camera.updateProjectionMatrix();
     const halfW = (GROUND_W * view) / 2;
     const halfH = (GROUND_H * view) / 2;
@@ -615,7 +640,7 @@ async function start() {
     camX = frameCenter(snappedX, halfW, city.mapW);
     camZ = frameCenter(snappedZ, halfH, city.mapH);
     glow.update(camX, camZ, traffic.lights(camX, camZ));
-    driveFx.update(dt, drive.driving ? drive.sample() : null);
+    driveFx.update(dt, drive.driving ? drive.sample() : null, traffic.cars(), camX, camZ);
     camera.position.setFromSphericalCoords(CAMERA_RADIUS, CAMERA_ANGLE, cameraTheta);
     cameraTarget.set(camX, 0, camZ);
     camera.position.add(cameraTarget);

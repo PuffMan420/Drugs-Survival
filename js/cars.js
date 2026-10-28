@@ -14,6 +14,7 @@ import {
 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { isBulkyCar } from "./car-kind.js";
 import { pushOutOfCars } from "./car-push.js";
 import { createSim, headingAngle, planCars, settleParked } from "./routes.js";
 
@@ -250,6 +251,7 @@ export async function createTraffic(scene, map, pieces = []) {
     const length = Math.max(0.001, box.max.z - box.min.z);
     return {
       ...car,
+      bulky: isBulkyCar(car),
       geometry,
       weight: RARE.has(car.name) ? 1 : 6,
       scaleX: car.w / width * DRAW_SCALE,
@@ -272,6 +274,7 @@ export async function createTraffic(scene, map, pieces = []) {
     car.model = pick(car.hash);
     car.w = models[car.model].w;
     car.h = models[car.model].h;
+    car.bulky = !!models[car.model].bulky;
     car.y = GROUND_Y;
     car.angle = headingAngle(car.hx, car.hz);
     settleParked(car, map);

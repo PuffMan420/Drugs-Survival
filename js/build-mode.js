@@ -20,9 +20,12 @@ import { createRoadBatches } from "./road-batch.js";
 import { outerCurbSamples, sideRoadUV } from "./road-side-skin.js";
 import {
   assignSignalMaterials,
+  attachSignalLenses,
+  disposeSignalLenses,
   disposeSignalMaterials,
   isSignalFile,
   prepareSignal,
+  setSignalLenses,
   setSignalPhase,
   signalRole,
 } from "./signal-lamps.js";
@@ -1033,14 +1036,16 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
 
   function mountSignal(record, template) {
     const root = new Group();
-    root.add(template.clone(true));
+    const inner = template.clone(true);
+    root.add(inner);
     const mats = assignSignalMaterials(root);
+    const lamps = attachSignalLenses(inner, record.file);
     applyScale(root, record.scale ?? 1, record.mirror === true);
     root.position.set((record.x + 0.5) * TILE, GROUND_Y, (record.z + 0.5) * TILE);
     root.rotation.y = record.turn * Math.PI / 2;
     root.userData.piece = record;
     group.add(root);
-    signalLamps.set(record, { root, mats, role: signalRole(record.file) });
+    signalLamps.set(record, { root, mats, lamps, role: signalRole(record.file) });
   }
 
   function syncSignalLamps() {
@@ -1050,6 +1055,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       const car = link.junction ? phaseAt(time, link.junction.offset)[link.axis] : null;
       const shown = car == null ? "off" : lamp.role === "ped" ? pedPhase(car) : car;
       for (const mat of lamp.mats) setSignalPhase(mat, shown);
+      setSignalLenses(lamp.lamps, shown);
     }
   }
 
@@ -1255,6 +1261,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     const lamp = signalLamps.get(record);
     if (lamp) {
       lamp.root.removeFromParent();
+      disposeSignalLenses(lamp.lamps);
       disposeSignalMaterials(lamp.root);
       signalLamps.delete(record);
       if (carrying?.record === record) carrying = null;

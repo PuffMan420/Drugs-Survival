@@ -4,8 +4,9 @@ import {
   DoubleSide,
   HemisphereLight,
   MeshLambertMaterial,
+  MeshStandardMaterial,
   NoToneMapping,
-  PCFSoftShadowMap,
+  PCFShadowMap,
   PerspectiveCamera,
   SRGBColorSpace,
   Scene,
@@ -48,10 +49,14 @@ const FAR = 48000;
 // Lambert shades by irradiance / PI. These scales keep sunlit streets about as
 // bright as the old unlit materials, with the hemisphere doing most of the work.
 const LAMBERT = Math.PI;
+// Full shadow still leaves the hemisphere. This scales that fill down in
+// shadow only, so sunlit ground stays put and the cast reads darker.
+const SHADOW_FILL = 0.45;
 // Same northwest sun as the painted building shadows, so the real shadows
 // fall southeast, which is the lower right of this north-facing view.
+// A slightly lower sun lets that cast clear the footprint.
 const SUN_X = -0.4;
-const SUN_Y = 1.25;
+const SUN_Y = 0.92;
 const SUN_Z = -0.58;
 const SUN_DISTANCE = 1800;
 const sunLength = Math.hypot(SUN_X, SUN_Y, SUN_Z);
@@ -273,16 +278,58 @@ function lightVisibleCity(chunks) {
   }
 }
 
+function deepenCastShadows(shader) {
+  const marker = "shadowDeepen";
+  if (shader.fragmentShader.includes(marker)) return;
+  shader.fragmentShader = shader.fragmentShader.replace(
+    "#include <lights_fragment_end>",
+    `#include <lights_fragment_end>
+    #if defined( USE_SHADOWMAP ) && ( NUM_DIR_LIGHT_SHADOWS > 0 )
+      {
+        DirectionalLightShadow shadowDeepenLight = directionalLightShadows[ 0 ];
+        float shadowDeepen = getShadow(
+          directionalShadowMap[ 0 ],
+          shadowDeepenLight.shadowMapSize,
+          shadowDeepenLight.shadowIntensity,
+          shadowDeepenLight.shadowBias,
+          shadowDeepenLight.shadowRadius,
+          vDirectionalShadowCoord[ 0 ]
+        );
+        reflectedLight.indirectDiffuse *= mix( ${SHADOW_FILL.toFixed(2)}, 1.0, shadowDeepen );
+      }
+    #endif`,
+  );
+}
+
+function installDeeperShadows(MaterialClass) {
+  const previousCompile = MaterialClass.prototype.onBeforeCompile;
+  const previousKey = MaterialClass.prototype.customProgramCacheKey;
+  MaterialClass.prototype.onBeforeCompile = function (shader, renderer) {
+    if (previousCompile) previousCompile.call(this, shader, renderer);
+    deepenCastShadows(shader);
+  };
+  MaterialClass.prototype.customProgramCacheKey = function () {
+    const prior = previousKey ? previousKey.call(this) : "";
+    return `${prior}|deeper-cast-shadow`;
+  };
+}
+
+installDeeperShadows(MeshLambertMaterial);
+installDeeperShadows(MeshStandardMaterial);
+
 function createSun(scene) {
   const hemi = new HemisphereLight(0xfff8f2, 0xe9eef3, LAMBERT * 1.02);
   scene.add(hemi);
   const sun = new DirectionalLight(0xffe2b5, LAMBERT * 0.24);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.bias = -0.0002;
-  sun.shadow.normalBias = 2;
+  // 4096 across a slightly wider box: clearer texels, and casters just
+  // outside the old frame still throw a shadow into the street.
+  sun.shadow.mapSize.set(4096, 4096);
+  sun.shadow.bias = -0.00035;
+  sun.shadow.normalBias = 0.8;
+  sun.shadow.radius = 0.6;
   sun.shadow.intensity = 1;
-  const extent = 1200;
+  const extent = 1500;
   sun.shadow.camera.near = 50;
   sun.shadow.camera.far = 4200;
   sun.shadow.camera.left = -extent;
@@ -445,7 +492,7 @@ async function start() {
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = NoToneMapping;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = PCFSoftShadowMap;
+  renderer.shadowMap.type = PCFShadowMap;
   // The occlusion pass renders the scene again for normals. Shadows are
   // already current after the beauty pass, so that second render skips them.
   renderer.shadowMap.autoUpdate = false;

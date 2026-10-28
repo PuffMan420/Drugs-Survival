@@ -334,8 +334,8 @@ function litMaterials(model) {
     });
     obj.material = next.length === 1 ? next[0] : next;
     obj.frustumCulled = false;
-    obj.castShadow = false;
-    obj.receiveShadow = false;
+    obj.castShadow = true;
+    obj.receiveShadow = true;
   });
 }
 
@@ -518,8 +518,8 @@ export async function createPedestrians(scene, map) {
       ped.pants,
       ped.shoes,
     );
-    mesh.castShadow = false;
-    mesh.receiveShadow = false;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
     for (const name of NAMES) {
       const action = live.actions[name];
       action.enabled = true;

@@ -30,8 +30,8 @@ const PLACE_STEP = 240;
 const FADE = 0.12;
 
 function shadowTexture() {
-  const width = 32;
-  const height = 16;
+  const width = 64;
+  const height = 32;
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -44,7 +44,7 @@ function shadowTexture() {
       const nx = (x - cx) / cx;
       const ny = (y - cy) / cy;
       const dist = nx * nx + ny * ny;
-      const alpha = dist >= 1 ? 0 : Math.round(140 * (1 - dist) ** 2);
+      const alpha = dist >= 1 ? 0 : Math.round(210 * (1 - dist) ** 2);
       image.data[(y * width + x) * 4 + 3] = alpha;
     }
   }
@@ -128,7 +128,7 @@ export async function createPlayer() {
   holder.frustumCulled = false;
   holder.add(model);
 
-  const shadow = new Mesh(new PlaneGeometry(9, 4.5), new MeshBasicMaterial({
+  const shadow = new Mesh(new PlaneGeometry(11, 5.5), new MeshBasicMaterial({
     map: shadowTexture(),
     transparent: true,
     premultipliedAlpha: true,

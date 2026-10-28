@@ -183,11 +183,11 @@ const CURB_SIDE = [0.32, 0.3, 0.22];
 
 // One sun, from the northwest. Shadows fall southeast and scale with height.
 // The sheet sits just above the road and below the tires (cars start at y = 0.6).
-const SUN_X = 0.4;
-const SUN_Z = 0.58;
+const SUN_X = 0.46;
+const SUN_Z = 0.67;
 const SHADOW_Y = 0.4;
-const SHADOW_FEATHER = 46;
-const SHADOW_MAX = TILE * 4.4;
+const SHADOW_FEATHER = 34;
+const SHADOW_MAX = TILE * 5;
 
 function addShadowVert(buf, x, z, shade) {
   buf.pos.push(x, SHADOW_Y, z);
@@ -211,7 +211,7 @@ function addBuildingShadow(buf, x0, z0, x1, z1, height) {
   const insetX = Math.min(spanX * 0.25, 20);
   const insetZ = Math.min(spanZ * 0.25, 20);
   const f = SHADOW_FEATHER;
-  const dark = 0.5;
+  const dark = 0.74;
   // Dark along the sunlit walls. Every outer vertex is clear, so the silhouette fades
   // instead of cutting a hard diagonal stair.
   const Q0 = [x0 + insetX, z1, dark];

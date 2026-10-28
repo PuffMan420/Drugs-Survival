@@ -40,7 +40,6 @@ import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
 import { createPlayer } from "./player.js";
 import { createBuildMode, loadNamedMap } from "./build-mode.js";
-import { westOfCanal } from "./kenney-road-plan.js";
 
 const NEAR = 10;
 // Wide enough to see the far shore from a camera sitting over the near one.
@@ -445,10 +444,7 @@ function createAmbientOcclusion(renderer, scene, camera) {
 }
 
 function blocked(map, x, z) {
-  // The square's corners have to stay off water and off building footprints.
-  // Roads, sidewalks, parks, docks, and plazas stay open.
-  // West of the canal the houses are not built. A "b" tile there is grass
-  // with no wall, so it does not stop the player. Water still does.
+  // The square's corners have to stay off the water. Land, beach, and park stay open.
   const reach = PLAYER_SIZE / 2 - 0.01;
   const samples = [
     [x - reach, z - reach],
@@ -457,13 +453,7 @@ function blocked(map, x, z) {
     [x + reach, z + reach],
   ];
   for (const [sx, sz] of samples) {
-    const tile = tileAt(map, sx, sz);
-    if (tile === "~") return true;
-    if (tile !== "b") continue;
-    const tx = Math.floor(sx / TILE);
-    const tz = Math.floor(sz / TILE);
-    if (westOfCanal(tx, tz)) continue;
-    return true;
+    if (tileAt(map, sx, sz) === "~") return true;
   }
   return false;
 }
@@ -528,7 +518,7 @@ async function start() {
   const hintWalk = hintEl.textContent;
   const pedestrians = await createPedestrians(scene, map, savedLayout.pieces);
   window.pedestrians = pedestrians;
-  const glow = createGlow(scene, map);
+  const glow = createGlow(scene);
   const sun = createSun(scene);
   const minimap = createMinimap(map, ISLAND_JUMPS, savedLayout.pieces);
   const camera = new PerspectiveCamera(15, GROUND_W / GROUND_H, NEAR, FAR);
@@ -553,7 +543,6 @@ async function start() {
     renderer,
     map,
     saved: savedLayout,
-    roads: city.roads,
     onPiecesChanged: (pieces) => physicsScene.setRoads(pieces),
   });
 

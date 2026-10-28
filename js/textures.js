@@ -5,13 +5,10 @@ import {
   LinearMipmapLinearFilter,
   RepeatWrapping,
   SRGBColorSpace,
-  Texture,
 } from "three";
 import { PAT, ROAD_COLS, ROAD_ROWS, WALK_COLS, WALK_ROWS } from "./markings.js";
 
 const STONE_URL = new URL("../assets/tiles/sidewalk_stone.png", import.meta.url);
-const PIER_URL = new URL("../assets/textures/quay/pier_deck.png", import.meta.url);
-const GRASS_URL = new URL("../assets/textures/ground/grass_tile.png", import.meta.url);
 
 function canvas2d(width = 48, height = width) {
   const canvas = document.createElement("canvas");
@@ -30,35 +27,6 @@ function pixelTexture(canvas, repeat, mipmaps = true) {
   texture.wrapS = repeat ? RepeatWrapping : ClampToEdgeWrapping;
   texture.wrapT = repeat ? RepeatWrapping : ClampToEdgeWrapping;
   texture.colorSpace = SRGBColorSpace;
-  texture.needsUpdate = true;
-  return texture;
-}
-
-function grassTileTexture(image) {
-  const texture = new Texture(image);
-  texture.flipY = false;
-  texture.colorSpace = SRGBColorSpace;
-  texture.magFilter = LinearFilter;
-  texture.minFilter = LinearMipmapLinearFilter;
-  texture.generateMipmaps = true;
-  // The 128×128 tile is seamless. One texel is one world unit, so it repeats
-  // across a courtyard without stretching.
-  texture.wrapS = RepeatWrapping;
-  texture.wrapT = RepeatWrapping;
-  texture.needsUpdate = true;
-  return texture;
-}
-
-function pierDeckTexture(image) {
-  const texture = new Texture(image);
-  texture.flipY = false;
-  texture.colorSpace = SRGBColorSpace;
-  texture.magFilter = LinearFilter;
-  texture.minFilter = LinearMipmapLinearFilter;
-  texture.generateMipmaps = true;
-  // 240 px is one tile along the pier and repeats. 720 px is the full width.
-  texture.wrapS = RepeatWrapping;
-  texture.wrapT = ClampToEdgeWrapping;
   texture.needsUpdate = true;
   return texture;
 }
@@ -595,10 +563,8 @@ export async function createTextures() {
   }
 
   const ground = plainGround();
-  ground.d = pierDeckTexture(await loadImage(PIER_URL));
-  ground.y = grassTileTexture(await loadImage(GRASS_URL));
   ground.b = ground.l;
-  for (const key of ["H", "V", "+", "h", "v", "X", "A", "E", "a", "e", "s"]) ground[key] = ground.l;
+  for (const key of ["H", "V", "+", "h", "v", "X", "A", "E", "a", "e"]) ground[key] = ground.l;
 
   const walls = {
     tower: wallTile("#c8c2b4", "#9a9488", "#9ec4d4"),

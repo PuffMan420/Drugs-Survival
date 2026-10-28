@@ -1,6 +1,5 @@
 // Island ground. "l" is open land, "g" is park, "p" is beach. Water is "~".
-// The old downtown sidewalk code "s" stays walkable where a map still has it.
-const LAND = new Set(["l", "g", "p", "s"]);
+const LAND = new Set(["l", "g", "p"]);
 
 // Measured on the Kenney meshes at the tile centres a piece covers.
 // Rows run from local z -0.5 (north) to +0.5 (south). Columns run west to east.

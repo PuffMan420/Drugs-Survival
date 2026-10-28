@@ -8,6 +8,13 @@
 import { planBuiltLanes } from "./built-lanes.js";
 import { DRIVEN_ROAD, tileHash } from "./cells.js";
 import { planKenneyRoads, westOfCanal } from "./kenney-road-plan.js";
+import {
+  advanceSignalClock,
+  detectJunctions,
+  signalApproach,
+  signalNow,
+  signalSpeedCap,
+} from "./signals.js";
 
 const CENTER_H = new Set(["H", "h"]);
 const CENTER_V = new Set(["V", "v"]);
@@ -555,7 +562,20 @@ export function planCars(map, pieces = []) {
     }
     list.push(node);
   }
-  return { parked, nodes, linked, buckets, span, cols, rows, at, isRoad, poseFits, heightAt: built.heightAt };
+  return {
+    parked,
+    nodes,
+    linked,
+    buckets,
+    span,
+    cols,
+    rows,
+    at,
+    isRoad,
+    poseFits,
+    heightAt: built.heightAt,
+    junctions: detectJunctions(pieces),
+  };
 }
 
 function wrapAngle(delta) {
@@ -922,6 +942,7 @@ export function createSim(plan, models, pick) {
   return {
     drivers,
     step(dt, camX, camZ, playerX, playerZ) {
+      advanceSignalClock(dt);
       for (let i = drivers.length - 1; i >= 0; i -= 1) {
         const driver = drivers[i];
         if (driver.held) {
@@ -953,6 +974,7 @@ export function createSim(plan, models, pick) {
         let limit = driver.cruise;
         let blocked = false;
         let backing = false;
+        let signalGap = Infinity;
         const seen = sharesRoad(driver, player) ? gapOf(driver, player) : Infinity;
         if (seen < STOP_GAP) {
           limit = 0;
@@ -1032,9 +1054,6 @@ export function createSim(plan, models, pick) {
             blocked = true;
           }
         }
-        if (limit < 8 && !backing) driver.wait += dt;
-        else driver.wait = 0;
-        driver.blocked = blocked;
         const stepDt = Math.min(dt, 0.05);
         const edgeNow = plan.nodes[driver.node] && plan.nodes[driver.node].exits[driver.exit];
         let laneNow = driver.angle;
@@ -1082,6 +1101,26 @@ export function createSim(plan, models, pick) {
           const brakeDist = Math.max(0, driver.speed * driver.speed - CORNER_SPEED * CORNER_SPEED) / (2 * BRAKE);
           if (turnAt < brakeDist + 36) limit = Math.min(limit, CORNER_SPEED);
         }
+        if (!backing && edgeNow && plan.junctions && plan.junctions.length) {
+          const approach = signalApproach({
+            x: driver.x,
+            z: driver.z,
+            hx: scratch.hx,
+            hz: scratch.hz,
+            length: driver.h,
+          }, plan.junctions, signalNow());
+          if (approach && approach.stop) {
+            const cap = signalSpeedCap(driver.speed, approach.gap, BRAKE);
+            if (cap != null) {
+              limit = Math.min(limit, cap);
+              blocked = true;
+              signalGap = approach.gap;
+            }
+          }
+        }
+        if (limit < 8 && !backing) driver.wait += dt;
+        else driver.wait = 0;
+        driver.blocked = blocked;
         if (backing) {
           driver.speed = Math.max(0, driver.speed - BRAKE * stepDt);
           if (driver.speed < 8) driver.dist = Math.max(0, driver.dist - 70 * stepDt);
@@ -1095,6 +1134,10 @@ export function createSim(plan, models, pick) {
         }
 
         let left = backing ? 0 : driver.speed * stepDt;
+        if (!backing && signalGap < left) {
+          left = Math.max(0, signalGap);
+          if (signalGap <= 0) driver.speed = 0;
+        }
         if (backing && driver.arc) {
           const backEdge = plan.nodes[driver.node].exits[driver.exit];
           if (backEdge) driver.dist = Math.max(0, backEdge.len - driver.arc.lead);

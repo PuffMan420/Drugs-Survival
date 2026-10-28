@@ -653,6 +653,10 @@ export const KITS = [
         "url": "GLB format/traffic-light-hanging.glb"
       },
       {
+        "file": "traffic-light-hanging-2.glb",
+        "url": "GLB format/traffic-light-hanging-2.glb"
+      },
+      {
         "file": "traffic-light-object-hanging.glb",
         "url": "GLB format/traffic-light-object-hanging.glb"
       },
@@ -667,6 +671,10 @@ export const KITS = [
       {
         "file": "traffic-light.glb",
         "url": "GLB format/traffic-light.glb"
+      },
+      {
+        "file": "traffic-light-2.glb",
+        "url": "GLB format/traffic-light-2.glb"
       }
     ]
   },

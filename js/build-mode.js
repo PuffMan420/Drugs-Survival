@@ -18,6 +18,15 @@ import { KITS } from "./kenney-city-catalog.js";
 import { layoutFrom, roadKey, roadRecord } from "./kenney-roads.js";
 import { createRoadBatches } from "./road-batch.js";
 import { outerCurbSamples, sideRoadUV } from "./road-side-skin.js";
+import {
+  assignSignalMaterials,
+  disposeSignalMaterials,
+  isSignalFile,
+  prepareSignal,
+  setSignalPhase,
+  signalRole,
+} from "./signal-lamps.js";
+import { linkSignal, pedPhase, phaseAt } from "./signals.js";
 
 // One Kenney unit is the same 4-tile module as the road pieces.
 // Scale is uniform so a building keeps the height in the file.
@@ -777,7 +786,7 @@ export async function loadNamedMap(url, storageKey) {
 
 // onPiecesChanged(pieces) runs after every edit that moves, adds, removes or
 // reshapes a placed piece, so physics can match what is on screen.
-export async function createBuildMode({ scene, camera, canvas, renderer, map, saved = null, onPiecesChanged = null }) {
+export async function createBuildMode({ scene, camera, canvas, renderer, map, saved = null, onPiecesChanged = null, signals = null }) {
   const group = new Group();
   group.name = "build";
   scene.add(group);
@@ -788,6 +797,9 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   const loader = new GLTFLoader();
   const templates = new Map();
   const pieces = [];
+  const signalLamps = new Map();
+  const junctions = signals?.junctions || [];
+  const signalTime = typeof signals?.time === "function" ? signals.time : () => 0;
   const raycaster = new Raycaster();
   const pointer = new Vector2();
   const ground = new Plane(new Vector3(0, 1, 0), 0);
@@ -973,6 +985,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
         else paintStraightSkin(scene, texture);
       }
       linearize(scene);
+      if (isSignalFile(file)) prepareSignal(scene);
       if (file.includes("building")) sharpenBuilding(scene);
       templates.set(key, scene);
       return scene;
@@ -1012,9 +1025,32 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     if (spec.oneWay === true || spec.oneWay === "x" || spec.oneWay === "z" || spec.oneWay === "back") {
       record.oneWay = spec.oneWay;
     }
-    batches.track(record, template);
+    if (isSignalFile(record.file)) mountSignal(record, template);
+    else batches.track(record, template);
     pieces.push(record);
     return record;
+  }
+
+  function mountSignal(record, template) {
+    const root = new Group();
+    root.add(template.clone(true));
+    const mats = assignSignalMaterials(root);
+    applyScale(root, record.scale ?? 1, record.mirror === true);
+    root.position.set((record.x + 0.5) * TILE, GROUND_Y, (record.z + 0.5) * TILE);
+    root.rotation.y = record.turn * Math.PI / 2;
+    root.userData.piece = record;
+    group.add(root);
+    signalLamps.set(record, { root, mats, role: signalRole(record.file) });
+  }
+
+  function syncSignalLamps() {
+    const time = signalTime();
+    for (const [record, lamp] of signalLamps) {
+      const link = linkSignal(record, junctions);
+      const car = link.junction ? phaseAt(time, link.junction.offset)[link.axis] : null;
+      const shown = car == null ? "off" : lamp.role === "ped" ? pedPhase(car) : car;
+      for (const mat of lamp.mats) setSignalPhase(mat, shown);
+    }
   }
 
   function normalize(raw) {
@@ -1093,6 +1129,11 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
 
   function dropCarried(cell) {
     if (!carrying) return;
+    if (carrying.signal) {
+      moveCarried(cell);
+      carrying = null;
+      return;
+    }
     moveCarried(cell);
     carrying.root.removeFromParent();
     batches.include(carrying.record);
@@ -1101,6 +1142,13 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   }
 
   function pickUp(record, cell) {
+    const lamp = signalLamps.get(record);
+    if (lamp) {
+      carrying = { record, root: lamp.root, signal: true };
+      if (preview) preview.visible = false;
+      moveCarried(cell);
+      return;
+    }
     const template = batches.templateFor(record);
     if (!template) return;
     batches.omit(record);
@@ -1204,6 +1252,13 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     const index = pieces.indexOf(record);
     if (index < 0) return false;
     pieces.splice(index, 1);
+    const lamp = signalLamps.get(record);
+    if (lamp) {
+      lamp.root.removeFromParent();
+      disposeSignalMaterials(lamp.root);
+      signalLamps.delete(record);
+      if (carrying?.record === record) carrying = null;
+    }
     batches.forget(record);
     if (carrying?.record === record) {
       carrying.root.removeFromParent();
@@ -1412,6 +1467,9 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     download,
     pieceCount: () => pieces.length,
     isOpen: () => enabled,
-    updateRoads: (camX, camZ, viewScale) => batches.update(camX, camZ, viewScale),
+    updateRoads: (camX, camZ, viewScale) => {
+      batches.update(camX, camZ, viewScale);
+      syncSignalLamps();
+    },
   };
 }

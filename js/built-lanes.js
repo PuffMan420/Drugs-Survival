@@ -78,6 +78,13 @@ const KIND = new Map([
   ["road-roundabout-3.glb", "round"],
 ]);
 
+// Crossroads and T-intersections are the junctions cars must stop for.
+// Curve-intersection pieces are bends, not crossings.
+export function junctionKind(file) {
+  const kind = KIND.get(file);
+  return kind === "cross" || kind === "tee";
+}
+
 function line(x0, z0, x1, z1, y0, y1, steps) {
   const pts = [];
   for (let i = 0; i <= steps; i += 1) {

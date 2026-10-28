@@ -13,6 +13,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { isBulkyCar } from "./car-kind.js";
 import { pushOutOfCars } from "./car-push.js";
 import { createSim, headingAngle, planCars, settleParked } from "./routes.js";
+import { signalNow } from "./signals.js";
 
 // Kenney Car Kit models (CC0), from https://kenney.nl/assets/car-kit.
 // The old sprite names stay, so spawn weights and the rare set do not move.
@@ -725,6 +726,10 @@ export async function createTraffic(scene, map, pieces = []) {
     },
     roadHeight(x, z, y) {
       return plan.heightAt ? plan.heightAt(x, z, y) : null;
+    },
+    junctions: plan.junctions,
+    signalTime() {
+      return signalNow();
     },
     update(dt, camX, camZ, playerX, playerZ) {
       sim.step(dt, camX, camZ, playerX, playerZ);

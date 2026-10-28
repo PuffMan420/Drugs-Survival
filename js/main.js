@@ -555,6 +555,7 @@ async function start() {
     renderer,
     map,
     saved: savedLayout,
+    signals: { junctions: traffic.junctions, time: () => traffic.signalTime() },
     onPiecesChanged: (pieces) => {
       physicsScene.setRoads(pieces);
       sidewalks.setPieces(pieces);

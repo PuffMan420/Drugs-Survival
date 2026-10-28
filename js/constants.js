@@ -1,6 +1,6 @@
 export const TILE = 48;
 // 5% nearer than the first camera distance (2800). The framed ground shrinks by the same amount.
-export const CAMERA_DISTANCE = 0.95;
+const CAMERA_DISTANCE = 0.95;
 // Extra frame on top of CAMERA_DISTANCE. 1 is the view before these scales.
 export const FOOT_VIEW = 1.05;
 export const CAR_VIEW = 1.20;
@@ -19,7 +19,7 @@ const WORLD_H = 540;
 export const GROUND_W = WORLD_W * CAMERA_DISTANCE;
 export const GROUND_H = WORLD_H * CAMERA_DISTANCE;
 export const PLAYER_SIZE = 32;
-// The live speed is player.js SPEED: a brisk 80 units per second.
+// Brisk walk, 80 units per second. player.js uses this.
 export const PLAYER_SPEED = 80;
 export const CHUNK = 20;
 // The main camera draws this layer. Ambient occlusion only reads layer 0,

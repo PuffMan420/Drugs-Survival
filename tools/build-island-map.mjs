@@ -3,13 +3,13 @@
 // moved only. White-to-yellow joins, Y-splits and 4-lane crossings stay open.
 // A canal with land on both sides gets bridge-water plus the slant ramps.
 // Wet roads that run into the sea are left clear.
-//   node tools/build-island-map.mjs [path/to/city-grid-roads.svg]
+//   node tools/build-island-map.mjs path/to/city-grid-roads.svg
+// The SVG is not in this repo. The path is required.
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { STOP_TURN, checkRoads, pieceCells, placePiece } from "../js/road-sockets.js";
 
-const SVG_PATH = process.argv[2] || "/tmp/island-v2/island-map-inputs/city-grid-roads.svg";
 const U = 16;
 const GX = 126;
 const GY = 70;
@@ -461,8 +461,19 @@ function keepRoadsClear(ground, pieces) {
   }
 }
 
+// The source drawing is not stored in the repo, so the caller has to pass it.
+export function resolveSvgPath(arg) {
+  if (!arg) {
+    throw new Error("Missing island SVG. Pass it: node tools/build-island-map.mjs <path/to/city-grid-roads.svg>");
+  }
+  if (!existsSync(arg)) {
+    throw new Error(`Island SVG not found: ${arg}\nPass a real file: node tools/build-island-map.mjs <path/to/city-grid-roads.svg>`);
+  }
+  return arg;
+}
+
 function main() {
-  const svg = readFileSync(SVG_PATH, "utf8");
+  const svg = readFileSync(resolveSvgPath(process.argv[2]), "utf8");
   const ground = paintGround(svg);
   const built = buildPieces(svg, ground);
   keepRoadsClear(ground, built.pieces);
@@ -509,4 +520,11 @@ function main() {
   }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  try {
+    main();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  }
+}

@@ -9,7 +9,7 @@
 // module (2 cells) off either row. A road that meets it is placed on that
 // half-module line. bridge-water is a 1×2 deck along Z, high at both ends.
 
-export const MODULE = 4;
+const MODULE = 4;
 
 // Keyed by the side the junction is on. The stop line is the model +X end.
 export const STOP_TURN = { E: 0, N: 1, W: 2, S: 3 };
@@ -92,10 +92,6 @@ function rotateSockets(sockets, turn) {
     out = next;
   }
   return out;
-}
-
-export function roadSpec(file) {
-  return ROADS[file] || null;
 }
 
 // (gx, gz) is the module where the piece's first cell lands after turn and mirror.

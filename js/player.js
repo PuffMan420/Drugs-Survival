@@ -11,10 +11,9 @@ import {
   SRGBColorSpace,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { PLAYER_SPEED } from "./constants.js";
 import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
 
-// Brisk walk. The live speed stays here; constants.js mirrors it.
-const SPEED = 80;
 // Blue sedan footprint in js/cars.js (assets/cars3d/sedan.glb): 37 wide, 71 long.
 // A real height is a third of that length. He is drawn a bit larger than that
 // so he reads clearly beside the cars, then another 10%, another 10% on
@@ -143,7 +142,7 @@ export async function createPlayer() {
   shadow.position.y = SHADOW_Y;
 
   const mixer = new AnimationMixer(model);
-  // The file has idle, walk, and run. He only moves at SPEED, so a step plays
+  // The file has idle, walk, and run. He only moves at PLAYER_SPEED, so a step plays
   // the full run. Walk stays in the mixer so every clip is playing.
   const actions = {
     idle: mixer.clipAction(clipNamed(gltf.animations, "idle")),
@@ -200,7 +199,7 @@ export async function createPlayer() {
   return {
     mesh: holder,
     shadow,
-    speed: SPEED,
+    speed: PLAYER_SPEED,
     update(dx, dz, x, z, y) {
       const now = performance.now();
       const dt = Math.min((now - then) / 1000, 0.05);

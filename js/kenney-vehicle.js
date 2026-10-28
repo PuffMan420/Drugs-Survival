@@ -72,8 +72,8 @@ const BULKY_GEARS = [
 export const ENGINE_LOWPASS = 1100;
 export const BULKY_LOWPASS = 680;
 // Traffic uses the same loop, about 10 dB under the player's -28..-16 curve.
-export const TRAFFIC_DB_IDLE = -38;
-export const TRAFFIC_DB_CRUISE = -26;
+const TRAFFIC_DB_IDLE = -38;
+const TRAFFIC_DB_CRUISE = -26;
 export const TRAFFIC_VOICES = 4;
 export const TRAFFIC_NEAR = 160;
 export const TRAFFIC_FAR = 520;

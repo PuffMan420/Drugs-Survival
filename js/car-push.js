@@ -3,7 +3,7 @@
 // there was no legal move out. This pushes them to the nearest free spot
 // instead, including a slide along the car when a wall blocks the shortest exit.
 
-export function carSeparation(px, pz, body, radius) {
+function carSeparation(px, pz, body, radius) {
   const ox = px - body.x;
   const oz = pz - body.z;
   const c = Math.cos(body.angle);

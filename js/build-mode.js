@@ -29,7 +29,7 @@ import {
   setSignalPhase,
   signalRole,
 } from "./signal-lamps.js";
-import { linkSignal, pedPhase, phaseAt } from "./signals.js";
+import { linkSignal, pedPhase, phaseAt, signalTurn, snapSignalCorner } from "./signals.js";
 
 // One Kenney unit is the same 4-tile module as the road pieces.
 // Scale is uniform so a building keeps the height in the file.
@@ -1014,8 +1014,22 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     return root;
   }
 
+  function poseSignal(cell, file, turnValue) {
+    if (!cell || !isSignalFile(file)) return { x: cell?.x, z: cell?.z, turn: turnValue };
+    const snapped = snapSignalCorner(
+      { x: cell.x, z: cell.z, turn: turnValue },
+      junctions,
+      signalRole(file),
+    );
+    return snapped || { x: cell.x, z: cell.z, turn: turnValue };
+  }
+
   function addPiece(spec, template) {
     if (!template?.isObject3D) return null;
+    if (isSignalFile(spec.file)) {
+      const pose = poseSignal(spec, spec.file, spec.turn);
+      spec = { ...spec, x: pose.x, z: pose.z, turn: pose.turn, mirror: false };
+    }
     const record = {
       kit: spec.kit,
       file: spec.file,
@@ -1126,10 +1140,16 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
 
   function moveCarried(cell) {
     if (!carrying || !cell) return;
-    const moved = carrying.record.x !== cell.x || carrying.record.z !== cell.z;
-    carrying.record.x = cell.x;
-    carrying.record.z = cell.z;
-    carrying.root.position.set((cell.x + 0.5) * TILE, GROUND_Y, (cell.z + 0.5) * TILE);
+    const pose = carrying.signal
+      ? poseSignal(cell, carrying.record.file, carrying.record.turn)
+      : { x: cell.x, z: cell.z, turn: carrying.record.turn };
+    const moved = carrying.record.x !== pose.x || carrying.record.z !== pose.z || carrying.record.turn !== pose.turn;
+    carrying.record.x = pose.x;
+    carrying.record.z = pose.z;
+    carrying.record.turn = pose.turn;
+    if (carrying.signal) carrying.record.mirror = false;
+    carrying.root.position.set((pose.x + 0.5) * TILE, GROUND_Y, (pose.z + 0.5) * TILE);
+    carrying.root.rotation.y = pose.turn * Math.PI / 2;
     if (moved) changed();
   }
 
@@ -1182,10 +1202,11 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     if (token !== selectToken || !enabled || !selection) return;
     dropPreview();
     const spec = hover || { x: 0, z: 0, turn };
-    preview = wrapper(template, { ...spec, turn, scale, mirror });
+    preview = wrapper(template, { ...spec, turn, scale, mirror: isSignalFile(selection.file) ? false : mirror });
     ghost(preview);
-    preview.visible = hover !== null;
     scene.add(preview);
+    if (hover) movePreview(hover);
+    else preview.visible = false;
   }
 
   function select(kit, file) {
@@ -1225,8 +1246,9 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       return;
     }
     preview.visible = true;
-    preview.position.set((cell.x + 0.5) * TILE, GROUND_Y, (cell.z + 0.5) * TILE);
-    preview.rotation.y = turn * Math.PI / 2;
+    const pose = poseSignal(cell, selection?.file, turn);
+    preview.position.set((pose.x + 0.5) * TILE, GROUND_Y, (pose.z + 0.5) * TILE);
+    preview.rotation.y = pose.turn * Math.PI / 2;
   }
 
   async function place(cell, keep) {
@@ -1234,7 +1256,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     const chosen = selection;
     const placedTurn = turn;
     const placedScale = scale;
-    const placedMirror = mirror;
+    const placedMirror = isSignalFile(chosen.file) ? false : mirror;
     const token = selectToken;
     if (!keep) clearSelection();
     let template = null;
@@ -1393,9 +1415,25 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   keys.onR = () => {
     if (carrying) {
       const record = carrying.record;
-      record.turn = (record.turn + 1) % 4;
+      if (carrying.signal) {
+        const here = snapSignalCorner(record, junctions, signalRole(record.file));
+        record.turn = here
+          ? signalTurn(record.turn, here.signX, here.signZ, signalRole(record.file), 1)
+          : (record.turn + 1) % 4;
+      } else {
+        record.turn = (record.turn + 1) % 4;
+      }
       carrying.root.rotation.y = record.turn * Math.PI / 2;
       changed();
+      status("Rotated.");
+      return;
+    }
+    if (selection && isSignalFile(selection.file) && hover) {
+      const here = snapSignalCorner({ x: hover.x, z: hover.z, turn }, junctions, signalRole(selection.file));
+      turn = here
+        ? signalTurn(turn, here.signX, here.signZ, signalRole(selection.file), 1)
+        : (turn + 1) % 4;
+      movePreview(hover);
       status("Rotated.");
       return;
     }
@@ -1404,6 +1442,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     status("Rotated.");
   };
   keys.onF = () => {
+    if (carrying?.signal) return;
     if (carrying) {
       const record = carrying.record;
       record.mirror = record.mirror !== true;

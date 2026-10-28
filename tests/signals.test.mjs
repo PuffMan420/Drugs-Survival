@@ -14,6 +14,8 @@ import {
   facingAxis,
   linkSignal,
   pedPhase,
+  signalTurn,
+  snapSignalCorner,
   phaseAt,
   setSignalTime,
   signalApproach,
@@ -89,6 +91,35 @@ test("a placed light takes the nearest junction and the axis it faces", () => {
   const far = linkSignal({ x: 8, z: 0, turn: 1 }, junctions);
   assert.equal(far.junction.id, 1);
   assert.equal(far.axis, "z");
+});
+
+test("a signal post sits on a sidewalk corner, not on the asphalt", () => {
+  const junctions = [{ id: 0, x: 10.5 * TILE, z: 20.5 * TILE, half: 2 * TILE, offset: 0 }];
+  const center = { x: 10, z: 20, turn: 0 };
+  const asphalt = 0.3 * junctions[0].half * 2;
+  for (const role of ["car", "ped"]) {
+    for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const click = { x: 10 + sx, z: 20 + sz, turn: 0 };
+      const pose = snapSignalCorner(click, junctions, role);
+      const dx = (pose.x + 0.5) * TILE - junctions[0].x;
+      const dz = (pose.z + 0.5) * TILE - junctions[0].z;
+      assert.equal(Math.sign(dx), sx);
+      assert.equal(Math.sign(dz), sz);
+      assert.ok(Math.abs(dx) > asphalt);
+      assert.ok(Math.abs(dz) > asphalt);
+      assert.ok(Math.abs(dx) < junctions[0].half);
+      assert.equal(pose.turn, signalTurn(0, sx, sz, role, 0));
+      const other = signalTurn(pose.turn, sx, sz, role, 1);
+      assert.notEqual(other, pose.turn);
+      assert.notEqual(facingAxis(pose.turn), facingAxis(other));
+    }
+  }
+  const car = snapSignalCorner(center, junctions, "car");
+  const ped = snapSignalCorner(center, junctions, "ped");
+  const carD = Math.hypot((car.x + 0.5) * TILE - junctions[0].x, (car.z + 0.5) * TILE - junctions[0].z);
+  const pedD = Math.hypot((ped.x + 0.5) * TILE - junctions[0].x, (ped.z + 0.5) * TILE - junctions[0].z);
+  assert.ok(pedD > carD);
+  assert.equal(snapSignalCorner({ x: 40, z: 40, turn: 0 }, junctions, "car"), null);
 });
 
 test("a car that cannot brake is not given a stop cap", () => {

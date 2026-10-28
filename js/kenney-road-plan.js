@@ -10,12 +10,12 @@
 // The ring (lanes 1/2 and 5/6, median 4/8) is four lanes: two of these
 // two-lane pieces side by side. Their sidewalks meet on the median.
 
+import { ROAD, WALK } from "./cells.js";
 import { TILE } from "./constants.js";
 
 const H_SEED = new Set(["H", "h", "1", "2", "4"]);
 const V_SEED = new Set(["V", "v", "5", "6", "8"]);
 const SHOULDER = new Set(["+", "X"]);
-const ROAD = new Set(["H", "h", "V", "v", "+", "X", "1", "2", "4", "5", "6", "8"]);
 
 const RIVER = [
   [78, 0],
@@ -38,7 +38,6 @@ const JUNCTION_Y = 0.004;
 // straight's sidewalk run across the other road's mouth.
 const SEAM = 0.04;
 const JUNCTION_TUCK = 0.08;
-const WALK = new Set(["s", "n", "p", "c", "l"]);
 
 function riverX(z) {
   if (z <= RIVER[0][1]) return RIVER[0][0];

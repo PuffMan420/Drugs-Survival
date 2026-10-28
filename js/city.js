@@ -9,6 +9,7 @@ import {
   MeshBasicMaterial,
 } from "three";
 import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
+import { tileHash } from "./cells.js";
 import { clearBuildingsFromRoads, planKenneyRoads } from "./kenney-road-plan.js";
 import { createTextures } from "./textures.js";
 
@@ -46,12 +47,6 @@ function addGroundQuad(buf, x0, z0, x1, z1, u0 = 0, v0 = 0, u1 = 1, v1 = 1, y = 
   buf.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
 }
 
-function mixHash(x, z) {
-  let h = Math.imul(x | 0, 374761393) ^ Math.imul(z | 0, 668265263);
-  h = Math.imul(h ^ (h >>> 13), 1274126177);
-  return h >>> 0;
-}
-
 function addColoredBox(buf, x0, y0, z0, x1, y1, z1, color) {
   const faces = [
     [x1, y0, z0, x1, y1, z0, x1, y1, z1, x1, y0, z1],
@@ -74,7 +69,7 @@ function addColoredBox(buf, x0, y0, z0, x1, y1, z1, color) {
 
 function treeHitsRoad(x, z, plan) {
   if (!plan) return false;
-  const h = mixHash(x, z);
+  const h = tileHash(x, z);
   const ox = ((h % 5) - 2) * 4;
   const oz = (((h >>> 4) % 5) - 2) * 4;
   const canopy = 22 + (h % 3) * 4;
@@ -91,7 +86,7 @@ function treeHitsRoad(x, z, plan) {
 }
 
 function addTree(buf, x, z) {
-  const h = mixHash(x, z);
+  const h = tileHash(x, z);
   const ox = ((h % 5) - 2) * 4;
   const oz = (((h >>> 4) % 5) - 2) * 4;
   const cx = x * TILE + TILE / 2 + ox;
@@ -122,7 +117,7 @@ function buildChunk(map, cx, cz, materials, plan) {
     const row = map.ground[z];
     for (let x = cx; x < x1; x += 1) {
       const cell = row[x];
-      if (cell === "g" && mixHash(x, z) % 5 === 0 && !treeHitsRoad(x, z, plan)) addTree(treeBuf, x, z);
+      if (cell === "g" && tileHash(x, z) % 5 === 0 && !treeHitsRoad(x, z, plan)) addTree(treeBuf, x, z);
       const key = materials.ground[cell] ? cell : "l";
       let buf = groundBufs.get(key);
       if (!buf) {

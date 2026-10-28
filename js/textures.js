@@ -557,7 +557,8 @@ export async function createTextures() {
     const image = await loadImage(STONE_URL);
     if (image.width < 2 || image.height < 2) throw new Error("empty stone");
     src = stoneData(image);
-  } catch {
+  } catch (error) {
+    console.warn("Sidewalk stone texture failed to load; using the drawn stand-in.", error);
     src = proceduralStone();
     stoneSource = "procedural";
   }

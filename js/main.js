@@ -259,19 +259,25 @@ function lightMesh(mesh, options = {}) {
   mesh.receiveShadow = mesh.userData.receives === true;
 }
 
+function hideChunkShadow(obj) {
+  if (obj.isMesh) obj.castShadow = false;
+}
+
+function lightChunkMesh(obj) {
+  if (obj.isMesh) lightMesh(obj);
+}
+
 function lightVisibleCity(chunks) {
   for (const chunk of chunks) {
-    if (!chunk.group.visible) {
-      if (chunk.group.userData.wasLit !== true) continue;
-      chunk.group.traverse((obj) => {
-        if (obj.isMesh) obj.castShadow = false;
-      });
+    const visible = chunk.group.visible === true;
+    const wasLit = chunk.group.userData.wasLit === true;
+    if (visible === wasLit) continue;
+    if (!visible) {
+      chunk.group.traverse(hideChunkShadow);
       chunk.group.userData.wasLit = false;
       continue;
     }
-    chunk.group.traverse((obj) => {
-      if (obj.isMesh) lightMesh(obj);
-    });
+    chunk.group.traverse(lightChunkMesh);
     chunk.group.userData.wasLit = true;
   }
 }

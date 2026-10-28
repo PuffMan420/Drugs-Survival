@@ -188,6 +188,20 @@ export function createMinimap(map, jumps = [], pieces = null) {
   function drawCorner(camX, camZ, playerX, playerZ, tile, viewW, viewH) {
     const originX = playerX / tile - SPAN / 2;
     const originZ = playerZ / tile - SPAN / 2;
+    if (
+      originX === drawnOriginX &&
+      originZ === drawnOriginZ &&
+      camX === drawnCamX &&
+      camZ === drawnCamZ &&
+      viewW === drawnViewW &&
+      viewH === drawnViewH
+    ) return;
+    drawnOriginX = originX;
+    drawnOriginZ = originZ;
+    drawnCamX = camX;
+    drawnCamZ = camZ;
+    drawnViewW = viewW;
+    drawnViewH = viewH;
     miniCtx.fillStyle = "#1b6d78";
     miniCtx.fillRect(0, 0, CORNER, CORNER);
     const x0 = Math.max(0, Math.floor(originX));
@@ -230,6 +244,12 @@ export function createMinimap(map, jumps = [], pieces = null) {
   }
 
   let lastFull = "";
+  let drawnOriginX = Number.NaN;
+  let drawnOriginZ = Number.NaN;
+  let drawnCamX = Number.NaN;
+  let drawnCamZ = Number.NaN;
+  let drawnViewW = Number.NaN;
+  let drawnViewH = Number.NaN;
 
   return {
     draw(camX, camZ, playerX, playerZ, tile, viewW, viewH) {

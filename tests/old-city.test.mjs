@@ -5,15 +5,13 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { ROAD, WALK } from "../js/cells.js";
 import { planKenneyRoads, clearBuildingsFromRoads } from "../js/kenney-road-plan.js";
 import { layoutFrom, roadKey, roadRecord } from "../js/kenney-roads.js";
 import { walkableCells } from "../js/pedestrian-walk.js";
 
 const island = JSON.parse(readFileSync(new URL("../data/island.json", import.meta.url), "utf8"));
 const layout = JSON.parse(readFileSync(new URL("../island-map.json", import.meta.url), "utf8"));
-
-const ROAD = new Set(["H", "h", "V", "v", "+", "X", "1", "2", "4", "5", "6", "8"]);
-const WALK = new Set(["s", "n", "p", "c", "l"]);
 
 // Same rule as the old ground painter: island land, beach, and park are
 // plain tiles, and water is in neither set.

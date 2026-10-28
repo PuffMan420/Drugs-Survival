@@ -1,5 +1,4 @@
-// Island ground. "l" is open land, "g" is park, "p" is beach. Water is "~".
-const LAND = new Set(["l", "g", "p"]);
+import { LAND } from "./cells.js";
 
 // Measured on the Kenney meshes at the tile centres a piece covers.
 // Rows run from local z -0.5 (north) to +0.5 (south). Columns run west to east.

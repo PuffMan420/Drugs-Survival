@@ -117,6 +117,97 @@ function loadSkinTexture(url, wrap = ClampToEdgeWrapping) {
   return pending;
 }
 
+function cloneWithMap(material, map) {
+  const copy = material.clone();
+  copy.map = map;
+  if (copy.color) copy.color.set(0xffffff);
+  copy.needsUpdate = true;
+  return copy;
+}
+
+function skinMesh(obj, texture) {
+  const source = obj.material;
+  const list = Array.isArray(source) ? source : [source];
+  const next = list.map((mat) => cloneWithMap(mat, texture));
+  obj.material = Array.isArray(source) ? next : next[0];
+}
+
+function skinMeshGuarded(obj, texture) {
+  const source = obj.material;
+  const list = Array.isArray(source) ? source : [source];
+  const next = list.map((mat) => (mat && mat.clone ? cloneWithMap(mat, texture) : mat));
+  obj.material = Array.isArray(source) ? next : next[0];
+}
+
+// Triangles are regrouped so each material slot is one draw range. Ramp and
+// bridge skins both do this after they have chosen a slot per triangle.
+function regroupTriangles(geometry, triMat, slots) {
+  const index = geometry.getIndex();
+  const triCount = triMat.length;
+  const order = Array.from({ length: slots }, () => []);
+  for (let t = 0; t < triCount; t += 1) {
+    const slot = triMat[t];
+    if (slot < slots) order[slot].push(t);
+  }
+  if (index) {
+    const src = index.array;
+    const next = new src.constructor(src.length);
+    let cursor = 0;
+    for (let kind = 0; kind < slots; kind += 1) {
+      for (const t of order[kind]) {
+        next[cursor] = src[t * 3];
+        next[cursor + 1] = src[t * 3 + 1];
+        next[cursor + 2] = src[t * 3 + 2];
+        cursor += 3;
+      }
+    }
+    index.array.set(next);
+    index.needsUpdate = true;
+  } else {
+    const copies = Object.keys(geometry.attributes).map((name) => {
+      const attr = geometry.getAttribute(name);
+      return {
+        attr,
+        itemSize: attr.itemSize,
+        src: attr.array,
+        next: new attr.array.constructor(attr.array.length),
+      };
+    });
+    let cursor = 0;
+    for (let kind = 0; kind < slots; kind += 1) {
+      for (const t of order[kind]) {
+        for (let v = 0; v < 3; v += 1) {
+          const from = t * 3 + v;
+          for (const copy of copies) {
+            const dst = cursor * copy.itemSize;
+            const srcAt = from * copy.itemSize;
+            for (let k = 0; k < copy.itemSize; k += 1) copy.next[dst + k] = copy.src[srcAt + k];
+          }
+          cursor += 1;
+        }
+      }
+    }
+    for (const copy of copies) {
+      copy.attr.array.set(copy.next);
+      copy.attr.needsUpdate = true;
+    }
+  }
+  geometry.clearGroups();
+  let start = 0;
+  for (let kind = 0; kind < slots; kind += 1) {
+    const count = order[kind].length * 3;
+    if (count === 0) continue;
+    geometry.addGroup(start, count, kind);
+    start += count;
+  }
+}
+
+function assignSlotMaterials(mesh, maps) {
+  const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+  if (!source || !source.clone) return;
+  mesh.material = maps.map((map) => cloneWithMap(source, map || null));
+}
+
 // road-straight skins keep the original mesh. Its UVs point into the Kenney
 // atlas, so a full road PNG is projected across the top: u runs from the
 // mesh bounding box along X (0 at min X, 1 at max X), so a 1-long piece and
@@ -155,15 +246,7 @@ function paintStraightSkin(root, texture) {
       uv.needsUpdate = true;
     }
     obj.geometry = geometry;
-    const list = Array.isArray(obj.material) ? obj.material : [obj.material];
-    const next = list.map((mat) => {
-      const copy = mat.clone();
-      copy.map = texture;
-      if (copy.color) copy.color.set(0xffffff);
-      copy.needsUpdate = true;
-      return copy;
-    });
-    obj.material = Array.isArray(obj.material) ? next : next[0];
+    skinMesh(obj, texture);
   });
 }
 
@@ -244,15 +327,7 @@ function paintEndSkin(root, texture, round) {
       uv.needsUpdate = true;
     }
     obj.geometry = geometry;
-    const list = Array.isArray(obj.material) ? obj.material : [obj.material];
-    const next = list.map((mat) => {
-      const copy = mat.clone();
-      copy.map = texture;
-      if (copy.color) copy.color.set(0xffffff);
-      copy.needsUpdate = true;
-      return copy;
-    });
-    obj.material = Array.isArray(obj.material) ? next : next[0];
+    skinMesh(obj, texture);
   });
 }
 
@@ -307,15 +382,7 @@ function paintPlanarSkin(root, texture) {
       uv.needsUpdate = true;
     }
     obj.geometry = geometry;
-    const list = Array.isArray(obj.material) ? obj.material : [obj.material];
-    const next = list.map((mat) => {
-      const copy = mat.clone();
-      copy.map = texture;
-      if (copy.color) copy.color.set(0xffffff);
-      copy.needsUpdate = true;
-      return copy;
-    });
-    obj.material = Array.isArray(obj.material) ? next : next[0];
+    skinMesh(obj, texture);
   });
 }
 
@@ -426,75 +493,9 @@ function paintRampMesh(mesh, maps) {
     uv.needsUpdate = true;
   }
 
-  const slots = maps.length;
-  const order = Array.from({ length: slots }, () => []);
-  for (let t = 0; t < triCount; t += 1) {
-    const slot = triMat[t];
-    if (slot < slots) order[slot].push(t);
-  }
-  if (index) {
-    const src = index.array;
-    const next = new src.constructor(src.length);
-    let cursor = 0;
-    for (let kind = 0; kind < slots; kind += 1) {
-      for (const t of order[kind]) {
-        next[cursor] = src[t * 3];
-        next[cursor + 1] = src[t * 3 + 1];
-        next[cursor + 2] = src[t * 3 + 2];
-        cursor += 3;
-      }
-    }
-    index.array.set(next);
-    index.needsUpdate = true;
-  } else {
-    const copies = Object.keys(geometry.attributes).map((name) => {
-      const attr = geometry.getAttribute(name);
-      return {
-        attr,
-        itemSize: attr.itemSize,
-        src: attr.array,
-        next: new attr.array.constructor(attr.array.length),
-      };
-    });
-    let cursor = 0;
-    for (let kind = 0; kind < slots; kind += 1) {
-      for (const t of order[kind]) {
-        for (let v = 0; v < 3; v += 1) {
-          const from = t * 3 + v;
-          for (const copy of copies) {
-            const dst = cursor * copy.itemSize;
-            const srcAt = from * copy.itemSize;
-            for (let k = 0; k < copy.itemSize; k += 1) copy.next[dst + k] = copy.src[srcAt + k];
-          }
-          cursor += 1;
-        }
-      }
-    }
-    for (const copy of copies) {
-      copy.attr.array.set(copy.next);
-      copy.attr.needsUpdate = true;
-    }
-  }
-
-  geometry.clearGroups();
-  let start = 0;
-  for (let kind = 0; kind < slots; kind += 1) {
-    const count = order[kind].length * 3;
-    if (count === 0) continue;
-    geometry.addGroup(start, count, kind);
-    start += count;
-  }
-
+  regroupTriangles(geometry, triMat, maps.length);
   mesh.geometry = geometry;
-  const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-  if (!source || !source.clone) return;
-  mesh.material = maps.map((map) => {
-    const copy = source.clone();
-    copy.map = map || null;
-    if (copy.color) copy.color.set(0xffffff);
-    copy.needsUpdate = true;
-    return copy;
-  });
+  assignSlotMaterials(mesh, maps);
 }
 
 function paintBarrierCurb(root, texture) {
@@ -512,15 +513,7 @@ function paintBarrierCurb(root, texture) {
       uv.needsUpdate = true;
     }
     obj.geometry = geometry;
-    const list = Array.isArray(obj.material) ? obj.material : [obj.material];
-    const next = list.map((mat) => {
-      const copy = mat.clone();
-      copy.map = texture;
-      if (copy.color) copy.color.set(0xffffff);
-      copy.needsUpdate = true;
-      return copy;
-    });
-    obj.material = Array.isArray(obj.material) ? next : next[0];
+    skinMesh(obj, texture);
   });
 }
 
@@ -561,16 +554,7 @@ function paintBarrierTexture(root, texture) {
       uv.needsUpdate = true;
     }
     obj.geometry = geometry;
-    const list = Array.isArray(obj.material) ? obj.material : [obj.material];
-    const next = list.map((mat) => {
-      if (!mat || !mat.clone) return mat;
-      const copy = mat.clone();
-      copy.map = texture;
-      if (copy.color) copy.color.set(0xffffff);
-      copy.needsUpdate = true;
-      return copy;
-    });
-    obj.material = Array.isArray(obj.material) ? next : next[0];
+    skinMeshGuarded(obj, texture);
   });
 }
 
@@ -647,75 +631,9 @@ function paintBridgeMesh(mesh, maps) {
     uv.needsUpdate = true;
   }
 
-  const slots = maps.length;
-  const order = Array.from({ length: slots }, () => []);
-  for (let t = 0; t < triCount; t += 1) {
-    const slot = triMat[t];
-    if (slot < slots) order[slot].push(t);
-  }
-  if (index) {
-    const src = index.array;
-    const next = new src.constructor(src.length);
-    let cursor = 0;
-    for (let kind = 0; kind < slots; kind += 1) {
-      for (const t of order[kind]) {
-        next[cursor] = src[t * 3];
-        next[cursor + 1] = src[t * 3 + 1];
-        next[cursor + 2] = src[t * 3 + 2];
-        cursor += 3;
-      }
-    }
-    index.array.set(next);
-    index.needsUpdate = true;
-  } else {
-    const copies = Object.keys(geometry.attributes).map((name) => {
-      const attr = geometry.getAttribute(name);
-      return {
-        attr,
-        itemSize: attr.itemSize,
-        src: attr.array,
-        next: new attr.array.constructor(attr.array.length),
-      };
-    });
-    let cursor = 0;
-    for (let kind = 0; kind < slots; kind += 1) {
-      for (const t of order[kind]) {
-        for (let v = 0; v < 3; v += 1) {
-          const from = t * 3 + v;
-          for (const copy of copies) {
-            const dst = cursor * copy.itemSize;
-            const srcAt = from * copy.itemSize;
-            for (let k = 0; k < copy.itemSize; k += 1) copy.next[dst + k] = copy.src[srcAt + k];
-          }
-          cursor += 1;
-        }
-      }
-    }
-    for (const copy of copies) {
-      copy.attr.array.set(copy.next);
-      copy.attr.needsUpdate = true;
-    }
-  }
-
-  geometry.clearGroups();
-  let start = 0;
-  for (let kind = 0; kind < slots; kind += 1) {
-    const count = order[kind].length * 3;
-    if (count === 0) continue;
-    geometry.addGroup(start, count, kind);
-    start += count;
-  }
-
+  regroupTriangles(geometry, triMat, maps.length);
   mesh.geometry = geometry;
-  const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-  if (!source || !source.clone) return;
-  mesh.material = maps.map((map) => {
-    const copy = source.clone();
-    copy.map = map || null;
-    if (copy.color) copy.color.set(0xffffff);
-    copy.needsUpdate = true;
-    return copy;
-  });
+  assignSlotMaterials(mesh, maps);
 }
 
 async function paintBridgeSkin(root, texture, sideTexture, barrierUrl, barrierTexture, loader) {
@@ -1091,7 +1009,8 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       let template = null;
       try {
         template = await loadTemplate(spec.kit, spec.file);
-      } catch {
+      } catch (error) {
+        console.warn(`Road piece failed to load: ${spec.kit}/${spec.file}`, error);
         continue;
       }
       addPiece(spec, template);

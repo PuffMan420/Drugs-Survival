@@ -36,6 +36,7 @@ import { createPhysics } from "./physics.js";
 import { createPhysicsScene } from "./physics-scene.js";
 import { buildCity, tileAt, tileCenter, updateChunks } from "./city.js";
 import { createPedestrians } from "./pedestrians.js";
+import { createSidewalkIndex } from "./sidewalk-height.js";
 import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
 import { createPlayer } from "./player.js";
@@ -522,7 +523,12 @@ async function start() {
   const drive = createDrive(physics, physicsScene);
   const hintEl = document.getElementById("hint");
   const hintWalk = hintEl.textContent;
-  const pedestrians = await createPedestrians(scene, map, savedLayout.pieces);
+  const sidewalks = createSidewalkIndex(async (url) => {
+    const response = await fetch(new URL(`../${url}`, import.meta.url));
+    if (!response.ok) return null;
+    return response.arrayBuffer();
+  });
+  const pedestrians = await createPedestrians(scene, map, savedLayout.pieces, (x, z, streetY) => sidewalks.feetY(x, z, streetY));
   window.pedestrians = pedestrians;
   const glow = createGlow(scene);
   const sun = createSun(scene);
@@ -549,8 +555,12 @@ async function start() {
     renderer,
     map,
     saved: savedLayout,
-    onPiecesChanged: (pieces) => physicsScene.setRoads(pieces),
+    onPiecesChanged: (pieces) => {
+      physicsScene.setRoads(pieces);
+      sidewalks.setPieces(pieces);
+    },
   });
+  await sidewalks.ready;
 
   omitFromAmbientOcclusion(scene);
   const ambient = createAmbientOcclusion(renderer, scene, camera);
@@ -567,6 +577,12 @@ async function start() {
   let fps = 0;
   let last = performance.now();
 
+  function footHeight() {
+    const roadY = traffic.roadHeight(player.x, player.z, player.y);
+    const streetY = roadY == null ? 0.6 : roadY;
+    return sidewalks.feetY(player.x, player.z, streetY);
+  }
+
   session.use = () => {
     if (buildMode.isOpen()) return;
     if (drive.driving) {
@@ -574,7 +590,7 @@ async function start() {
       if (!spot) return;
       player.x = clamp(spot.x, half, city.mapW - half);
       player.z = clamp(spot.z, half, city.mapH - half);
-      player.y = spot.y;
+      player.y = sidewalks.feetY(player.x, player.z, spot.y);
       playerSprite.mesh.visible = true;
       session.driving = false;
       hintEl.textContent = hintWalk;
@@ -644,8 +660,7 @@ async function start() {
       }
       player.x = clamp(player.x, half, city.mapW - half);
       player.z = clamp(player.z, half, city.mapH - half);
-      const roadY = traffic.roadHeight(player.x, player.z, player.y);
-      player.y = roadY == null ? 0.6 : roadY;
+      player.y = footHeight();
     }
 
     let snappedX = Math.round(player.x);
@@ -665,8 +680,7 @@ async function start() {
       player.z = freed.z;
       player.x = clamp(player.x, half, city.mapW - half);
       player.z = clamp(player.z, half, city.mapH - half);
-      const roadY = traffic.roadHeight(player.x, player.z, player.y);
-      player.y = roadY == null ? 0.6 : roadY;
+      player.y = footHeight();
     }
     snappedX = Math.round(player.x);
     snappedZ = Math.round(player.z);

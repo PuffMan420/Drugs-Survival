@@ -401,9 +401,14 @@ function clipNamed(animations, name) {
   return animations.find((clip) => clip.name === name) || null;
 }
 
-export async function createPedestrians(scene, map, pieces = []) {
+export async function createPedestrians(scene, map, pieces = [], feetAt = null) {
   const loader = new GLTFLoader();
   const graph = sidewalkGraph(map, pieces);
+  // feetAt reads the sidewalk lip from the road meshes. The cast shadow is
+  // on this holder, so it rises with the feet.
+  function sole(x, z) {
+    return feetAt ? feetAt(x, z, FEET_Y) : FEET_Y;
+  }
   const { span } = graph;
   let donor = null;
 
@@ -523,7 +528,7 @@ export async function createPedestrians(scene, map, pieces = []) {
     current.time = unitHash(ped.salt + 29) * prototype.clips[ped.playing].duration;
     live.mixer.update(0);
     live.holder.rotation.y = Math.atan2(ped.dx, ped.dz);
-    live.holder.position.set(ped.x, FEET_Y, ped.z);
+    live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);
     scene.add(live.holder);
     ped.live = live;
   }
@@ -671,7 +676,7 @@ export async function createPedestrians(scene, map, pieces = []) {
           showClip(ped, "idle");
         }
         live.mixer.update(step);
-        live.holder.position.set(ped.x, FEET_Y, ped.z);
+        live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);
       }
     },
   };

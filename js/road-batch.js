@@ -251,12 +251,12 @@ export function createRoadBatches(parent) {
     }
   }
 
-  function update(camX, camZ, viewScale) {
+  function update(camX, camZ, viewScale, spanW = GROUND_W, spanH = GROUND_H) {
     const view = viewScale > 0 ? viewScale : 1;
-    const minX = camX - (GROUND_W / 2) * view - TILE * 2;
-    const maxX = camX + (GROUND_W / 2) * view + TILE * 2;
-    const minZ = camZ - (GROUND_H / 2) * view - TILE * 2;
-    const maxZ = camZ + (GROUND_H / 2) * view + TILE * 5;
+    const minX = camX - (spanW / 2) * view - TILE * 2;
+    const maxX = camX + (spanW / 2) * view + TILE * 2;
+    const minZ = camZ - (spanH / 2) * view - TILE * 2;
+    const maxZ = camZ + (spanH / 2) * view + TILE * 5;
     for (const chunk of chunks.values()) {
       chunk.group.visible = chunk.maxX >= minX && chunk.minX <= maxX && chunk.maxZ >= minZ && chunk.minZ <= maxZ;
     }

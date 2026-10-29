@@ -631,14 +631,16 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
   const enterMargin = TILE * 2;
   const leaveMargin = TILE * 4;
 
-  function viewRect(playerX, playerZ, margin) {
-    const camX = Math.min(Math.max(Math.round(playerX), GROUND_W / 2), mapW - GROUND_W / 2);
-    const camZ = Math.min(Math.max(Math.round(playerZ), GROUND_H / 2), mapH - GROUND_H / 2);
+  function viewRect(playerX, playerZ, margin, spanW = GROUND_W, spanH = GROUND_H) {
+    const halfW = spanW / 2;
+    const halfH = spanH / 2;
+    const camX = Math.min(Math.max(Math.round(playerX), halfW), mapW - halfW);
+    const camZ = Math.min(Math.max(Math.round(playerZ), halfH), mapH - halfH);
     return {
-      minX: camX - GROUND_W / 2 - margin,
-      maxX: camX + GROUND_W / 2 + margin,
-      minZ: camZ - GROUND_H / 2 - margin,
-      maxZ: camZ + GROUND_H / 2 + margin,
+      minX: camX - halfW - margin,
+      maxX: camX + halfW + margin,
+      minZ: camZ - halfH - margin,
+      maxZ: camZ + halfH + margin,
     };
   }
 
@@ -654,10 +656,10 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
       const name = panic ? "run" : "walk";
       for (const ped of people) showClip(ped, name);
     },
-    update(dt, playerX, playerZ) {
+    update(dt, playerX, playerZ, spanW = GROUND_W, spanH = GROUND_H) {
       const step = Math.min(Math.max(dt, 0), 0.05);
-      const enter = viewRect(playerX, playerZ, enterMargin);
-      const leave = viewRect(playerX, playerZ, leaveMargin);
+      const enter = viewRect(playerX, playerZ, enterMargin, spanW, spanH);
+      const leave = viewRect(playerX, playerZ, leaveMargin, spanW, spanH);
       for (const ped of people) {
         if (ped.live && !inRect(ped, leave)) {
           release(ped);

@@ -31,8 +31,8 @@ const PLACE_STEP = 240;
 const FADE = 0.12;
 // The run clip's hips bottom out at these times. That is a footfall.
 const STEP_MARKS = [0.2083, 0.5833];
-// Half the previous gain. The clips peak near full scale.
-const FOOTSTEP_VOLUME = 0.45 * 0.5;
+// 0.8 of the previous gain. The clips peak near full scale.
+const FOOTSTEP_VOLUME = 0.45 * 0.5 * 0.8;
 
 function shadowTexture() {
   const width = 64;

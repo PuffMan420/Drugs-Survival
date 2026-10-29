@@ -28,12 +28,23 @@ const FEET_Y = 0.6;
 const SHADOW_Y = 0.35;
 // Keys 1–8 place him across the island in one frame. A step never does.
 const PLACE_STEP = 240;
-const FADE = 0.12;
-// Toe plants on the ground, then the clip length so the next plant wraps.
-// Walk_Loop is 4/3 s. Sprint_Loop is 2/3 s and its two plants are not even.
+// Long enough to read the change, short enough that the gaits still connect.
+const FADE = 0.25;
+// Most of a speed change lands inside a third of a second. Not a snap.
+const SPEED_TAU = 0.16;
+// About nine tenths of a 90° turn is done by 0.12s, and it is finished by 0.15s.
+const TURN_TAU = 0.055;
+// Toe plants, then the clip length so the next plant wraps.
+// Walk_Loop is 4/3 s, Jog_Fwd_Loop is 11/12 s, Sprint_Loop is 2/3 s.
 const STEP_MARKS = {
   walk: { plants: [0.1667, 0.8333], duration: 4 / 3 },
+  jog: { plants: [0.0339, 0.5143], duration: 11 / 12 },
   sprint: { plants: [0.051, 0.4243], duration: 2 / 3 },
+};
+const GAIT_SPEED = {
+  walk: 0.5,
+  jog: 1,
+  sprint: 1.4,
 };
 
 function plantsBetween(plants, from, to) {
@@ -160,21 +171,22 @@ export async function createPlayer() {
   shadow.position.y = SHADOW_Y;
 
   const mixer = new AnimationMixer(model);
-  // Standing, the brisk walk, and a faster run. The other UAL clips stay in
-  // the file. There is no jump, so Jump_Start, Jump_Loop, and Jump_Land wait.
+  // Idle when he is still. Jog is PLAYER_SPEED. Walk is half of that, sprint
+  // is 1.4 times. The other UAL clips stay in the file. There is no jump.
   const actions = {
     idle: mixer.clipAction(clipNamed(gltf.animations, "Idle_Loop")),
     walk: mixer.clipAction(clipNamed(gltf.animations, "Walk_Loop")),
+    jog: mixer.clipAction(clipNamed(gltf.animations, "Jog_Fwd_Loop")),
     sprint: mixer.clipAction(clipNamed(gltf.animations, "Sprint_Loop")),
   };
 
   // webgl_animation_skinning_blending.html: every action stays playing, and a
   // change of clip is setWeight + crossFadeTo. crossFadeTo's fade-out sets
-  // enabled to false and warps timeScale, so the next blend has to turn the
-  // incoming action back on and clear that warp before it fades.
+  // enabled to false and, if warped, rewrites timeScale. The next blend turns
+  // the incoming action back on. Warp stays off so the foot rate can follow
+  // the ground speed.
   function setWeight(action, weight) {
     action.enabled = true;
-    action.setEffectiveTimeScale(1);
     action.setEffectiveWeight(weight);
   }
 
@@ -182,25 +194,28 @@ export async function createPlayer() {
     to.paused = false;
     setWeight(to, 1);
     to.time = 0;
-    from.crossFadeTo(to, FADE, true);
+    from.crossFadeTo(to, FADE, false);
   }
 
   setWeight(actions.idle, 1);
   setWeight(actions.walk, 0);
+  setWeight(actions.jog, 0);
   setWeight(actions.sprint, 0);
   actions.idle.play();
   actions.walk.play();
+  actions.jog.play();
   actions.sprint.play();
   // Bones are still the bind T until the mixer writes. Do that before the
   // first paint, while idle is the only action with weight.
   mixer.update(0);
 
   let playing = "idle";
-  let then = performance.now();
   let listener = null;
   // Time within the gait clip. A plant plays when this crosses a toe contact.
   let cycle = 0;
-  let stepGait = "";
+  // Smoothed ground speed, and the way he is facing. Movement follows facing.
+  let speed = 0;
+  let facing = 0;
   const buffers = [null, null];
   let stepsReady = false;
 
@@ -261,10 +276,28 @@ export async function createPlayer() {
     if (name === playing) return;
     crossFade(actions[playing], actions[name]);
     playing = name;
+    cycle = 0;
   }
 
-  function face(dx, dz) {
-    holder.rotation.y = Math.atan2(dx, dz);
+  function gaitForSpeed(ground) {
+    const ratio = ground / PLAYER_SPEED;
+    if (!(ratio > 0.15)) return "idle";
+    let best = "walk";
+    let bestDist = Infinity;
+    for (const name of Object.keys(GAIT_SPEED)) {
+      const dist = Math.abs(ratio - GAIT_SPEED[name]);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = name;
+      }
+    }
+    return best;
+  }
+
+  function clipScale(name, ground) {
+    const ref = GAIT_SPEED[name];
+    if (!ref) return 1;
+    return ground / (PLAYER_SPEED * ref);
   }
 
   function place(x, z, y) {
@@ -276,32 +309,51 @@ export async function createPlayer() {
   return {
     mesh: holder,
     shadow,
-    speed: PLAYER_SPEED,
+    get speed() {
+      return speed;
+    },
+    get dirX() {
+      return Math.sin(facing);
+    },
+    get dirZ() {
+      return Math.cos(facing);
+    },
     useListener,
-    update(dx, dz, x, z, y) {
-      const now = performance.now();
-      const dt = Math.min((now - then) / 1000, 0.05);
-      then = now;
-      const dist = Math.hypot(dx, dz);
-      const stepping = dist > 0.001 && dist < PLACE_STEP;
-      if (stepping) {
-        face(dx, dz);
-        // Build mode walks at three times PLAYER_SPEED. That is the run.
-        const pace = dt > 0 ? dist / dt : 0;
-        show(pace > PLAYER_SPEED * 1.5 ? "sprint" : "walk");
-      } else if (dist < PLACE_STEP) {
-        show("idle");
+    // Wish is a unit direction. Gait is walk, jog, sprint, or idle. Boost is
+    // the build-mode pace. Speed and facing ease. They do not snap.
+    guide(dt, wishX, wishZ, gait, boost) {
+      const step = Math.max(0, dt);
+      const wish = Math.hypot(wishX, wishZ);
+      if (wish > 0.001) {
+        const target = Math.atan2(wishX / wish, wishZ / wish);
+        const delta = Math.atan2(Math.sin(target - facing), Math.cos(target - facing));
+        facing += delta * (1 - Math.exp(-step / TURN_TAU));
+        holder.rotation.y = facing;
       }
-      mixer.update(dt);
+      const rate = GAIT_SPEED[gait] || 0;
+      const goal = PLAYER_SPEED * rate * (boost > 0 ? boost : 1);
+      speed += (goal - speed) * (1 - Math.exp(-step / SPEED_TAU));
+      if (speed < 0.05) speed = 0;
+    },
+    halt() {
+      speed = 0;
+    },
+    update(dx, dz, x, z, y, dt) {
+      const step = Math.max(0, dt || 0);
+      const dist = Math.hypot(dx, dz);
+      const moved = dist > 0.001 && dist < PLACE_STEP;
+      const ground = moved && step > 0 ? dist / step : 0;
+      if (holder.visible && dist < PLACE_STEP) show(gaitForSpeed(ground));
+      for (const name of Object.keys(GAIT_SPEED)) {
+        actions[name].setEffectiveTimeScale(clipScale(name, ground));
+      }
+      mixer.update(step);
       // The mesh is hidden in a car. A map jump is a huge step, not a footfall.
-      const gait = playing === "walk" || playing === "sprint" ? playing : "";
-      if (holder.visible && stepping && gait) {
-        const marks = STEP_MARKS[gait];
-        if (stepGait !== gait) {
-          cycle = 0;
-          stepGait = gait;
-        }
-        let next = cycle + dt;
+      // Clip time moves with the playback rate, so a faster gait steps sooner.
+      const marks = STEP_MARKS[playing];
+      if (holder.visible && moved && marks) {
+        const scale = clipScale(playing, ground);
+        let next = cycle + step * scale;
         let hits = 0;
         while (next >= marks.duration) {
           hits += plantsBetween(marks.plants, cycle, marks.duration);
@@ -311,8 +363,6 @@ export async function createPlayer() {
         hits += plantsBetween(marks.plants, cycle, next);
         cycle = next;
         for (let i = 0; i < hits; i += 1) playFootstep();
-      } else {
-        stepGait = "";
       }
       place(x, z, y);
     },

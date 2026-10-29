@@ -68,6 +68,7 @@ const errorEl = document.getElementById("boot-error");
 const placeEl = document.getElementById("place");
 
 const held = new Set();
+const stick = { active: false, x: 0, z: 0, gait: "idle" };
 const MOVE = new Set([
   "KeyW",
   "KeyA",
@@ -644,13 +645,11 @@ async function start() {
         player.z = pose.z;
         player.y = pose.y;
       }
+      playerSprite.halt();
     } else {
-      let moveX = 0;
-      let moveZ = 0;
-      if (held.has("KeyW") || held.has("ArrowUp")) moveZ -= 1;
-      if (held.has("KeyS") || held.has("ArrowDown")) moveZ += 1;
-      if (held.has("KeyA") || held.has("ArrowLeft")) moveX -= 1;
-      if (held.has("KeyD") || held.has("ArrowRight")) moveX += 1;
+      const wish = footWish();
+      const boost = buildMode.isOpen() ? 3 : 1;
+      playerSprite.guide(dt, wish.x, wish.z, wish.gait, boost);
       const radius = half + 0.75;
       const stuck = (x, z) => footBlocked(map, x, z, half);
       const release = () => {
@@ -658,13 +657,12 @@ async function start() {
         player.x = freed.x;
         player.z = freed.z;
       };
-      if (moveX !== 0 || moveZ !== 0) {
-        const length = Math.hypot(moveX, moveZ);
-        const pace = buildMode.isOpen() ? 3 : 1;
-        const stepX = (moveX / length) * playerSprite.speed * pace * dt;
-        const stepZ = (moveZ / length) * playerSprite.speed * pace * dt;
+      const stepLen = playerSprite.speed * dt;
+      if (stepLen > 0.001) {
+        const stepX = playerSprite.dirX * stepLen;
+        const stepZ = playerSprite.dirZ * stepLen;
         // Short slices so a fast step cannot hop through a narrow car.
-        const slices = Math.max(1, Math.ceil(Math.hypot(stepX, stepZ) / 8));
+        const slices = Math.max(1, Math.ceil(stepLen / 8));
         for (let slice = 0; slice < slices; slice += 1) {
           const nextX = player.x + stepX / slices;
           const nextZ = player.z + stepZ / slices;
@@ -702,7 +700,7 @@ async function start() {
     snappedX = Math.round(player.x);
     snappedZ = Math.round(player.z);
     playerSprite.mesh.visible = !drive.driving;
-    playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ, player.y);
+    playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ, player.y, dt);
     pedestrians.update(dt, player.x, player.z, spanW, spanH);
     camX = frameCenter(snappedX, halfW, city.mapW);
     camZ = frameCenter(snappedZ, halfH, city.mapH);
@@ -744,6 +742,22 @@ function jumpTo(index) {
   placeEl.textContent = view.name;
 }
 
+function footWish() {
+  if (stick.active) return { x: stick.x, z: stick.z, gait: stick.gait };
+  let x = 0;
+  let z = 0;
+  if (held.has("KeyW") || held.has("ArrowUp")) z -= 1;
+  if (held.has("KeyS") || held.has("ArrowDown")) z += 1;
+  if (held.has("KeyA") || held.has("ArrowLeft")) x -= 1;
+  if (held.has("KeyD") || held.has("ArrowRight")) x += 1;
+  const len = Math.hypot(x, z);
+  if (len < 0.001) return { x: 0, z: 0, gait: "idle" };
+  const shift = held.has("ShiftLeft") || held.has("ShiftRight");
+  const ctrl = held.has("ControlLeft") || held.has("ControlRight");
+  const gait = shift ? "sprint" : ctrl ? "walk" : "jog";
+  return { x: x / len, z: z / len, gait };
+}
+
 function footBlocked(map, x, z, limit) {
   if (x < limit || z < limit || x > map.cols * TILE - limit || z > map.rows * TILE - limit) return true;
   return blocked(map, x, z);
@@ -758,6 +772,11 @@ window.addEventListener("keydown", (event) => {
       session.use?.();
       event.preventDefault();
     }
+    return;
+  }
+  if (event.code === "ShiftLeft" || event.code === "ShiftRight"
+    || event.code === "ControlLeft" || event.code === "ControlRight") {
+    held.add(event.code);
     return;
   }
   if (MOVE.has(event.code)) {
@@ -789,7 +808,7 @@ window.addEventListener("keyup", (event) => {
 
 window.addEventListener("blur", () => held.clear());
 
-mountTouchUi(held, ISLAND_JUMPS);
+mountTouchUi(held, ISLAND_JUMPS, stick);
 
 start().catch((error) => {
   showError(error instanceof Error ? error.message : "The game failed to start.");

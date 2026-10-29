@@ -42,18 +42,18 @@ const IMPULSE_DENOM = 1 / SPHERE_MASS + (SPHERE_RADIUS * SPHERE_RADIUS) / SPHERE
 // after a slide has scrubbed speed, velocity is pulled back onto the nose.
 const DRIFT_ON = 166;
 const DRIFT_OFF = 138;
-// Torque follows the throttle, a little behind it, so the pull-away is heavier.
+// Torque follows the throttle well behind it, so the pull-away has weight.
 // Top speed is the same once the spool catches the throttle.
-const DRIVE_SPOOL = 3.5;
+const DRIVE_SPOOL = 2.0;
 // A truck or van spools slower and sheds the throttle slower, so it pulls
 // away late and carries speed after the pedal lifts. Top speed stays put.
-const BULKY_SPOOL = 1.7;
-const BULKY_THROTTLE = 2.6;
-const BULKY_BRAKE = 4.5;
-const BULKY_OVERRUN = 2.2;
+const BULKY_SPOOL = 1.05;
+const BULKY_THROTTLE = 1.55;
+const BULKY_BRAKE = 2.4;
+const BULKY_OVERRUN = 1.35;
 const BULKY_STEER_CRAWL = 2.75;
 const BULKY_STEER_FAST = 2.4;
-const BULKY_STEER_FOLLOW = 1.8;
+const BULKY_STEER_FOLLOW = 0.85;
 // Four gears across the cruise. Each upshift starts lower than the gear before
 // it peaked, then climbs again. The rates stay under 1 so the loop sounds deeper.
 const GEARS = [
@@ -128,13 +128,13 @@ export function createArcadeVehicle(options = {}) {
   const bulky = !!options.bulky;
   const gears = bulky ? BULKY_GEARS : GEARS;
   const pullRate = bulky ? BULKY_SPOOL : DRIVE_SPOOL;
-  const throttleBlend = bulky ? BULKY_THROTTLE : 6;
-  const brakeBlend = bulky ? BULKY_BRAKE : 8;
-  const reverseBlend = bulky ? 1.3 : 2;
-  const overrun = bulky ? BULKY_OVERRUN : 8;
+  const throttleBlend = bulky ? BULKY_THROTTLE : 3.2;
+  const brakeBlend = bulky ? BULKY_BRAKE : 4.0;
+  const reverseBlend = bulky ? 0.8 : 1.2;
+  const overrun = bulky ? BULKY_OVERRUN : 4.2;
   const steerCrawl = bulky ? BULKY_STEER_CRAWL : 3.2;
   const steerFast = bulky ? BULKY_STEER_FAST : 2.8;
-  const steerFollow = bulky ? BULKY_STEER_FOLLOW : 2.5;
+  const steerFollow = bulky ? BULKY_STEER_FOLLOW : 1.15;
   let yaw = 0;
   let vx = 0;
   let vz = 0;
@@ -188,7 +188,8 @@ export function createArcadeVehicle(options = {}) {
     const steerBasis = Math.max(worldBefore, sliding ? DRIFT_ON : 0);
     const steerScale = clamp(steerBasis / DRIFT_ON, 0.34, 1);
     // 3.2 at a crawl, 2.8 once the lock is at full speed (about 12% slower).
-    // A bulky body uses 2.75 and 2.4, and the wheel follows a little later.
+    // The wheel eases onto that rate, so a flick does not yaw the car at once.
+    // A bulky body uses 2.75 and 2.4, and the wheel follows later still.
     const steerRate = lerp(steerCrawl, steerFast, clamp((steerScale - 0.34) / 0.66, 0, 1));
     const targetAngular = -inputX * steerScale * steerRate * direction;
     angularSpeed = lerp(angularSpeed, targetAngular, dt * steerFollow);

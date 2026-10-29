@@ -19,9 +19,10 @@ export const PED_SIGNAL = "traffic-light-2.glb";
 const lensMasks = new WeakMap();
 const signalOn = new WeakMap();
 
-// Lens centers on the front face (model -X), just clear of the hood so the
-// gameplay camera, 20° off straight down, can see the lamp.
-const LENS_X = -0.075;
+// Lens centers on the front face (model -X). The hood reaches about -0.073.
+// The camera sits 20° off straight down, so a lamp any closer is a sliver
+// past the rim and pops on and off. This clears that rim.
+const LENS_X = -0.11;
 const LENS_COLOR = {
   red: 0xff4638,
   yellow: 0xffe14a,
@@ -223,11 +224,16 @@ export function attachSignalLenses(root, file) {
       transparent: true,
       depthWrite: false,
       depthTest: true,
+      polygonOffset: true,
+      polygonOffsetFactor: -4,
+      polygonOffsetUnits: -4,
       toneMapped: false,
       fog: false,
     });
     const sprite = new Sprite(material);
-    sprite.position.set(LENS_X, y, z);
+    // The lower lamps sit behind the hood from a near-overhead camera.
+    // Lifting them keeps the dot on that face without dropping into the mesh.
+    sprite.position.set(LENS_X, y + 0.07, z);
     sprite.scale.setScalar(0.028);
     sprite.visible = false;
     sprite.castShadow = false;

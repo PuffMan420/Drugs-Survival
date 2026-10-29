@@ -37,6 +37,9 @@ import { linkSignal, pedPhase, phaseAt } from "./signals.js";
 // and leave the file alone.
 const UNIT = 4 * TILE;
 const GROUND_Y = 0.2;
+// The pole foot's top is the same height as the curb top, so the two fight.
+// This drops the foot just under that surface. It is not a shadow bias.
+const SIGNAL_SINK = 0.4;
 const MAP_URL = "./island-map.json";
 const STORAGE_KEY = "island-map";
 const DOWNLOAD_NAME = "island-map.json";
@@ -1005,11 +1008,15 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     root.scale.set(flipped ? -size : size, size, size);
   }
 
+  function pieceY(file) {
+    return isSignalFile(file) ? GROUND_Y - SIGNAL_SINK : GROUND_Y;
+  }
+
   function wrapper(template, spec) {
     const root = new Group();
     root.add(template.clone(true));
     applyScale(root, spec.scale ?? 1, spec.mirror === true);
-    root.position.set((spec.x + 0.5) * TILE, GROUND_Y, (spec.z + 0.5) * TILE);
+    root.position.set((spec.x + 0.5) * TILE, pieceY(spec.file), (spec.z + 0.5) * TILE);
     root.rotation.y = spec.turn * Math.PI / 2;
     return root;
   }
@@ -1041,7 +1048,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     const mats = assignSignalMaterials(root);
     const lamps = attachSignalLenses(inner, record.file);
     applyScale(root, record.scale ?? 1, record.mirror === true);
-    root.position.set((record.x + 0.5) * TILE, GROUND_Y, (record.z + 0.5) * TILE);
+    root.position.set((record.x + 0.5) * TILE, pieceY(record.file), (record.z + 0.5) * TILE);
     root.rotation.y = record.turn * Math.PI / 2;
     root.userData.piece = record;
     group.add(root);
@@ -1129,7 +1136,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     const moved = carrying.record.x !== cell.x || carrying.record.z !== cell.z;
     carrying.record.x = cell.x;
     carrying.record.z = cell.z;
-    carrying.root.position.set((cell.x + 0.5) * TILE, GROUND_Y, (cell.z + 0.5) * TILE);
+    carrying.root.position.set((cell.x + 0.5) * TILE, pieceY(carrying.record.file), (cell.z + 0.5) * TILE);
     if (moved) changed();
   }
 
@@ -1182,7 +1189,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     if (token !== selectToken || !enabled || !selection) return;
     dropPreview();
     const spec = hover || { x: 0, z: 0, turn };
-    preview = wrapper(template, { ...spec, turn, scale, mirror });
+    preview = wrapper(template, { ...spec, file: selection.file, turn, scale, mirror });
     ghost(preview);
     preview.visible = hover !== null;
     scene.add(preview);
@@ -1225,7 +1232,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       return;
     }
     preview.visible = true;
-    preview.position.set((cell.x + 0.5) * TILE, GROUND_Y, (cell.z + 0.5) * TILE);
+    preview.position.set((cell.x + 0.5) * TILE, pieceY(selection?.file), (cell.z + 0.5) * TILE);
     preview.rotation.y = turn * Math.PI / 2;
   }
 

@@ -1307,6 +1307,332 @@ export const KITS = [
     ]
   },
   {
+    "id": "industrial-styled",
+    "label": "Industrial",
+    "files": [
+      {
+        "file": "building-a-brown.glb",
+        "url": "assets/buildings/industrial/building-a-brown.glb"
+      },
+      {
+        "file": "building-a-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-a-brown-scuffed.glb"
+      },
+      {
+        "file": "building-a-white.glb",
+        "url": "assets/buildings/industrial/building-a-white.glb"
+      },
+      {
+        "file": "building-a-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-a-white-scuffed.glb"
+      },
+      {
+        "file": "building-b-brown.glb",
+        "url": "assets/buildings/industrial/building-b-brown.glb"
+      },
+      {
+        "file": "building-b-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-b-brown-scuffed.glb"
+      },
+      {
+        "file": "building-b-white.glb",
+        "url": "assets/buildings/industrial/building-b-white.glb"
+      },
+      {
+        "file": "building-b-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-b-white-scuffed.glb"
+      },
+      {
+        "file": "building-c-brown.glb",
+        "url": "assets/buildings/industrial/building-c-brown.glb"
+      },
+      {
+        "file": "building-c-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-c-brown-scuffed.glb"
+      },
+      {
+        "file": "building-c-white.glb",
+        "url": "assets/buildings/industrial/building-c-white.glb"
+      },
+      {
+        "file": "building-c-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-c-white-scuffed.glb"
+      },
+      {
+        "file": "building-d-brown.glb",
+        "url": "assets/buildings/industrial/building-d-brown.glb"
+      },
+      {
+        "file": "building-d-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-d-brown-scuffed.glb"
+      },
+      {
+        "file": "building-d-white.glb",
+        "url": "assets/buildings/industrial/building-d-white.glb"
+      },
+      {
+        "file": "building-d-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-d-white-scuffed.glb"
+      },
+      {
+        "file": "building-e-brown.glb",
+        "url": "assets/buildings/industrial/building-e-brown.glb"
+      },
+      {
+        "file": "building-e-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-e-brown-scuffed.glb"
+      },
+      {
+        "file": "building-e-white.glb",
+        "url": "assets/buildings/industrial/building-e-white.glb"
+      },
+      {
+        "file": "building-e-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-e-white-scuffed.glb"
+      },
+      {
+        "file": "building-f-brown.glb",
+        "url": "assets/buildings/industrial/building-f-brown.glb"
+      },
+      {
+        "file": "building-f-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-f-brown-scuffed.glb"
+      },
+      {
+        "file": "building-f-white.glb",
+        "url": "assets/buildings/industrial/building-f-white.glb"
+      },
+      {
+        "file": "building-f-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-f-white-scuffed.glb"
+      },
+      {
+        "file": "building-g-brown.glb",
+        "url": "assets/buildings/industrial/building-g-brown.glb"
+      },
+      {
+        "file": "building-g-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-g-brown-scuffed.glb"
+      },
+      {
+        "file": "building-g-white.glb",
+        "url": "assets/buildings/industrial/building-g-white.glb"
+      },
+      {
+        "file": "building-g-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-g-white-scuffed.glb"
+      },
+      {
+        "file": "building-h-brown.glb",
+        "url": "assets/buildings/industrial/building-h-brown.glb"
+      },
+      {
+        "file": "building-h-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-h-brown-scuffed.glb"
+      },
+      {
+        "file": "building-h-white.glb",
+        "url": "assets/buildings/industrial/building-h-white.glb"
+      },
+      {
+        "file": "building-h-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-h-white-scuffed.glb"
+      },
+      {
+        "file": "building-i-brown.glb",
+        "url": "assets/buildings/industrial/building-i-brown.glb"
+      },
+      {
+        "file": "building-i-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-i-brown-scuffed.glb"
+      },
+      {
+        "file": "building-i-white.glb",
+        "url": "assets/buildings/industrial/building-i-white.glb"
+      },
+      {
+        "file": "building-i-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-i-white-scuffed.glb"
+      },
+      {
+        "file": "building-j-brown.glb",
+        "url": "assets/buildings/industrial/building-j-brown.glb"
+      },
+      {
+        "file": "building-j-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-j-brown-scuffed.glb"
+      },
+      {
+        "file": "building-j-white.glb",
+        "url": "assets/buildings/industrial/building-j-white.glb"
+      },
+      {
+        "file": "building-j-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-j-white-scuffed.glb"
+      },
+      {
+        "file": "building-k-brown.glb",
+        "url": "assets/buildings/industrial/building-k-brown.glb"
+      },
+      {
+        "file": "building-k-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-k-brown-scuffed.glb"
+      },
+      {
+        "file": "building-k-white.glb",
+        "url": "assets/buildings/industrial/building-k-white.glb"
+      },
+      {
+        "file": "building-k-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-k-white-scuffed.glb"
+      },
+      {
+        "file": "building-l-brown.glb",
+        "url": "assets/buildings/industrial/building-l-brown.glb"
+      },
+      {
+        "file": "building-l-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-l-brown-scuffed.glb"
+      },
+      {
+        "file": "building-l-white.glb",
+        "url": "assets/buildings/industrial/building-l-white.glb"
+      },
+      {
+        "file": "building-l-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-l-white-scuffed.glb"
+      },
+      {
+        "file": "building-m-brown.glb",
+        "url": "assets/buildings/industrial/building-m-brown.glb"
+      },
+      {
+        "file": "building-m-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-m-brown-scuffed.glb"
+      },
+      {
+        "file": "building-m-white.glb",
+        "url": "assets/buildings/industrial/building-m-white.glb"
+      },
+      {
+        "file": "building-m-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-m-white-scuffed.glb"
+      },
+      {
+        "file": "building-n-brown.glb",
+        "url": "assets/buildings/industrial/building-n-brown.glb"
+      },
+      {
+        "file": "building-n-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-n-brown-scuffed.glb"
+      },
+      {
+        "file": "building-n-white.glb",
+        "url": "assets/buildings/industrial/building-n-white.glb"
+      },
+      {
+        "file": "building-n-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-n-white-scuffed.glb"
+      },
+      {
+        "file": "building-o-brown.glb",
+        "url": "assets/buildings/industrial/building-o-brown.glb"
+      },
+      {
+        "file": "building-o-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-o-brown-scuffed.glb"
+      },
+      {
+        "file": "building-o-white.glb",
+        "url": "assets/buildings/industrial/building-o-white.glb"
+      },
+      {
+        "file": "building-o-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-o-white-scuffed.glb"
+      },
+      {
+        "file": "building-p-brown.glb",
+        "url": "assets/buildings/industrial/building-p-brown.glb"
+      },
+      {
+        "file": "building-p-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-p-brown-scuffed.glb"
+      },
+      {
+        "file": "building-p-white.glb",
+        "url": "assets/buildings/industrial/building-p-white.glb"
+      },
+      {
+        "file": "building-p-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-p-white-scuffed.glb"
+      },
+      {
+        "file": "building-q-brown.glb",
+        "url": "assets/buildings/industrial/building-q-brown.glb"
+      },
+      {
+        "file": "building-q-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-q-brown-scuffed.glb"
+      },
+      {
+        "file": "building-q-white.glb",
+        "url": "assets/buildings/industrial/building-q-white.glb"
+      },
+      {
+        "file": "building-q-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-q-white-scuffed.glb"
+      },
+      {
+        "file": "building-r-brown.glb",
+        "url": "assets/buildings/industrial/building-r-brown.glb"
+      },
+      {
+        "file": "building-r-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-r-brown-scuffed.glb"
+      },
+      {
+        "file": "building-r-white.glb",
+        "url": "assets/buildings/industrial/building-r-white.glb"
+      },
+      {
+        "file": "building-r-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-r-white-scuffed.glb"
+      },
+      {
+        "file": "building-s-brown.glb",
+        "url": "assets/buildings/industrial/building-s-brown.glb"
+      },
+      {
+        "file": "building-s-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-s-brown-scuffed.glb"
+      },
+      {
+        "file": "building-s-white.glb",
+        "url": "assets/buildings/industrial/building-s-white.glb"
+      },
+      {
+        "file": "building-s-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-s-white-scuffed.glb"
+      },
+      {
+        "file": "building-t-brown.glb",
+        "url": "assets/buildings/industrial/building-t-brown.glb"
+      },
+      {
+        "file": "building-t-brown-scuffed.glb",
+        "url": "assets/buildings/industrial/building-t-brown-scuffed.glb"
+      },
+      {
+        "file": "building-t-white.glb",
+        "url": "assets/buildings/industrial/building-t-white.glb"
+      },
+      {
+        "file": "building-t-white-scuffed.glb",
+        "url": "assets/buildings/industrial/building-t-white-scuffed.glb"
+      }
+    ]
+  },
+  {
     "id": "suburban",
     "label": "City Kit Suburban",
     "files": [

@@ -809,7 +809,9 @@ export function createSim(plan, models, pick) {
     if (aheadDot < 8 || aheadDot > driver.h / 2 + 96) return false;
     const lat = Math.abs(ox * fz - oz * fx);
     const turn = Math.abs(Math.atan2(Math.sin(other.angle - driver.angle), Math.cos(other.angle - driver.angle)));
-    const reach = turn > 0.8 ? other.h / 2 : other.w / 2;
+    // A crossing car reaches with its length. Nearly opposite traffic is in
+    // the next lane, and using its length there froze both cars in the box.
+    const reach = turn > 2.5 ? other.w / 2 : turn > 0.8 ? other.h / 2 : other.w / 2;
     return lat - reach < driver.w / 2 + 8;
   }
 

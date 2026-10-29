@@ -133,6 +133,13 @@ export function signalApproach(car, junctions, time) {
     if (Math.abs(car.x - junction.x) <= junction.half && Math.abs(car.z - junction.z) <= junction.half) {
       continue;
     }
+    // The lamp belongs to the lane that enters. Past the centre the car is
+    // leaving on the way out, and the left-hand lane is that road's outgoing
+    // lane, so a red here must not hold either of them.
+    const along = dirX * (car.x - junction.x) + dirZ * (car.z - junction.z);
+    if (along > 0) continue;
+    const side = (car.x - junction.x) * -dirZ + (car.z - junction.z) * dirX;
+    if (side < -8) continue;
     let edgeDist;
     if (axis === "x") {
       if (Math.abs(car.z - junction.z) > junction.half + 12) continue;

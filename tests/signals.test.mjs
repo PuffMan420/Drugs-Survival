@@ -224,6 +224,125 @@ test("a car too fast to brake enters on red, and green lets traffic through", ()
   assert.ok(going.speed > 40, `green car slowed to ${going.speed}`);
 });
 
+test("a red light stops the lane that enters and lets the outgoing lane go", () => {
+  setSignalTime(0);
+  const junction = { id: 0, x: 1000, z: 1500, half: 96, offset: 0 };
+  // Southbound. The right-hand lane is west of the centre and is entering.
+  const incoming = signalApproach({
+    x: 1000 - 29,
+    z: 1500 - 160,
+    hx: 0,
+    hz: 1,
+    length: 70,
+  }, [junction], 0);
+  assert.equal(incoming.axis, "z");
+  assert.equal(incoming.stop, true);
+  assert.equal(incoming.gap, 0);
+
+  // The east lane is the way out for northbound traffic. Same heading, same
+  // red, but this car is not entering, so the lamp does not apply.
+  assert.equal(signalApproach({
+    x: 1000 + 29,
+    z: 1500 - 160,
+    hx: 0,
+    hz: 1,
+    length: 70,
+  }, [junction], 0), null);
+
+  // Past the centre and still short of the far curb, outside the box. Leaving.
+  assert.equal(signalApproach({
+    x: 1000 + 104,
+    z: 1550,
+    hx: 0,
+    hz: 1,
+    length: 70,
+  }, [junction], 0), null);
+
+  // On the centreline the old approach still stops, so the bar tests hold.
+  const centre = signalApproach({
+    x: 1000,
+    z: 1500 - 160,
+    hx: 0,
+    hz: 1,
+    length: 70,
+  }, [junction], 0);
+  assert.equal(centre.stop, true);
+
+  const outgoing = {
+    pts: [{ x: 1029, z: 1280 }, { x: 1029, z: 2100 }],
+    seg: [820],
+    len: 820,
+    to: 1,
+  };
+  const plan = {
+    nodes: [
+      { index: 0, x: 1029, z: 1280, tx: 0, tz: 0, exits: [outgoing] },
+      { index: 1, x: 1029, z: 2100, tx: 0, tz: 0, exits: [] },
+    ],
+    parked: [],
+    buckets: new Map(),
+    poseFits: () => true,
+    junctions: [junction],
+  };
+  const sim = createSim(plan, [], () => 0);
+  const leaving = driver(0, {
+    x: 1029,
+    z: 1280,
+    speed: 70,
+    cruise: 120,
+    angle: headingAngle(0, 1),
+  });
+  sim.drivers.push(leaving);
+  run(sim, 3.5, { x: leaving.x, z: leaving.z });
+  assert.ok(leaving.z > 1640, `outgoing car held at z ${leaving.z}`);
+  assert.ok(leaving.speed > 20, `outgoing car slowed to ${leaving.speed}`);
+});
+
+test("opposite lanes pass through a junction instead of stopping in it", () => {
+  setSignalTime(0);
+  const south = { pts: [{ x: 971, z: 1400 }, { x: 971, z: 1900 }], seg: [500], len: 500, to: 1 };
+  const north = { pts: [{ x: 1029, z: 1900 }, { x: 1029, z: 1400 }], seg: [500], len: 500, to: 3 };
+  const plan = {
+    nodes: [
+      { index: 0, x: 971, z: 1400, tx: 0, tz: 0, exits: [south] },
+      { index: 1, x: 971, z: 1900, tx: 0, tz: 0, exits: [] },
+      { index: 2, x: 1029, z: 1900, tx: 0, tz: 0, exits: [north] },
+      { index: 3, x: 1029, z: 1400, tx: 0, tz: 0, exits: [] },
+    ],
+    parked: [],
+    buckets: new Map(),
+    poseFits: () => true,
+    junctions: [{ id: 0, x: 1000, z: 1500, half: 96, offset: 0 }],
+  };
+  const sim = createSim(plan, [], () => 0);
+  const down = driver(90, {
+    id: 1,
+    x: 971,
+    z: 1490,
+    speed: 40,
+    cruise: 80,
+    angle: headingAngle(0, 1),
+    node: 0,
+    exit: 0,
+  });
+  const up = driver(350, {
+    id: 2,
+    x: 1029,
+    z: 1550,
+    speed: 40,
+    cruise: 80,
+    angle: headingAngle(0, -1),
+    node: 2,
+    exit: 0,
+  });
+  sim.drivers.push(down, up);
+  run(sim, 2, { x: 1000, z: 1500 });
+  assert.ok(down.z > 1550, `southbound stuck at z ${down.z}`);
+  assert.ok(up.z < 1500, `northbound stuck at z ${up.z}`);
+  assert.ok(down.speed > 10, `southbound slowed to ${down.speed}`);
+  assert.ok(up.speed > 10, `northbound slowed to ${up.speed}`);
+});
+
 test("green on the crossing axis does not stop that traffic", () => {
   setSignalTime(0);
   const east = { pts: [{ x: 0, z: 1500 }, { x: 3000, z: 1500 }], seg: [3000], len: 3000, to: 1 };

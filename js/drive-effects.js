@@ -315,5 +315,6 @@ export function createDriveEffects(scene, camera) {
     update,
     silence,
     status,
+    listener,
   };
 }

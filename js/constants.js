@@ -19,8 +19,8 @@ const WORLD_H = 540;
 export const GROUND_W = WORLD_W * CAMERA_DISTANCE;
 export const GROUND_H = WORLD_H * CAMERA_DISTANCE;
 export const PLAYER_SIZE = 32;
-// Brisk walk, 80 units per second. player.js uses this.
-export const PLAYER_SPEED = 80;
+// Brisk walk, 5% faster than 80. player.js uses this on foot.
+export const PLAYER_SPEED = 80 * 1.05;
 export const CHUNK = 20;
 // The main camera draws this layer. Ambient occlusion only reads layer 0,
 // so light cards, flat shadow sheets, and the build preview do not darken the ground.

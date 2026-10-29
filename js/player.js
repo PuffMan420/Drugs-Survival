@@ -1,5 +1,7 @@
 import {
   AnimationMixer,
+  Audio,
+  AudioLoader,
   Box3,
   CanvasTexture,
   DoubleSide,
@@ -27,6 +29,10 @@ const SHADOW_Y = 0.35;
 // Keys 1–8 place him across the island in one frame. A step never does.
 const PLACE_STEP = 240;
 const FADE = 0.12;
+// The run clip's hips bottom out at these times. That is a footfall.
+const STEP_MARKS = [0.2083, 0.5833];
+// The clips peak near full scale. This keeps a step clear without shouting.
+const FOOTSTEP_VOLUME = 0.45;
 
 function shadowTexture() {
   const width = 64;
@@ -179,6 +185,66 @@ export async function createPlayer() {
 
   let playing = "idle";
   let then = performance.now();
+  let listener = null;
+  // Half a run cycle. The first plant is STEP_MARKS[0] into the clip.
+  const stepGap = STEP_MARKS[1] - STEP_MARKS[0];
+  let sinceStep = 0;
+  let wasStepping = false;
+  const buffers = [null, null];
+  let stepsReady = false;
+
+  function useListener(next) {
+    if (!next || listener) return;
+    listener = next;
+    const loader = new AudioLoader();
+    const files = ["footstep-1.ogg", "footstep-2.ogg"];
+    for (let i = 0; i < files.length; i += 1) {
+      const url = new URL(`../assets/sound/${files[i]}`, import.meta.url).href;
+      loader.load(url, (buffer) => {
+        buffers[i] = buffer;
+        if (buffers[0] && buffers[1]) {
+          stepsReady = true;
+          console.info("Footstep sounds loaded");
+        }
+      }, undefined, (error) => {
+        console.error("A footstep sound failed to load", error);
+      });
+    }
+  }
+
+  const voices = [];
+
+  function playFootstep() {
+    if (!stepsReady || !listener) return;
+    const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;
+    if (!(master > 0)) return;
+    const buffer = buffers[Math.floor(Math.random() * buffers.length)];
+    if (!buffer) return;
+    const start = () => {
+      let audio = voices.find((item) => !item.isPlaying);
+      if (!audio) {
+        audio = new Audio(listener);
+        voices.push(audio);
+      }
+      try {
+        audio.setBuffer(buffer);
+        audio.setLoop(false);
+        // The listener gain already applies the master volume.
+        audio.setVolume(FOOTSTEP_VOLUME);
+        audio.play();
+      } catch (error) {
+        console.error("A footstep failed to play", error);
+      }
+    };
+    const context = listener.context;
+    if (context.state === "suspended") {
+      context.resume().then(() => {
+        if (context.state !== "suspended") start();
+      }).catch(() => {});
+      return;
+    }
+    start();
+  }
 
   function show(name) {
     if (name === playing) return;
@@ -200,18 +266,33 @@ export async function createPlayer() {
     mesh: holder,
     shadow,
     speed: PLAYER_SPEED,
+    useListener,
     update(dx, dz, x, z, y) {
       const now = performance.now();
       const dt = Math.min((now - then) / 1000, 0.05);
       then = now;
       const dist = Math.hypot(dx, dz);
-      if (dist > 0.001 && dist < PLACE_STEP) {
+      const stepping = dist > 0.001 && dist < PLACE_STEP;
+      if (stepping) {
         face(dx, dz);
         show("run");
       } else if (dist < PLACE_STEP) {
         show("idle");
       }
       mixer.update(dt);
+      // The mesh is hidden in a car. A jump is a huge step, not a footfall.
+      // Steps follow the run clip: first plant at 0.208s, then every 0.375s.
+      if (holder.visible && stepping && playing === "run") {
+        if (!wasStepping) sinceStep = stepGap - STEP_MARKS[0];
+        wasStepping = true;
+        sinceStep += dt;
+        if (sinceStep >= stepGap) {
+          sinceStep -= stepGap;
+          playFootstep();
+        }
+      } else {
+        wasStepping = false;
+      }
       place(x, z, y);
     },
   };

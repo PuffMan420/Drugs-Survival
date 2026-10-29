@@ -6,6 +6,7 @@ import {
   DoubleSide,
   Group,
   LinearFilter,
+  LoopOnce,
   LinearMipmapLinearFilter,
   MeshLambertMaterial,
   NoColorSpace,
@@ -228,13 +229,23 @@ function sharedClothMaterial(base, mask, shirt, pants, shoes) {
   return material;
 }
 
+const REACTIONS = ["hitChest", "hitHead", "death"];
+
 function bindActions(mixer, clips) {
   const actions = {
     idle: mixer.clipAction(clips.idle),
     walk: mixer.clipAction(clips.walk),
     run: mixer.clipAction(clips.run),
+    hitChest: mixer.clipAction(clips.hitChest),
+    hitHead: mixer.clipAction(clips.hitHead),
+    death: mixer.clipAction(clips.death),
   };
   for (const name of NAMES) actions[name].play();
+  for (const name of REACTIONS) {
+    actions[name].setLoop(LoopOnce, 1);
+    actions[name].clampWhenFinished = true;
+    actions[name].play();
+  }
   return actions;
 }
 
@@ -246,7 +257,7 @@ function showClip(ped, name) {
     const to = live.actions[name];
     to.paused = false;
     to.enabled = true;
-    to.setEffectiveTimeScale(ped.vary);
+    to.setEffectiveTimeScale(REACTIONS.includes(name) ? 1 : ped.vary);
     to.setEffectiveWeight(1);
     to.time = 0;
     from.crossFadeTo(to, FADE, true);
@@ -410,6 +421,21 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
     return feetAt ? feetAt(x, z, FEET_Y) : FEET_Y;
   }
   const { span } = graph;
+  let reactions = null;
+  try {
+    const rig = await loader.loadAsync(new URL("../assets/player/gubbe.glb", import.meta.url).href);
+    reactions = {
+      hitChest: clipNamed(rig.animations, "Hit_Chest"),
+      hitHead: clipNamed(rig.animations, "Hit_Head"),
+      death: clipNamed(rig.animations, "Death01"),
+    };
+  } catch {
+    throw new Error("The hit and death clips failed to load.");
+  }
+  if (!reactions.hitChest || !reactions.hitHead || !reactions.death) {
+    throw new Error("The hit and death clips failed to load.");
+  }
+  dropHeadScaleTracks(reactions);
 
   function clipsFor(gltf) {
     const clips = {};
@@ -418,6 +444,9 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
       if (!own) throw new Error(`A pedestrian model is missing the ${name} clip.`);
       clips[name] = own;
     }
+    clips.hitChest = reactions.hitChest;
+    clips.hitHead = reactions.hitHead;
+    clips.death = reactions.death;
     return clips;
   }
 
@@ -633,30 +662,28 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
     return ped.x >= rect.minX && ped.x <= rect.maxX && ped.z >= rect.minZ && ped.z <= rect.maxZ;
   }
 
+  const HIT_DUR = { hitChest: 0.333, hitHead: 0.417 };
+  const DEATH_DUR = 2.375;
+
   function fall(ped, step) {
-    ped.vy -= 220 * step;
-    ped.air += ped.vy * step;
-    ped.x += ped.vx * step;
-    ped.z += ped.vz * step;
-    if (ped.air <= 0) {
-      ped.air = 0;
-      if (ped.vy < 0) {
-        ped.vy *= -0.22;
-        ped.vx *= 0.5;
-        ped.vz *= 0.5;
-        if (Math.hypot(ped.vx, ped.vz) < 10 && Math.abs(ped.vy) < 16) {
-          ped.vx = 0;
-          ped.vz = 0;
-          ped.vy = 0;
-          ped.settled = true;
-        }
+    ped.phaseTime += step;
+    if (ped.phase === "hit") {
+      ped.x += ped.vx * step;
+      ped.z += ped.vz * step;
+      ped.vx *= Math.pow(0.08, step);
+      ped.vz *= Math.pow(0.08, step);
+      if (ped.phaseTime >= HIT_DUR[ped.hitClip]) {
+        ped.phase = "death";
+        ped.phaseTime = 0;
+        showClip(ped, "death");
       }
+    } else if (ped.phase === "death" && ped.phaseTime >= DEATH_DUR) {
+      ped.phase = "down";
+      ped.settled = true;
     }
-    if (!ped.settled) ped.spin += step * 7;
     const live = ped.live;
-    live.holder.position.set(ped.x, sole(ped.x, ped.z) + ped.air, ped.z);
-    live.holder.rotation.x = ped.spin;
-    live.holder.rotation.z = ped.spin * 0.65;
+    live.mixer.update(step);
+    live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);
   }
 
   return {
@@ -672,17 +699,18 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
       ped.dead = true;
       ped.settled = false;
       ped.pooled = false;
-      ped.air = 0;
-      ped.spin = 0.2;
+      ped.phase = "hit";
+      ped.phaseTime = 0;
+      ped.hitClip = Math.random() < 0.5 ? "hitChest" : "hitHead";
       const len = Math.hypot(dirX, dirZ) || 1;
-      ped.vx = (dirX / len) * 70;
-      ped.vz = (dirZ / len) * 70;
-      ped.vy = 48;
-      ped.live.mixer.stopAllAction();
+      ped.vx = (dirX / len) * 40;
+      ped.vz = (dirZ / len) * 40;
+      showClip(ped, ped.hitClip);
       return {
         x: ped.x,
         z: ped.z,
         y: ped.live.holder.position.y + 16,
+        ground: sole(ped.x, ped.z) + 0.35,
       };
     },
     freshCorpses() {
@@ -699,7 +727,10 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
       if (next === panic) return;
       panic = next;
       const name = panic ? "run" : "walk";
-      for (const ped of people) showClip(ped, name);
+      for (const ped of people) {
+        if (ped.dead) continue;
+        showClip(ped, name);
+      }
     },
     update(dt, playerX, playerZ, spanW = GROUND_W, spanH = GROUND_H) {
       const step = Math.min(Math.max(dt, 0), 0.05);

@@ -18,6 +18,15 @@ canvas {
   background: #000;
 }
 
+/* The view is the game. The OS pointer stays hidden there so the crosshair is the cursor. */
+#view {
+  cursor: none;
+}
+
+#view:focus {
+  outline: none;
+}
+
 #crosshair {
   position: fixed;
   left: 0;

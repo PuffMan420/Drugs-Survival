@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { GROUND_H, GROUND_W } from "../js/constants.js";
-import { clampStick, displayFrame, stickAxes } from "../js/touch-ui.js";
+import { clampStick, displayFrame, stickAxes, stickWish } from "../js/touch-ui.js";
 
 test("desktop frame stays the 16:9 letterbox", () => {
   const wide = displayFrame(1920, 1080, false, GROUND_W, GROUND_H);
@@ -50,6 +50,22 @@ test("stick maps up to north and ignores a small nudge", () => {
   assert.deepEqual(stickAxes(1, 0), { KeyW: false, KeyS: false, KeyA: false, KeyD: true });
   assert.deepEqual(stickAxes(-0.8, -0.8), { KeyW: true, KeyS: false, KeyA: true, KeyD: false });
   assert.deepEqual(stickAxes(0.1, -0.1), { KeyW: false, KeyS: false, KeyA: false, KeyD: false });
+});
+
+test("a short stick push walks and a full push jogs", () => {
+  assert.equal(stickWish(0, 0).gait, "idle");
+  assert.equal(stickWish(0.1, -0.1).active, false);
+  const walk = stickWish(0, -0.45);
+  assert.equal(walk.gait, "walk");
+  assert.equal(walk.active, true);
+  assert.ok(Math.abs(walk.x) < 1e-9);
+  assert.ok(Math.abs(walk.z + 1) < 1e-9);
+  const jog = stickWish(0, -1);
+  assert.equal(jog.gait, "jog");
+  assert.ok(Math.abs(jog.z + 1) < 1e-9);
+  const east = stickWish(1, 0);
+  assert.equal(east.gait, "jog");
+  assert.ok(Math.abs(east.x - 1) < 1e-9);
 });
 
 test("stick clamp stays inside the base", () => {

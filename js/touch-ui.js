@@ -3,6 +3,8 @@
 // set the walk and drive code already reads.
 
 export const STICK_DEAD = 0.28;
+// Past this much of the stick, the walk becomes the jog. A smaller push stays a walk.
+export const STICK_JOG = 0.65;
 
 const MOVE_CODES = ["KeyW", "KeyA", "KeyS", "KeyD"];
 
@@ -13,6 +15,19 @@ export function stickAxes(nx, ny, dead = STICK_DEAD) {
     KeyS: ny > dead,
     KeyA: nx < -dead,
     KeyD: nx > dead,
+  };
+}
+
+// Screen y grows downward. World north is negative z, the same way KeyW moves.
+// A short push walks. A full push jogs. The car still reads the WASD flags.
+export function stickWish(nx, ny, dead = STICK_DEAD, jogAt = STICK_JOG) {
+  const mag = Math.hypot(nx, ny);
+  if (!(mag > dead)) return { x: 0, z: 0, gait: "idle", active: false };
+  return {
+    x: nx / mag,
+    z: ny / mag,
+    gait: mag >= jogAt ? "jog" : "walk",
+    active: true,
   };
 }
 
@@ -81,7 +96,7 @@ function keyButton(code, key, label, caption) {
   return button;
 }
 
-export function mountTouchUi(held, places = []) {
+export function mountTouchUi(held, places = [], intent = null) {
   if (!isTouchScreen()) return;
 
   const root = document.createElement("div");
@@ -135,6 +150,16 @@ export function mountTouchUi(held, places = []) {
   const fromStick = new Set();
   let active = null;
 
+  function publish(nx, ny) {
+    applyAxes(stickAxes(nx, ny));
+    if (!intent) return;
+    const wish = stickWish(nx, ny);
+    intent.active = wish.active;
+    intent.x = wish.x;
+    intent.z = wish.z;
+    intent.gait = wish.gait;
+  }
+
   function applyAxes(axes) {
     for (const code of MOVE_CODES) {
       if (axes[code]) {
@@ -148,7 +173,7 @@ export function mountTouchUi(held, places = []) {
 
   function center() {
     knob.style.transform = "translate(0px, 0px)";
-    applyAxes(stickAxes(0, 0));
+    publish(0, 0);
   }
 
   function moveStick(event) {
@@ -158,7 +183,7 @@ export function mountTouchUi(held, places = []) {
     const dy = event.clientY - (rect.top + rect.height / 2);
     const next = clampStick(dx, dy, travel);
     knob.style.transform = `translate(${next.x}px, ${next.y}px)`;
-    applyAxes(stickAxes(next.nx, next.ny));
+    publish(next.nx, next.ny);
   }
 
   function endStick(event) {

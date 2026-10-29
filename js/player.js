@@ -29,8 +29,20 @@ const SHADOW_Y = 0.35;
 // Keys 1–8 place him across the island in one frame. A step never does.
 const PLACE_STEP = 240;
 const FADE = 0.12;
-// The run clip's hips bottom out at these times. That is a footfall.
-const STEP_MARKS = [0.2083, 0.5833];
+// Toe plants on the ground, then the clip length so the next plant wraps.
+// Walk_Loop is 4/3 s. Sprint_Loop is 2/3 s and its two plants are not even.
+const STEP_MARKS = {
+  walk: { plants: [0.1667, 0.8333], duration: 4 / 3 },
+  sprint: { plants: [0.051, 0.4243], duration: 2 / 3 },
+};
+
+function plantsBetween(plants, from, to) {
+  let hits = 0;
+  for (const plant of plants) {
+    if (plant > from && plant <= to) hits += 1;
+  }
+  return hits;
+}
 // Half of the previous gain. The clips peak near full scale.
 const FOOTSTEP_VOLUME = 0.45 * 0.5 * 0.8 * 0.8 * 0.5;
 
@@ -97,7 +109,7 @@ function clipNamed(animations, name) {
 
 export async function createPlayer() {
   const loader = new GLTFLoader();
-  const url = new URL("../assets/player/humanMaleA_v15.glb", import.meta.url).href;
+  const url = new URL("../assets/player/gubbe.glb", import.meta.url).href;
   let gltf;
   try {
     gltf = await loader.loadAsync(url);
@@ -148,12 +160,12 @@ export async function createPlayer() {
   shadow.position.y = SHADOW_Y;
 
   const mixer = new AnimationMixer(model);
-  // The file has idle, walk, and run. He only moves at PLAYER_SPEED, so a step plays
-  // the full run. Walk stays in the mixer so every clip is playing.
+  // Standing, the brisk walk, and a faster run. The other UAL clips stay in
+  // the file. There is no jump, so Jump_Start, Jump_Loop, and Jump_Land wait.
   const actions = {
-    idle: mixer.clipAction(clipNamed(gltf.animations, "idle")),
-    walk: mixer.clipAction(clipNamed(gltf.animations, "walk")),
-    run: mixer.clipAction(clipNamed(gltf.animations, "run")),
+    idle: mixer.clipAction(clipNamed(gltf.animations, "Idle_Loop")),
+    walk: mixer.clipAction(clipNamed(gltf.animations, "Walk_Loop")),
+    sprint: mixer.clipAction(clipNamed(gltf.animations, "Sprint_Loop")),
   };
 
   // webgl_animation_skinning_blending.html: every action stays playing, and a
@@ -175,10 +187,10 @@ export async function createPlayer() {
 
   setWeight(actions.idle, 1);
   setWeight(actions.walk, 0);
-  setWeight(actions.run, 0);
+  setWeight(actions.sprint, 0);
   actions.idle.play();
   actions.walk.play();
-  actions.run.play();
+  actions.sprint.play();
   // Bones are still the bind T until the mixer writes. Do that before the
   // first paint, while idle is the only action with weight.
   mixer.update(0);
@@ -186,10 +198,9 @@ export async function createPlayer() {
   let playing = "idle";
   let then = performance.now();
   let listener = null;
-  // Half a run cycle. The first plant is STEP_MARKS[0] into the clip.
-  const stepGap = STEP_MARKS[1] - STEP_MARKS[0];
-  let sinceStep = 0;
-  let wasStepping = false;
+  // Time within the gait clip. A plant plays when this crosses a toe contact.
+  let cycle = 0;
+  let stepGait = "";
   const buffers = [null, null];
   let stepsReady = false;
 
@@ -275,23 +286,33 @@ export async function createPlayer() {
       const stepping = dist > 0.001 && dist < PLACE_STEP;
       if (stepping) {
         face(dx, dz);
-        show("run");
+        // Build mode walks at three times PLAYER_SPEED. That is the run.
+        const pace = dt > 0 ? dist / dt : 0;
+        show(pace > PLAYER_SPEED * 1.5 ? "sprint" : "walk");
       } else if (dist < PLACE_STEP) {
         show("idle");
       }
       mixer.update(dt);
-      // The mesh is hidden in a car. A jump is a huge step, not a footfall.
-      // Steps follow the run clip: first plant at 0.208s, then every 0.375s.
-      if (holder.visible && stepping && playing === "run") {
-        if (!wasStepping) sinceStep = stepGap - STEP_MARKS[0];
-        wasStepping = true;
-        sinceStep += dt;
-        if (sinceStep >= stepGap) {
-          sinceStep -= stepGap;
-          playFootstep();
+      // The mesh is hidden in a car. A map jump is a huge step, not a footfall.
+      const gait = playing === "walk" || playing === "sprint" ? playing : "";
+      if (holder.visible && stepping && gait) {
+        const marks = STEP_MARKS[gait];
+        if (stepGait !== gait) {
+          cycle = 0;
+          stepGait = gait;
         }
+        let next = cycle + dt;
+        let hits = 0;
+        while (next >= marks.duration) {
+          hits += plantsBetween(marks.plants, cycle, marks.duration);
+          next -= marks.duration;
+          cycle = 0;
+        }
+        hits += plantsBetween(marks.plants, cycle, next);
+        cycle = next;
+        for (let i = 0; i < hits; i += 1) playFootstep();
       } else {
-        wasStepping = false;
+        stepGait = "";
       }
       place(x, z, y);
     },

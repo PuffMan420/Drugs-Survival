@@ -410,28 +410,13 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
     return feetAt ? feetAt(x, z, FEET_Y) : FEET_Y;
   }
   const { span } = graph;
-  let donor = null;
 
-  async function clipsFor(gltf) {
-    const missing = NAMES.filter((name) => !clipNamed(gltf.animations, name));
-    if (missing.length > 0 && !donor) {
-      const url = new URL("../assets/player/humanMaleA_v15.glb", import.meta.url).href;
-      try {
-        donor = await loader.loadAsync(url);
-      } catch {
-        throw new Error("The player walk clip failed to load.");
-      }
-    }
+  function clipsFor(gltf) {
     const clips = {};
     for (const name of NAMES) {
       const own = clipNamed(gltf.animations, name);
-      if (own) {
-        clips[name] = own;
-        continue;
-      }
-      const fallback = donor ? clipNamed(donor.animations, name) : null;
-      if (!fallback) throw new Error(`A pedestrian model is missing the ${name} clip.`);
-      clips[name] = fallback.clone();
+      if (!own) throw new Error(`A pedestrian model is missing the ${name} clip.`);
+      clips[name] = own;
     }
     return clips;
   }
@@ -446,8 +431,8 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
       throw new Error(`The pedestrian model failed to load: ${file}`);
     }
     const clips = await clipsFor(gltf);
-    // Own clips and any player-file fallback. Head.scale is a rest hold
-    // at 1, and the mixer would write it back over the smaller head.
+    // Head.scale is a rest hold at 1, and the mixer would write it back
+    // over the smaller head.
     dropHeadScaleTracks(clips);
     const template = gltf.scene;
     const mask = clothMask(template);

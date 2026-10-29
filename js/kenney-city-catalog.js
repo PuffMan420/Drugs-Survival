@@ -687,56 +687,280 @@ export const KITS = [
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-a.glb"
       },
       {
+        "file": "building-a-brown.glb",
+        "url": "assets/buildings/building-a-brown.glb"
+      },
+      {
+        "file": "building-a-brown-scuffed.glb",
+        "url": "assets/buildings/building-a-brown-scuffed.glb"
+      },
+      {
+        "file": "building-a-white.glb",
+        "url": "assets/buildings/building-a-white.glb"
+      },
+      {
+        "file": "building-a-white-scuffed.glb",
+        "url": "assets/buildings/building-a-white-scuffed.glb"
+      },
+      {
         "file": "building-b.glb",
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-b.glb"
+      },
+      {
+        "file": "building-b-brown.glb",
+        "url": "assets/buildings/building-b-brown.glb"
+      },
+      {
+        "file": "building-b-brown-scuffed.glb",
+        "url": "assets/buildings/building-b-brown-scuffed.glb"
+      },
+      {
+        "file": "building-b-white.glb",
+        "url": "assets/buildings/building-b-white.glb"
+      },
+      {
+        "file": "building-b-white-scuffed.glb",
+        "url": "assets/buildings/building-b-white-scuffed.glb"
       },
       {
         "file": "building-c.glb",
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-c.glb"
       },
       {
+        "file": "building-c-brown.glb",
+        "url": "assets/buildings/building-c-brown.glb"
+      },
+      {
+        "file": "building-c-brown-scuffed.glb",
+        "url": "assets/buildings/building-c-brown-scuffed.glb"
+      },
+      {
+        "file": "building-c-white.glb",
+        "url": "assets/buildings/building-c-white.glb"
+      },
+      {
+        "file": "building-c-white-scuffed.glb",
+        "url": "assets/buildings/building-c-white-scuffed.glb"
+      },
+      {
         "file": "building-d.glb",
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-d.glb"
+      },
+      {
+        "file": "building-d-brown.glb",
+        "url": "assets/buildings/building-d-brown.glb"
+      },
+      {
+        "file": "building-d-brown-scuffed.glb",
+        "url": "assets/buildings/building-d-brown-scuffed.glb"
+      },
+      {
+        "file": "building-d-white.glb",
+        "url": "assets/buildings/building-d-white.glb"
+      },
+      {
+        "file": "building-d-white-scuffed.glb",
+        "url": "assets/buildings/building-d-white-scuffed.glb"
       },
       {
         "file": "building-e.glb",
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-e.glb"
       },
       {
+        "file": "building-e-brown.glb",
+        "url": "assets/buildings/building-e-brown.glb"
+      },
+      {
+        "file": "building-e-brown-scuffed.glb",
+        "url": "assets/buildings/building-e-brown-scuffed.glb"
+      },
+      {
+        "file": "building-e-white.glb",
+        "url": "assets/buildings/building-e-white.glb"
+      },
+      {
+        "file": "building-e-white-scuffed.glb",
+        "url": "assets/buildings/building-e-white-scuffed.glb"
+      },
+      {
         "file": "building-f.glb",
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-f.glb"
+      },
+      {
+        "file": "building-f-brown.glb",
+        "url": "assets/buildings/building-f-brown.glb"
+      },
+      {
+        "file": "building-f-brown-scuffed.glb",
+        "url": "assets/buildings/building-f-brown-scuffed.glb"
+      },
+      {
+        "file": "building-f-white.glb",
+        "url": "assets/buildings/building-f-white.glb"
+      },
+      {
+        "file": "building-f-white-scuffed.glb",
+        "url": "assets/buildings/building-f-white-scuffed.glb"
       },
       {
         "file": "building-g.glb",
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-g.glb"
       },
       {
+        "file": "building-g-brown.glb",
+        "url": "assets/buildings/building-g-brown.glb"
+      },
+      {
+        "file": "building-g-brown-scuffed.glb",
+        "url": "assets/buildings/building-g-brown-scuffed.glb"
+      },
+      {
+        "file": "building-g-white.glb",
+        "url": "assets/buildings/building-g-white.glb"
+      },
+      {
+        "file": "building-g-white-scuffed.glb",
+        "url": "assets/buildings/building-g-white-scuffed.glb"
+      },
+      {
         "file": "building-h.glb",
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-h.glb"
+      },
+      {
+        "file": "building-h-brown.glb",
+        "url": "assets/buildings/building-h-brown.glb"
+      },
+      {
+        "file": "building-h-brown-scuffed.glb",
+        "url": "assets/buildings/building-h-brown-scuffed.glb"
+      },
+      {
+        "file": "building-h-white.glb",
+        "url": "assets/buildings/building-h-white.glb"
+      },
+      {
+        "file": "building-h-white-scuffed.glb",
+        "url": "assets/buildings/building-h-white-scuffed.glb"
       },
       {
         "file": "building-i.glb",
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-i.glb"
       },
       {
+        "file": "building-i-brown.glb",
+        "url": "assets/buildings/building-i-brown.glb"
+      },
+      {
+        "file": "building-i-brown-scuffed.glb",
+        "url": "assets/buildings/building-i-brown-scuffed.glb"
+      },
+      {
+        "file": "building-i-white.glb",
+        "url": "assets/buildings/building-i-white.glb"
+      },
+      {
+        "file": "building-i-white-scuffed.glb",
+        "url": "assets/buildings/building-i-white-scuffed.glb"
+      },
+      {
         "file": "building-j.glb",
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-j.glb"
+      },
+      {
+        "file": "building-j-brown.glb",
+        "url": "assets/buildings/building-j-brown.glb"
+      },
+      {
+        "file": "building-j-brown-scuffed.glb",
+        "url": "assets/buildings/building-j-brown-scuffed.glb"
+      },
+      {
+        "file": "building-j-white.glb",
+        "url": "assets/buildings/building-j-white.glb"
+      },
+      {
+        "file": "building-j-white-scuffed.glb",
+        "url": "assets/buildings/building-j-white-scuffed.glb"
       },
       {
         "file": "building-k.glb",
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-k.glb"
       },
       {
+        "file": "building-k-brown.glb",
+        "url": "assets/buildings/building-k-brown.glb"
+      },
+      {
+        "file": "building-k-brown-scuffed.glb",
+        "url": "assets/buildings/building-k-brown-scuffed.glb"
+      },
+      {
+        "file": "building-k-white.glb",
+        "url": "assets/buildings/building-k-white.glb"
+      },
+      {
+        "file": "building-k-white-scuffed.glb",
+        "url": "assets/buildings/building-k-white-scuffed.glb"
+      },
+      {
         "file": "building-l.glb",
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-l.glb"
+      },
+      {
+        "file": "building-l-brown.glb",
+        "url": "assets/buildings/building-l-brown.glb"
+      },
+      {
+        "file": "building-l-brown-scuffed.glb",
+        "url": "assets/buildings/building-l-brown-scuffed.glb"
+      },
+      {
+        "file": "building-l-white.glb",
+        "url": "assets/buildings/building-l-white.glb"
+      },
+      {
+        "file": "building-l-white-scuffed.glb",
+        "url": "assets/buildings/building-l-white-scuffed.glb"
       },
       {
         "file": "building-m.glb",
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-m.glb"
       },
       {
+        "file": "building-m-brown.glb",
+        "url": "assets/buildings/building-m-brown.glb"
+      },
+      {
+        "file": "building-m-brown-scuffed.glb",
+        "url": "assets/buildings/building-m-brown-scuffed.glb"
+      },
+      {
+        "file": "building-m-white.glb",
+        "url": "assets/buildings/building-m-white.glb"
+      },
+      {
+        "file": "building-m-white-scuffed.glb",
+        "url": "assets/buildings/building-m-white-scuffed.glb"
+      },
+      {
         "file": "building-n.glb",
         "url": "assets/kenney-city/kenney_city-kit-commercial_2.1/Models/GLB format/building-n.glb"
+      },
+      {
+        "file": "building-n-brown.glb",
+        "url": "assets/buildings/building-n-brown.glb"
+      },
+      {
+        "file": "building-n-brown-scuffed.glb",
+        "url": "assets/buildings/building-n-brown-scuffed.glb"
+      },
+      {
+        "file": "building-n-white.glb",
+        "url": "assets/buildings/building-n-white.glb"
+      },
+      {
+        "file": "building-n-white-scuffed.glb",
+        "url": "assets/buildings/building-n-white-scuffed.glb"
       },
       {
         "file": "building-skyscraper-a.glb",

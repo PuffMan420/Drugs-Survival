@@ -8,7 +8,7 @@
 - Never merge. Ted merges.
 - Write prompts in English.
 - Keep PRs small and scoped to one change.
-- Kenney models stay untouched: no edits to their geometry, materials, or colors.
+- Kenney models stay untouched: no edits to their geometry.
 - No NearestFilter, and no drawing at a low resolution and scaling up.
 - Every PR includes zoomed screenshots.
 - Explore first and wait for plan approval before building.

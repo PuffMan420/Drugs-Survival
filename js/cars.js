@@ -717,6 +717,9 @@ export async function createTraffic(scene, map, pieces = []) {
   }
 
   return {
+    scare(x, z) {
+      sim.scare(x, z);
+    },
     cars() {
       const total = parked.length + sim.drivers.length;
       listed.length = total;

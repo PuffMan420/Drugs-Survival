@@ -187,3 +187,138 @@ canvas {
   font: 18px/1.4 ui-sans-serif, system-ui, sans-serif;
   text-align: center;
 }
+
+#touch-ui {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  html,
+  body {
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+
+  #view {
+    touch-action: none;
+  }
+
+  #hint,
+  #build-info {
+    display: none;
+  }
+
+  #minimap {
+    top: max(8px, env(safe-area-inset-top));
+    right: max(8px, env(safe-area-inset-right));
+    bottom: auto;
+    width: min(22vmin, 112px);
+    height: min(22vmin, 112px);
+  }
+
+  #build-panel {
+    width: min(220px, 46vw);
+    max-height: 38vh;
+  }
+
+  #build-search {
+    font-size: 16px;
+  }
+
+  #build-kits {
+    touch-action: pan-y;
+  }
+
+  #touch-ui {
+    display: block;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #stick {
+    position: fixed;
+    z-index: 6;
+    left: max(12px, env(safe-area-inset-left));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: 112px;
+    height: 112px;
+    box-sizing: border-box;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    pointer-events: auto;
+    touch-action: none;
+  }
+
+  #stick-knob {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 48px;
+    height: 48px;
+    margin: -24px 0 0 -24px;
+    border-radius: 50%;
+    background: #ffe14a;
+  }
+
+  #touch-pad {
+    position: fixed;
+    z-index: 6;
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    max-width: 188px;
+  }
+
+  #touch-build,
+  #touch-places,
+  #touch-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+    pointer-events: none;
+  }
+
+  #touch-build[hidden] {
+    display: none;
+  }
+
+  #touch-build:not([hidden]) {
+    display: grid;
+    grid-template-columns: repeat(3, 44px);
+  }
+
+  #touch-ui button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 2px solid #fff;
+    background: rgba(0, 0, 0, 0.72);
+    color: #fff;
+    font: 700 13px/1 ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+    pointer-events: auto;
+    touch-action: none;
+  }
+
+  #touch-ui button span {
+    margin-top: 1px;
+    font: 8px/1 ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+    font-weight: 400;
+  }
+
+  #touch-ui button:active {
+    background: #ffe14a;
+    color: #000;
+  }
+}

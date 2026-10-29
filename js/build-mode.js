@@ -1481,8 +1481,8 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     download,
     pieceCount: () => pieces.length,
     isOpen: () => enabled,
-    updateRoads: (camX, camZ, viewScale) => {
-      batches.update(camX, camZ, viewScale);
+    updateRoads: (camX, camZ, viewScale, spanW, spanH) => {
+      batches.update(camX, camZ, viewScale, spanW, spanH);
       syncSignalLamps();
     },
   };

@@ -41,6 +41,7 @@ import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
 import { createPlayer } from "./player.js";
 import { createBuildMode, loadNamedMap } from "./build-mode.js";
+import { displayFrame, isTouchScreen, mountTouchUi } from "./touch-ui.js";
 
 const NEAR = 10;
 // Wide enough to see the far shore from a camera sitting over the near one.
@@ -150,10 +151,10 @@ function lockPixelProjection(camera, viewFor) {
     const view = viewFor();
     const scale = (camera.near / CAMERA_RADIUS) * view;
     camera.projectionMatrix.makePerspective(
-      (-GROUND_W / 2) * scale,
-      (GROUND_W / 2) * scale,
-      (GROUND_H / 2) * scale,
-      (-GROUND_H / 2) * scale,
+      (-spanW / 2) * scale,
+      (spanW / 2) * scale,
+      (spanH / 2) * scale,
+      (-spanH / 2) * scale,
       camera.near,
       camera.far,
     );
@@ -163,22 +164,33 @@ function lockPixelProjection(camera, viewFor) {
   apply();
 }
 
+// Desktop keeps GROUND_W x GROUND_H. A coarse pointer fills the window and
+// lengthens that frame on the long axis. Shadows, materials, and the draw
+// path stay the same; only the framed ground changes size.
+let spanW = GROUND_W;
+let spanH = GROUND_H;
+let shownCamera = null;
+
 function fitDisplay(renderer) {
   // Same 16:9 frame as the ground the camera shows. Draw it into the canvas
   // at the window's own pixels, with devicePixelRatio capped at 2. The
-  // occlusion targets use this same drawing-buffer size.
-  const unit = Math.min(window.innerWidth / 16, window.innerHeight / 9);
-  const width = Math.max(1, Math.round(unit * 16));
-  const height = Math.max(1, Math.round(width * 9 / 16));
+  // occlusion targets use this same drawing-buffer size. A touch screen uses
+  // the whole window instead of the letterbox.
+  const frame = displayFrame(window.innerWidth, window.innerHeight, isTouchScreen(), GROUND_W, GROUND_H);
+  spanW = frame.spanW;
+  spanH = frame.spanH;
+  const { cssW: width, cssH: height } = frame;
   const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
+  if (isTouchScreen()) canvas.style.touchAction = "none";
   renderer.setPixelRatio(pixelRatio);
   renderer.setSize(width, height, false);
   if (composer) {
     composer.setPixelRatio(pixelRatio);
     composer.setSize(width, height);
   }
+  shownCamera?.updateProjectionMatrix();
 }
 
 const litMaterials = new WeakMap();
@@ -495,6 +507,7 @@ async function start() {
   renderer.setClearColor(0x102028, 1);
   fitDisplay(renderer);
   window.addEventListener("resize", () => fitDisplay(renderer));
+  if (isTouchScreen()) window.visualViewport?.addEventListener("resize", () => fitDisplay(renderer));
 
   fpsEl.textContent = "Loading map…";
   const map = await fetch("./data/island.json").then((response) => {
@@ -540,6 +553,7 @@ async function start() {
   const tiltNorth = Math.cos(CAMERA_ANGLE);
   camera.up.set(0, tiltUp, -tiltNorth);
   lockPixelProjection(camera, () => playView(camera));
+  shownCamera = camera;
   // theta 0 is +Z, which is south. The camera does not orbit.
   const cameraTheta = 0;
   const cameraTarget = new Vector3();
@@ -669,8 +683,8 @@ async function start() {
     stepView(dt, drive.driving);
     const view = playView(camera);
     camera.updateProjectionMatrix();
-    const halfW = (GROUND_W * view) / 2;
-    const halfH = (GROUND_H * view) / 2;
+    const halfW = (spanW * view) / 2;
+    const halfH = (spanH * view) / 2;
     let camX = frameCenter(snappedX, halfW, city.mapW);
     let camZ = frameCenter(snappedZ, halfH, city.mapH);
     traffic.update(dt, camX, camZ, player.x, player.z);
@@ -687,7 +701,7 @@ async function start() {
     snappedZ = Math.round(player.z);
     playerSprite.mesh.visible = !drive.driving;
     playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ, player.y);
-    pedestrians.update(dt, player.x, player.z);
+    pedestrians.update(dt, player.x, player.z, spanW, spanH);
     camX = frameCenter(snappedX, halfW, city.mapW);
     camZ = frameCenter(snappedZ, halfH, city.mapH);
     glow.update(camX, camZ, traffic.lights(camX, camZ));
@@ -696,13 +710,13 @@ async function start() {
     cameraTarget.set(camX, 0, camZ);
     camera.position.add(cameraTarget);
     camera.lookAt(cameraTarget);
-    updateChunks(city.chunks, camX, camZ, view);
-    buildMode.updateRoads(camX, camZ, view);
+    updateChunks(city.chunks, camX, camZ, view, spanW, spanH);
+    buildMode.updateRoads(camX, camZ, view, spanW, spanH);
     lightVisibleCity(city.chunks);
     placeSun(sun, camX, camZ);
     renderer.shadowMap.needsUpdate = true;
     ambient.render();
-    minimap.draw(camX, camZ, player.x, player.z, TILE, (GROUND_W * view) / TILE, (GROUND_H * view) / TILE);
+    minimap.draw(camX, camZ, player.x, player.z, TILE, (spanW * view) / TILE, (spanH * view) / TILE);
 
     const instant = 1 / Math.max(dt, 1 / 240);
     fps = fps === 0 ? instant : fps + (instant - fps) * 0.1;
@@ -770,6 +784,8 @@ window.addEventListener("keyup", (event) => {
 });
 
 window.addEventListener("blur", () => held.clear());
+
+mountTouchUi(held, ISLAND_JUMPS);
 
 start().catch((error) => {
   showError(error instanceof Error ? error.message : "The game failed to start.");

@@ -181,15 +181,15 @@ export async function buildCity(scene, map) {
   };
 }
 
-export function updateChunks(chunks, camX, camZ, viewScale = 1) {
+export function updateChunks(chunks, camX, camZ, viewScale = 1, spanW = GROUND_W, spanH = GROUND_H) {
   const margin = TILE * 2;
   // Roofs lean north into the frame from just south of it.
   const southMargin = TILE * 5;
   const view = viewScale > 0 ? viewScale : 1;
-  const minX = camX - (GROUND_W / 2) * view - margin;
-  const maxX = camX + (GROUND_W / 2) * view + margin;
-  const minZ = camZ - (GROUND_H / 2) * view - margin;
-  const maxZ = camZ + (GROUND_H / 2) * view + margin + southMargin;
+  const minX = camX - (spanW / 2) * view - margin;
+  const maxX = camX + (spanW / 2) * view + margin;
+  const minZ = camZ - (spanH / 2) * view - margin;
+  const maxZ = camZ + (spanH / 2) * view + margin + southMargin;
   let shown = 0;
   for (const chunk of chunks) {
     const visible = chunk.maxX >= minX && chunk.minX <= maxX && chunk.maxZ >= minZ && chunk.minZ <= maxZ;

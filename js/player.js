@@ -8,6 +8,7 @@ import {
   Group,
   Mesh,
   MeshBasicMaterial,
+  LoopOnce,
   MeshLambertMaterial,
   PlaneGeometry,
   SRGBColorSpace,
@@ -201,10 +202,28 @@ export async function createPlayer() {
   setWeight(actions.walk, 0);
   setWeight(actions.jog, 0);
   setWeight(actions.sprint, 0);
+  const pistolClips = {
+    pistolIdle: "Pistol_Idle_Loop",
+    pistolAim: "Pistol_Aim_Neutral",
+    pistolShoot: "Pistol_Shoot",
+    pistolReload: "Pistol_Reload",
+  };
+  for (const key of Object.keys(pistolClips)) {
+    actions[key] = mixer.clipAction(clipNamed(gltf.animations, pistolClips[key]));
+    setWeight(actions[key], 0);
+  }
+  actions.pistolShoot.setLoop(LoopOnce, 1);
+  actions.pistolShoot.clampWhenFinished = true;
+  actions.pistolReload.setLoop(LoopOnce, 1);
+  actions.pistolReload.clampWhenFinished = true;
   actions.idle.play();
   actions.walk.play();
   actions.jog.play();
   actions.sprint.play();
+  actions.pistolIdle.play();
+  actions.pistolAim.play();
+  actions.pistolShoot.play();
+  actions.pistolReload.play();
   // Bones are still the bind T until the mixer writes. Do that before the
   // first paint, while idle is the only action with weight.
   mixer.update(0);
@@ -216,6 +235,8 @@ export async function createPlayer() {
   // Smoothed ground speed, and the way he is facing. Movement follows facing.
   let speed = 0;
   let facing = 0;
+  let forced = "";
+  let aim = null;
   const buffers = [null, null];
   let stepsReady = false;
 
@@ -318,16 +339,34 @@ export async function createPlayer() {
     get dirZ() {
       return Math.cos(facing);
     },
+    model,
     useListener,
     // Wish is a unit direction. Gait is walk, jog, sprint, or idle. Boost is
     // the build-mode pace. Speed and facing ease. They do not snap.
+    forcePose(name) {
+      forced = name || "";
+    },
+    aimAt(x, z) {
+      aim = { x, z };
+    },
+    clearAim() {
+      aim = null;
+    },
     guide(dt, wishX, wishZ, gait, boost) {
       const step = Math.max(0, dt);
       const wish = Math.hypot(wishX, wishZ);
-      if (wish > 0.001) {
-        const target = Math.atan2(wishX / wish, wishZ / wish);
+      let target = null;
+      if (aim) {
+        const dx = aim.x - holder.position.x;
+        const dz = aim.z - holder.position.z;
+        if (Math.hypot(dx, dz) > 1) target = Math.atan2(dx, dz);
+      } else if (wish > 0.001) {
+        target = Math.atan2(wishX / wish, wishZ / wish);
+      }
+      if (target != null) {
         const delta = Math.atan2(Math.sin(target - facing), Math.cos(target - facing));
-        facing += delta * (1 - Math.exp(-step / TURN_TAU));
+        const tau = aim ? 0.04 : TURN_TAU;
+        facing += delta * (1 - Math.exp(-step / tau));
         holder.rotation.y = facing;
       }
       const rate = GAIT_SPEED[gait] || 0;
@@ -343,10 +382,11 @@ export async function createPlayer() {
       const dist = Math.hypot(dx, dz);
       const moved = dist > 0.001 && dist < PLACE_STEP;
       const ground = moved && step > 0 ? dist / step : 0;
-      if (holder.visible && dist < PLACE_STEP) show(gaitForSpeed(ground));
+      if (holder.visible && dist < PLACE_STEP) show(forced || gaitForSpeed(ground));
       for (const name of Object.keys(GAIT_SPEED)) {
         actions[name].setEffectiveTimeScale(clipScale(name, ground));
       }
+      if (forced && actions[forced]) actions[forced].setEffectiveTimeScale(1);
       mixer.update(step);
       // The mesh is hidden in a car. A map jump is a huge step, not a footfall.
       // Clip time moves with the playback rate, so a faster gait steps sooner.

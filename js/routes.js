@@ -942,6 +942,14 @@ export function createSim(plan, models, pick) {
 
   return {
     drivers,
+    // A shot nearby. They keep the same lanes and still stop for lights,
+    // but the open-road cap is higher until the scare wears off.
+    scare(x, z) {
+      for (const driver of drivers) {
+        if (driver.held || driver.stray) continue;
+        if (Math.hypot(driver.x - x, driver.z - z) < 900) driver.flee = 3;
+      }
+    },
     step(dt, camX, camZ, playerX, playerZ) {
       advanceSignalClock(dt);
       for (let i = drivers.length - 1; i >= 0; i -= 1) {
@@ -972,7 +980,8 @@ export function createSim(plan, models, pick) {
       const player = { x: playerX, z: playerZ, y: 0.6, angle: 0, w: 32, h: 32, speed: 0 };
       for (const driver of drivers) {
         if (driver.held || driver.stray) continue;
-        let limit = driver.cruise;
+        if (driver.flee > 0) driver.flee = Math.max(0, driver.flee - dt);
+        let limit = driver.flee > 0 ? driver.cruise * 1.65 : driver.cruise;
         let blocked = false;
         let backing = false;
         let signalGap = Infinity;

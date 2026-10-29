@@ -633,7 +633,67 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
     return ped.x >= rect.minX && ped.x <= rect.maxX && ped.z >= rect.minZ && ped.z <= rect.maxZ;
   }
 
+  function fall(ped, step) {
+    ped.vy -= 220 * step;
+    ped.air += ped.vy * step;
+    ped.x += ped.vx * step;
+    ped.z += ped.vz * step;
+    if (ped.air <= 0) {
+      ped.air = 0;
+      if (ped.vy < 0) {
+        ped.vy *= -0.22;
+        ped.vx *= 0.5;
+        ped.vz *= 0.5;
+        if (Math.hypot(ped.vx, ped.vz) < 10 && Math.abs(ped.vy) < 16) {
+          ped.vx = 0;
+          ped.vz = 0;
+          ped.vy = 0;
+          ped.settled = true;
+        }
+      }
+    }
+    if (!ped.settled) ped.spin += step * 7;
+    const live = ped.live;
+    live.holder.position.set(ped.x, sole(ped.x, ped.z) + ped.air, ped.z);
+    live.holder.rotation.x = ped.spin;
+    live.holder.rotation.z = ped.spin * 0.65;
+  }
+
   return {
+    targets() {
+      const list = [];
+      for (const ped of people) {
+        if (ped.live && !ped.dead) list.push(ped);
+      }
+      return list;
+    },
+    hurt(ped, dirX, dirZ) {
+      if (!ped || ped.dead || !ped.live) return null;
+      ped.dead = true;
+      ped.settled = false;
+      ped.pooled = false;
+      ped.air = 0;
+      ped.spin = 0.2;
+      const len = Math.hypot(dirX, dirZ) || 1;
+      ped.vx = (dirX / len) * 70;
+      ped.vz = (dirZ / len) * 70;
+      ped.vy = 48;
+      ped.live.mixer.stopAllAction();
+      return {
+        x: ped.x,
+        z: ped.z,
+        y: ped.live.holder.position.y + 16,
+      };
+    },
+    freshCorpses() {
+      const list = [];
+      for (const ped of people) {
+        if (!ped.dead || !ped.settled || ped.pooled) continue;
+        ped.pooled = true;
+        list.push({ x: ped.x, z: ped.z, y: sole(ped.x, ped.z) + 0.2 });
+      }
+      return list;
+    },
     setPanic(value) {
       const next = Boolean(value);
       if (next === panic) return;
@@ -646,6 +706,10 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
       const enter = viewRect(playerX, playerZ, enterMargin, spanW, spanH);
       const leave = viewRect(playerX, playerZ, leaveMargin, spanW, spanH);
       for (const ped of people) {
+        if (ped.live && ped.dead) {
+          fall(ped, step);
+          continue;
+        }
         if (ped.live && !inRect(ped, leave)) {
           release(ped);
           continue;

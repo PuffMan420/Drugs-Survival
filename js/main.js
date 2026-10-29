@@ -40,6 +40,7 @@ import { createSidewalkIndex } from "./sidewalk-height.js";
 import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
 import { createPlayer } from "./player.js";
+import { createPistol } from "./pistol.js";
 import { createBuildMode, loadNamedMap } from "./build-mode.js";
 import { displayFrame, isTouchScreen, mountTouchUi } from "./touch-ui.js";
 
@@ -561,6 +562,16 @@ async function start() {
   const driveFx = createDriveEffects(scene, camera);
   session.audio = driveFx.listener.context;
   playerSprite.useListener(driveFx.listener);
+  const pistol = await createPistol({
+    scene,
+    player: playerSprite,
+    camera,
+    canvas,
+    listener: driveFx.listener,
+    pedestrians,
+    traffic,
+    blocked: () => buildMode.isOpen() || drive.driving,
+  });
   const origin = tileCenter(map.spawn.x, map.spawn.z);
   const player = { x: origin.x, z: origin.z, y: 0.6 };
   const half = PLAYER_SIZE / 2;
@@ -638,6 +649,7 @@ async function start() {
     // Physics keeps its own clock: whole 1/60 s steps, capped per frame.
     physics.step(frameDt);
 
+    pistol.pre();
     if (drive.driving) {
       const pose = drive.pose();
       if (pose) {
@@ -701,6 +713,7 @@ async function start() {
     snappedZ = Math.round(player.z);
     playerSprite.mesh.visible = !drive.driving;
     playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ, player.y, dt);
+    pistol.update(dt);
     pedestrians.update(dt, player.x, player.z, spanW, spanH);
     camX = frameCenter(snappedX, halfW, city.mapW);
     camZ = frameCenter(snappedZ, halfH, city.mapH);

@@ -1428,16 +1428,33 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   };
   keys.onScale = (direction) => stepScale(direction);
 
-  canvas.addEventListener("pointermove", (event) => {
-    pointerAt = { clientX: event.clientX, clientY: event.clientY };
-    if (!enabled) return;
-    movePreview(cellAt(event));
-  });
-  canvas.addEventListener("pointerleave", () => {
-    pointerAt = null;
-  });
+  // A lifted finger leaves the canvas, which used to forget the point, so the
+  // on-screen X key had nothing to remove. Touch keeps the last point. A mouse
+  // still clears it on the way out.
+  const touches = new Map();
+  let pinchSpan = 0;
+  let pendingTap = null;
 
-  canvas.addEventListener("pointerdown", (event) => {
+  function fingerSpan() {
+    const pts = [...touches.values()];
+    if (pts.length < 2) return 0;
+    return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
+
+  // Same curve as the wheel listener: pixel delta times 0.0015. Fingers
+  // moving apart is a negative delta, which zooms in, matching a wheel-up.
+  function pinchZoom() {
+    if (!enabled || touches.size < 2) return false;
+    const next = fingerSpan();
+    if (pinchSpan > 0 && next > 0 && next !== pinchSpan) {
+      const current = camera.userData.viewScale > 0 ? camera.userData.viewScale : 1;
+      setViewScale(current * Math.exp((pinchSpan - next) * 0.0015));
+    }
+    pinchSpan = next;
+    return true;
+  }
+
+  function pressPointer(event) {
     if (!enabled) return;
     if (event.button === 2) {
       event.preventDefault();
@@ -1458,6 +1475,63 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       }
     }
     place(cell, event.shiftKey && leftShift);
+  }
+
+  canvas.addEventListener("pointermove", (event) => {
+    pointerAt = { clientX: event.clientX, clientY: event.clientY };
+    if (event.pointerType === "touch" && touches.has(event.pointerId)) {
+      touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (pinchZoom()) return;
+    }
+    if (!enabled) return;
+    movePreview(cellAt(event));
+  });
+  canvas.addEventListener("pointerleave", (event) => {
+    if (event.pointerType === "touch") return;
+    pointerAt = null;
+  });
+
+  canvas.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "touch") {
+      event.preventDefault();
+      pointerAt = { clientX: event.clientX, clientY: event.clientY };
+      touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (touches.size >= 2) {
+        pendingTap = null;
+        pinchSpan = fingerSpan();
+        return;
+      }
+      pendingTap = {
+        pointerId: event.pointerId,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        shiftKey: event.shiftKey,
+      };
+      return;
+    }
+    pressPointer(event);
+  });
+
+  canvas.addEventListener("pointerup", (event) => {
+    if (event.pointerType !== "touch") return;
+    const tap = pendingTap;
+    touches.delete(event.pointerId);
+    if (touches.size < 2) pinchSpan = 0;
+    if (!tap || tap.pointerId !== event.pointerId) return;
+    pendingTap = null;
+    pressPointer({
+      clientX: tap.clientX,
+      clientY: tap.clientY,
+      button: 0,
+      shiftKey: tap.shiftKey,
+    });
+  });
+
+  canvas.addEventListener("pointercancel", (event) => {
+    if (event.pointerType !== "touch") return;
+    touches.delete(event.pointerId);
+    if (pendingTap && pendingTap.pointerId === event.pointerId) pendingTap = null;
+    if (touches.size < 2) pinchSpan = 0;
   });
 
   canvas.addEventListener("wheel", (event) => {

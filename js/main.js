@@ -558,6 +558,8 @@ async function start() {
   const cameraTheta = 0;
   const cameraTarget = new Vector3();
   const driveFx = createDriveEffects(scene, camera);
+  session.audio = driveFx.listener.context;
+  playerSprite.useListener(driveFx.listener);
   const origin = tileCenter(map.spawn.x, map.spawn.z);
   const player = { x: origin.x, z: origin.z, y: 0.6 };
   const half = PLAYER_SIZE / 2;
@@ -748,6 +750,8 @@ function footBlocked(map, x, z, limit) {
 }
 
 window.addEventListener("keydown", (event) => {
+  const audio = session.audio;
+  if (audio && audio.state === "suspended") audio.resume().catch(() => {});
   if (event.code === "KeyE" && !event.repeat) {
     const tag = event.target && event.target.tagName;
     if (tag !== "INPUT" && tag !== "TEXTAREA") {

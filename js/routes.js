@@ -916,7 +916,6 @@ export function createSim(plan, models, pick) {
   // drives on from that spot; anywhere else it stays put until off screen.
   function release(driver) {
     driver.wasHeld = false;
-    driver.reap = false;
     driver.stray = false;
     const options = [{ node: driver.node, exit: driver.exit }];
     if (driver.arc) options.push({ node: driver.arc.nextNode, exit: driver.arc.nextExit });
@@ -958,9 +957,9 @@ export function createSim(plan, models, pick) {
           if (!onScreen) drivers.splice(i, 1);
           continue;
         }
-        if (driver.reap || dist > DESPAWN || (driver.wait > STUCK_TIME && !driver.blocked && !onScreen)) {
-          drivers.splice(i, 1);
-        }
+        // A bump never deletes a car, and neither does sitting still. The only
+        // way a car on its lane leaves is by ending up far outside the view.
+        if (dist > DESPAWN) drivers.splice(i, 1);
       }
       let guard = 0;
       while (drivers.length < MAX_DRIVERS && guard < 12) {
@@ -1030,7 +1029,6 @@ export function createSim(plan, models, pick) {
         if (backing) {
           limit = 0;
           blocked = true;
-          if (driver.dist <= 1) driver.reap = true;
         }
         for (const car of plan.parked) {
           if (Math.abs(car.x - driver.x) > 160 || Math.abs(car.z - driver.z) > 160) continue;

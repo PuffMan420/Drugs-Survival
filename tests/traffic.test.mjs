@@ -273,6 +273,30 @@ test("a car left off the road stays put until it is off screen", async () => {
   assert.ok(!sim.drivers.includes(car), "still there off screen");
 });
 
+test("a collision never removes a car, and only a far car despawns", () => {
+  const sim = createSim(straightPlan(), [], () => 0);
+  const front = driver(1, 30, { speed: 0 });
+  const back = driver(4, 2, { speed: 40 });
+  const cam = { x: 1000, z: 2960 };
+  // Off the screen, but not far: the old stuck timer used to delete this.
+  const stuck = driver(6, 0, {
+    x: cam.x + 700,
+    z: cam.z,
+    speed: 0,
+    wait: 9,
+    blocked: false,
+  });
+  const far = driver(8, 2500, { x: 1000, z: cam.z - 2500 });
+  sim.drivers.push(front, back, stuck, far);
+  runSim(sim, 4, cam, { x: cam.x + 200, z: cam.z });
+  assert.ok(sim.drivers.includes(front), "the car ahead vanished in the crash");
+  assert.ok(sim.drivers.includes(back), "the car that backed up vanished in the crash");
+  assert.notEqual(back.reap, true, "backing into the start of the lane marked a car for removal");
+  assert.ok(back.dist < 2, `the rear car never reached the lane start (${back.dist})`);
+  assert.ok(sim.drivers.includes(stuck), "a car just outside the view was removed");
+  assert.ok(!sim.drivers.includes(far), "a car far outside the view stayed");
+});
+
 test("a stranded car driven back onto its lane drives on again", async () => {
   const sim = createSim(straightPlan(), [], () => 0);
   const car = driver(3, 1500, { x: 1200, stray: true });

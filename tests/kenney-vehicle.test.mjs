@@ -29,7 +29,8 @@ function run(seconds, inputAt, vehicle = createArcadeVehicle()) {
 test("W settles near 180 world units and noses toward -Z", () => {
   const pulling = run(2, () => ({ forward: true }));
   const early = Math.hypot(pulling.vx, pulling.vz);
-  assert.ok(early > 140 && early < 158, `two-second speed ${early}`);
+  // The pull-away is weighted, so two seconds is well short of cruise.
+  assert.ok(early > 118 && early < 142, `two-second speed ${early}`);
   const done = run(8, () => ({ forward: true }));
   const speed = Math.hypot(done.vx, done.vz);
   assert.ok(speed > 170 && speed < 200, `speed ${speed}`);

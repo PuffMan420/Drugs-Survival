@@ -37,11 +37,20 @@ export function pedPhase(carPhase) {
   return carPhase === "red" ? "green" : "red";
 }
 
-// The lens faces model −X. A quarter turn swaps the axis it looks along.
+// The glass faces model −X. rotation.y = turn * π/2, so turn 0 looks west,
+// 1 south, 2 east, 3 north. Traffic coming at that face travels on one axis,
+// and the opposite face of the same street is the same axis.
+const LENS_AXIS = ["x", "z", "x", "z"];
+
 export function facingAxis(turn) {
   const t = ((turn % 4) + 4) % 4;
-  return t % 2 === 0 ? "x" : "z";
+  return LENS_AXIS[t];
 }
+
+// road-straight-stop paints the white bar 0.16 of a module before the end
+// that meets the crossing, which is before the crosswalk. World distance
+// is this times the module size (2 * half).
+export const SIGNAL_STOP_INSET = 0.16;
 
 let clock = 0;
 
@@ -106,8 +115,8 @@ export function linkSignal(piece, junctions) {
   return { junction: best, axis: facingAxis(piece.turn || 0), x, z };
 }
 
-// Distance the car centre may still travel before its nose meets the entry
-// plane. Null once the centre is inside, or when nothing is ahead on this axis.
+// Distance the car centre may still travel before its nose meets the stop
+// line. Null once the centre is inside the crossing, or when nothing is ahead.
 export function signalApproach(car, junctions, time) {
   if (!junctions || junctions.length === 0) return null;
   const span = Math.hypot(car.hx, car.hz);
@@ -119,6 +128,11 @@ export function signalApproach(car, junctions, time) {
   let best = null;
   for (let i = 0; i < junctions.length; i += 1) {
     const junction = junctions[i];
+    // Already in the box, including a car whose heading has swung toward the
+    // cross street. It clears. It does not pick up the far curb as a new line.
+    if (Math.abs(car.x - junction.x) <= junction.half && Math.abs(car.z - junction.z) <= junction.half) {
+      continue;
+    }
     let edgeDist;
     if (axis === "x") {
       if (Math.abs(car.z - junction.z) > junction.half + 12) continue;
@@ -132,7 +146,10 @@ export function signalApproach(car, junctions, time) {
         : car.z - (junction.z + junction.half);
     }
     if (edgeDist < 0) continue;
-    const gap = Math.max(0, edgeDist - nose);
+    const lineDist = edgeDist - SIGNAL_STOP_INSET * junction.half * 2;
+    // Nose already past the bar but centre still outside: hold at the bar.
+    // Clamping here is what keeps a car from creeping past the line.
+    const gap = Math.max(0, lineDist - nose);
     if (best && gap >= best.gap) continue;
     const phase = phaseAt(time, junction.offset)[axis];
     best = { gap, stop: phase !== "green", phase, axis };

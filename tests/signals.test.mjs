@@ -16,6 +16,7 @@ import {
   pedPhase,
   phaseAt,
   setSignalTime,
+  SIGNAL_STOP_INSET,
   signalApproach,
   signalPeriod,
   signalSpeedCap,
@@ -144,26 +145,64 @@ function run(sim, seconds, cam) {
   }
 }
 
-test("a car that can brake stops at a red junction and a car inside continues", () => {
+test("opposite faces share a street, and that street's pedestrian lamp is the opposite", () => {
+  assert.equal(facingAxis(0), "x");
+  assert.equal(facingAxis(2), "x");
+  assert.equal(facingAxis(1), "z");
+  assert.equal(facingAxis(3), "z");
+  for (let t = 0; t < signalPeriod(); t += 0.5) {
+    const phase = phaseAt(t, 0);
+    const xMoving = phase.x === "green" || phase.x === "yellow";
+    const zMoving = phase.z === "green" || phase.z === "yellow";
+    assert.equal(xMoving && zMoving, false);
+    assert.equal(pedPhase(phase.x), phase.x === "red" ? "green" : "red");
+    assert.equal(pedPhase(phase.z), phase.z === "red" ? "green" : "red");
+  }
+});
+
+test("a car that can brake stops at the bar before the crossing", () => {
   setSignalTime(0);
-  const edge = 1500 + 96;
+  const half = 96;
+  const edge = 1500 + half;
+  const line = edge + SIGNAL_STOP_INSET * half * 2;
   const nose = 35;
+  const ahead = signalApproach({
+    x: 1000,
+    z: 1800,
+    hx: 0,
+    hz: -1,
+    length: 70,
+  }, [{ id: 0, x: 1000, z: 1500, half, offset: 0 }], 0);
+  assert.equal(ahead.axis, "z");
+  assert.equal(ahead.stop, true);
+  assert.ok(Math.abs(ahead.gap - (1800 - line - nose)) < 1e-6);
+
   const sim = createSim(northPlan(0), [], () => 0);
   const holding = driver(3000 - 1800, { speed: 80 });
   sim.drivers.push(holding);
-  run(sim, 3, { x: holding.x, z: holding.z });
+  run(sim, 4, { x: holding.x, z: holding.z });
   assert.ok(holding.speed < 5, `still moving at ${holding.speed}`);
-  assert.ok(holding.z >= edge + nose - 2, `nose crossed the line at z ${holding.z}`);
-  assert.ok(holding.z < 1700, `stopped short of the line at z ${holding.z}`);
+  assert.ok(Math.abs(holding.z - (line + nose)) < 6, `stopped at z ${holding.z}, bar is ${line}`);
   assert.equal(holding.blocked, true);
+});
 
+test("a car inside the crossing clears, including one whose heading has swung", () => {
   setSignalTime(0);
+  const junction = { id: 0, x: 1000, z: 1500, half: 96, offset: 0 };
+  assert.equal(signalApproach({
+    x: 1000,
+    z: 1500,
+    hx: 1,
+    hz: -0.2,
+    length: 70,
+  }, [junction], 0), null);
+
   const through = createSim(northPlan(0), [], () => 0);
-  const inside = driver(3000 - 1500, { speed: 80 });
+  const inside = driver(3000 - 1500, { speed: 80, angle: headingAngle(1, -0.2) });
   through.drivers.push(inside);
   const startZ = inside.z;
   run(through, 1, { x: inside.x, z: inside.z });
-  assert.ok(inside.z < startZ - 60, `inside car only reached z ${inside.z}`);
+  assert.ok(inside.z < startZ - 40, `inside car only reached z ${inside.z}`);
   assert.ok(inside.speed > 20, `inside car slowed to ${inside.speed}`);
 });
 

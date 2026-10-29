@@ -1,6 +1,7 @@
 import {
   Audio,
   AudioLoader,
+  Box3,
   DoubleSide,
   Group,
   Mesh,
@@ -21,13 +22,14 @@ const MAG = 12;
 const SHOT_TIME = 0.2;
 const RELOAD_TIME = 1.67;
 const AIM_TAU = 0.08;
-const FLASH_LIFE = 0.08;
+const FLASH_LIFE = 0.18;
 const PUFF_FRAME = 0.035;
-const BODY = 22;
 
 const raycaster = new Raycaster();
 const ndc = new Vector2();
 const muzzlePos = new Vector3();
+const pedBox = new Box3();
+const pedHit = new Vector3();
 
 function loadTexture(url) {
   const loader = new TextureLoader();
@@ -60,14 +62,16 @@ export async function createPistol({
   // Pistol_6 is already scaled by 100, which makes the mesh about 2.4 units
   // long. The figure is 3.8 tall in the same space, so this brings the
   // barrel down to a handgun. Fingers run along the hand bone's +Y.
-  grip.scale.setScalar(0.2);
+  grip.scale.setScalar(0.25);
   grip.rotation.z = Math.PI / 2;
   grip.position.set(0, 0.08, 0.02);
   grip.add(gunGltf.scene);
   hand.add(grip);
   let pistolMesh = null;
   gunGltf.scene.traverse((obj) => {
-    if (obj.isMesh) pistolMesh = obj;
+    if (!obj.isMesh) return;
+    obj.frustumCulled = false;
+    pistolMesh = obj;
   });
   const muzzle = new Object3D();
   muzzle.position.set(0.021, 0, 0);
@@ -92,7 +96,7 @@ export async function createPistol({
     depthWrite: false,
     toneMapped: false,
   }));
-  flash.scale.set(14, 14, 1);
+  flash.scale.set(22, 22, 1);
   flash.visible = false;
   flash.renderOrder = 3;
   scene.add(flash);
@@ -112,7 +116,7 @@ export async function createPistol({
   const pools = [];
 
   const shot = new Audio(listener);
-  const shotUrl = new URL("../assets/sound/gunshot.ogg", import.meta.url).href;
+  const shotUrl = new URL("../assets/sound/pistol-shot.mp3", import.meta.url).href;
   new AudioLoader().load(shotUrl, (buffer) => {
     shot.setBuffer(buffer);
     shot.setLoop(false);
@@ -130,8 +134,22 @@ export async function createPistol({
   crosshair.append(big, small);
   crosshair.hidden = true;
   document.body.append(crosshair);
+  // Focus the view as soon as the gun exists, so the first wheel or click is
+  // a game event and not a click that only wakes the page.
+  canvas.tabIndex = 0;
+  const focusGame = () => {
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA") return;
+    if (document.activeElement !== canvas) canvas.focus({ preventScroll: true });
+  };
+  focusGame();
+  window.addEventListener("pointerover", (event) => {
+    if (event.target === canvas) focusGame();
+  }, true);
 
-  let armed = true;
+  // Empty hands until a scroll. One gesture equips or holsters, not a burst of toggles.
+  let armed = false;
+  let wheelAt = 0;
   let aiming = false;
   let aimBlend = 0;
   let pointer = false;
@@ -172,6 +190,9 @@ export async function createPistol({
       map: splatTextures[Math.floor(Math.random() * splatTextures.length)],
       transparent: true,
       depthWrite: false,
+      depthTest: true,
+      polygonOffset: true,
+      polygonOffsetFactor: -4,
       toneMapped: false,
       side: DoubleSide,
     });
@@ -204,15 +225,15 @@ export async function createPistol({
       const hurt = pedestrians.hurt(hit.ped, hit.ped.x - from.x, hit.ped.z - from.z);
       if (hurt) {
         puffAt(hurt.x, hurt.y, hurt.z);
-        const n = 2 + Math.floor(Math.random() * 3);
+        const n = 2 + Math.floor(Math.random() * 2);
         for (let i = 0; i < n; i += 1) {
           const ang = Math.random() * Math.PI * 2;
-          const dist = 4 + Math.random() * 14;
+          const dist = 3 + Math.random() * 8;
           splatAt(
             hurt.x + Math.cos(ang) * dist,
-            hurt.y - 15,
+            hurt.ground,
             hurt.z + Math.sin(ang) * dist,
-            18 + Math.random() * 10,
+            6 + Math.random() * 4,
           );
         }
       }
@@ -221,24 +242,21 @@ export async function createPistol({
   }
 
   function pickTarget() {
+    // Same idea as three.js webgl_decals: a ray from the cursor, then the
+    // first thing that ray actually meets. Here that is the pedestrian's box.
     raycaster.setFromCamera(ndc, camera);
-    const origin = raycaster.ray.origin;
-    const dir = raycaster.ray.direction;
-    const spot = aimGround();
-    const groundT = spot ? origin.distanceTo(spot) : 1200;
+    const ray = raycaster.ray;
     let best = null;
-    let bestT = groundT + 40;
+    let bestT = Infinity;
     for (const ped of pedestrians.targets()) {
-      const y = ped.live.holder.position.y + 12;
-      const ox = ped.x - origin.x;
-      const oy = y - origin.y;
-      const oz = ped.z - origin.z;
-      const t = ox * dir.x + oy * dir.y + oz * dir.z;
-      if (t < 0 || t > bestT) continue;
-      const miss = Math.hypot(ped.x - (origin.x + dir.x * t), y - (origin.y + dir.y * t), ped.z - (origin.z + dir.z * t));
-      if (miss > BODY) continue;
-      bestT = t;
-      best = ped;
+      ped.live.holder.updateWorldMatrix(true, true);
+      pedBox.setFromObject(ped.live.holder);
+      if (!ray.intersectBox(pedBox, pedHit)) continue;
+      const t = pedHit.distanceTo(ray.origin);
+      if (t < bestT) {
+        bestT = t;
+        best = ped;
+      }
     }
     return best ? { ped: best } : null;
   }
@@ -263,28 +281,36 @@ export async function createPistol({
     ndc.y = -((mouseY - rect.top) / rect.height) * 2 + 1;
   }
 
-  canvas.addEventListener("pointermove", onPointer);
-  canvas.addEventListener("pointerdown", (event) => {
+  // Window capture, not the canvas alone. The letterbox around the view is the
+  // page, and a wheel or click there never reached the canvas listeners.
+  window.addEventListener("pointermove", onPointer, true);
+  window.addEventListener("pointerdown", (event) => {
     onPointer(event);
+    if (busy()) return;
     if (event.button === 2) {
-      if (armed && !busy()) aiming = true;
+      if (!armed) return;
+      aiming = true;
       event.preventDefault();
     } else if (event.button === 0) {
       fire();
     }
-  });
-  canvas.addEventListener("wheel", (event) => {
+  }, true);
+  window.addEventListener("wheel", (event) => {
     if (busy()) return;
+    if (Math.abs(event.deltaY) < 1 && Math.abs(event.deltaX) < 1) return;
+    event.preventDefault();
+    const now = performance.now();
+    if (now < wheelAt) return;
+    wheelAt = now + 350;
     armed = !armed;
     aiming = false;
     shootLeft = 0;
     reloadLeft = 0;
-    event.preventDefault();
-  }, { passive: false });
+  }, { capture: true, passive: false });
   window.addEventListener("pointerup", (event) => {
     if (event.button === 2) aiming = false;
-  });
-  canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+  }, true);
+  window.addEventListener("contextmenu", (event) => event.preventDefault(), true);
   window.addEventListener("keydown", (event) => {
     if (event.repeat || event.code !== "KeyR") return;
     const tag = event.target && event.target.tagName;
@@ -293,7 +319,8 @@ export async function createPistol({
     reloadLeft = RELOAD_TIME;
     shootLeft = 0;
   });
-  canvas.addEventListener("pointerleave", () => {
+  window.addEventListener("blur", () => {
+    aiming = false;
     pointer = false;
   });
 
@@ -321,7 +348,8 @@ export async function createPistol({
       }
       const want = aiming ? 1 : 0;
       aimBlend += (want - aimBlend) * (1 - Math.exp(-step / AIM_TAU));
-      const show = armed && pointer && !busy();
+      canvas.style.cursor = busy() ? "" : "none";
+      const show = pointer && !busy();
       crosshair.hidden = !show;
       if (show) {
         crosshair.style.left = `${mouseX}px`;
@@ -350,13 +378,13 @@ export async function createPistol({
         }
       }
       for (const corpse of pedestrians.freshCorpses()) {
-        const pool = splatAt(corpse.x, corpse.y, corpse.z, 12);
+        const pool = splatAt(corpse.x, corpse.y, corpse.z, 4);
         pools.push({ mesh: pool, age: 0 });
       }
       for (const pool of pools) {
         pool.age += step;
         const grow = Math.min(1, pool.age / 2.4);
-        pool.mesh.scale.setScalar(12 + grow * 28);
+        pool.mesh.scale.setScalar(4 + grow * 7);
       }
     },
   };

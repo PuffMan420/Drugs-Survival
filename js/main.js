@@ -597,6 +597,9 @@ async function start() {
   fitDisplay(renderer);
 
   session.ready = true;
+  canvas.tabIndex = 0;
+  window.focus();
+  canvas.focus({ preventScroll: true });
   session.map = map;
   session.player = player;
   session.minimap = minimap;

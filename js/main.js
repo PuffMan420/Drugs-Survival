@@ -42,7 +42,7 @@ import { createMinimap } from "./minimap.js";
 import { createPlayer } from "./player.js";
 import { createPistol } from "./pistol.js";
 import { createBuildMode, loadNamedMap } from "./build-mode.js";
-import { displayFrame, isTouchScreen, mountTouchUi } from "./touch-ui.js";
+import { bindPistolTouch, displayFrame, isTouchScreen, mountTouchUi } from "./touch-ui.js";
 
 const NEAR = 10;
 // Wide enough to see the far shore from a camera sitting over the near one.
@@ -571,7 +571,9 @@ async function start() {
     pedestrians,
     traffic,
     blocked: () => buildMode.isOpen() || drive.driving,
+    stick,
   });
+  bindPistolTouch(pistol);
   const origin = tileCenter(map.spawn.x, map.spawn.z);
   const player = { x: origin.x, z: origin.z, y: 0.6 };
   const half = PLAYER_SIZE / 2;

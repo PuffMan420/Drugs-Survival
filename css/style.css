@@ -305,6 +305,7 @@ canvas {
     max-width: 188px;
   }
 
+  #touch-gun,
   #touch-build,
   #touch-places,
   #touch-actions {
@@ -315,8 +316,13 @@ canvas {
     pointer-events: none;
   }
 
+  #touch-gun[hidden],
   #touch-build[hidden] {
     display: none;
+  }
+
+  #touch-gun:not([hidden]) {
+    display: flex;
   }
 
   #touch-build:not([hidden]) {
@@ -348,6 +354,18 @@ canvas {
   }
 
   #touch-ui button:active {
+    background: #ffe14a;
+    color: #000;
+  }
+
+  #touch-ui #touch-gun button {
+    box-sizing: border-box;
+    width: auto;
+    min-width: 80px;
+    padding: 0 8px;
+  }
+
+  #touch-ui #touch-gun button.is-on {
     background: #ffe14a;
     color: #000;
   }

@@ -14,6 +14,7 @@ import {
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
+import { carReachesPed, carVelocity } from "./car-strike.js";
 import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
 import { GROUND_H, GROUND_W, PLAYER_SPEED, TILE } from "./constants.js";
 import { walkableCells } from "./pedestrian-walk.js";
@@ -23,6 +24,9 @@ const SEDAN_LENGTH = 71;
 const SCALE_BUMP = 1.15 * 1.1 * 1.1 * 1.05;
 const FEET_Y = 0.6;
 const FADE = 0.12;
+// A car kill pops the body off the ground, then it lands during Death01.
+const HOP_UP = 55;
+const HOP_GRAVITY = 240;
 // The clips are in-place. Ground speed is the same reference the player uses
 // for that clip, and playback is ground / reference, so the feet do not slide.
 const GAIT_SPEED = {
@@ -694,7 +698,72 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
     if (ped.phase === "down") pinDeath(ped);
     const live = ped.live;
     live.mixer.update(step);
-    live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);
+    let y = sole(ped.x, ped.z);
+    if (ped.hop > 0 || ped.vy > 0) {
+      ped.hop += ped.vy * step;
+      ped.vy -= HOP_GRAVITY * step;
+      if (ped.hop < 0) {
+        ped.hop = 0;
+        ped.vy = 0;
+      }
+      y += ped.hop;
+    }
+    live.holder.position.set(ped.x, y, ped.z);
+  }
+
+  function hurt(ped, dirX, dirZ, lift = 0) {
+    if (!ped || ped.dead || !ped.live) return null;
+    ped.dead = true;
+    ped.settled = false;
+    ped.pooled = false;
+    ped.phase = "hit";
+    ped.phaseTime = 0;
+    ped.hitClip = Math.random() < 0.5 ? "hitChest" : "hitHead";
+    const len = Math.hypot(dirX, dirZ) || 1;
+    ped.vx = (dirX / len) * 40;
+    ped.vz = (dirZ / len) * 40;
+    if (lift > 0) {
+      ped.vy = lift;
+      ped.hop = 0;
+    }
+    showClip(ped, ped.hitClip);
+    return {
+      x: ped.x,
+      z: ped.z,
+      y: ped.live.holder.position.y + 16,
+      ground: sole(ped.x, ped.z) + 0.35,
+    };
+  }
+
+  const movingCars = [];
+
+  function runOver(cars, driven) {
+    let count = 0;
+    if (cars) {
+      for (let i = 0; i < cars.length; i += 1) {
+        const motion = carVelocity(cars[i], driven);
+        if (!motion) continue;
+        let slot = movingCars[count];
+        if (!slot) {
+          slot = { car: null, motion: null };
+          movingCars[count] = slot;
+        }
+        slot.car = cars[i];
+        slot.motion = motion;
+        count += 1;
+      }
+    }
+    if (count === 0) return;
+    for (const ped of people) {
+      if (!ped.live || ped.dead) continue;
+      const y = ped.live.holder.position.y;
+      for (let i = 0; i < count; i += 1) {
+        const slot = movingCars[i];
+        if (!carReachesPed(slot.car, ped.x, ped.z, y)) continue;
+        hurt(ped, slot.motion.dirX, slot.motion.dirZ, HOP_UP);
+        break;
+      }
+    }
   }
 
   return {
@@ -705,25 +774,8 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
       }
       return list;
     },
-    hurt(ped, dirX, dirZ) {
-      if (!ped || ped.dead || !ped.live) return null;
-      ped.dead = true;
-      ped.settled = false;
-      ped.pooled = false;
-      ped.phase = "hit";
-      ped.phaseTime = 0;
-      ped.hitClip = Math.random() < 0.5 ? "hitChest" : "hitHead";
-      const len = Math.hypot(dirX, dirZ) || 1;
-      ped.vx = (dirX / len) * 40;
-      ped.vz = (dirZ / len) * 40;
-      showClip(ped, ped.hitClip);
-      return {
-        x: ped.x,
-        z: ped.z,
-        y: ped.live.holder.position.y + 16,
-        ground: sole(ped.x, ped.z) + 0.35,
-      };
-    },
+    hurt,
+    runOver,
     freshCorpses() {
       const list = [];
       for (const ped of people) {

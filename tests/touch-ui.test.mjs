@@ -1,5 +1,5 @@
-// Pins the phone frame so a touch screen fills the window without stretching,
-// and a desktop window keeps the 16:9 letterbox and the original ground size.
+// Pins the phone frame so a touch screen fills the window at the desktop
+// scale and crops the extra, and a desktop window keeps the 16:9 letterbox.
 
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -23,18 +23,20 @@ test("desktop frame stays the 16:9 letterbox", () => {
   assert.equal(odd.spanH, GROUND_H);
 });
 
-test("touch frame fills the window and keeps world units per pixel", () => {
+test("touch frame fills the window and crops to the desktop scale", () => {
   const landscape = displayFrame(844, 390, true, GROUND_W, GROUND_H);
   assert.equal(landscape.cssW, 844);
   assert.equal(landscape.cssH, 390);
-  assert.ok(landscape.spanW > GROUND_W);
-  assert.equal(landscape.spanH, GROUND_H);
+  assert.equal(landscape.spanW, GROUND_W);
+  assert.ok(landscape.spanH < GROUND_H);
+  assert.ok(Math.abs(landscape.spanW / landscape.cssW - landscape.spanH / landscape.cssH) < 1e-9);
 
   const portrait = displayFrame(390, 844, true, GROUND_W, GROUND_H);
   assert.equal(portrait.cssW, 390);
   assert.equal(portrait.cssH, 844);
-  assert.equal(portrait.spanW, GROUND_W);
-  assert.ok(portrait.spanH > GROUND_H);
+  assert.ok(portrait.spanW < GROUND_W);
+  assert.equal(portrait.spanH, GROUND_H);
+  assert.ok(Math.abs(portrait.spanW / portrait.cssW - portrait.spanH / portrait.cssH) < 1e-9);
 
   const exact = displayFrame(1600, 900, true, GROUND_W, GROUND_H);
   assert.equal(exact.cssW, 1600);

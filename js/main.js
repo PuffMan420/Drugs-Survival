@@ -167,8 +167,8 @@ function lockPixelProjection(camera, viewFor) {
 }
 
 // Desktop keeps GROUND_W x GROUND_H. A coarse pointer fills the window and
-// lengthens that frame on the long axis. Shadows, materials, and the draw
-// path stay the same; only the framed ground changes size.
+// crops that frame to the desktop scale. Shadows, materials, and the draw
+// path stay the same; chunk and road culling read this same span.
 let spanW = GROUND_W;
 let spanH = GROUND_H;
 let shownCamera = null;

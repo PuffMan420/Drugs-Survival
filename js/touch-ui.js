@@ -54,8 +54,9 @@ export function clampStick(dx, dy, radius) {
   return { x: dx * scale, y: dy * scale, nx: dx / length, ny: dy / length };
 }
 
-// The desktop branch is the existing 16:9 letterbox. Touch fills the window
-// and extends the ground frame on the long axis so the picture is not stretched.
+// Desktop letterboxes to 16:9 and shows groundW x groundH. Touch fills the
+// window at that same scale: the 16:9 frame covers the screen, and the extra
+// is cropped. The span never grows, which is what made the player look small.
 export function displayFrame(viewW, viewH, coarse, groundW, groundH) {
   if (!coarse) {
     const unit = Math.min(viewW / 16, viewH / 9);
@@ -65,9 +66,9 @@ export function displayFrame(viewW, viewH, coarse, groundW, groundH) {
   }
   const cssW = Math.max(1, Math.round(viewW));
   const cssH = Math.max(1, Math.round(viewH));
-  const unit = Math.min(cssW / 16, cssH / 9);
-  const fittedW = Math.max(1, unit * 16);
-  const fittedH = Math.max(1, unit * 9);
+  const unit = Math.max(cssW / 16, cssH / 9);
+  const fittedW = unit * 16;
+  const fittedH = unit * 9;
   return {
     cssW,
     cssH,

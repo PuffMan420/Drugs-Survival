@@ -267,7 +267,9 @@ function showClip(ped, name) {
     to.setEffectiveWeight(1);
     if (once) to.time = 0;
     // Warp rewrites timeScale when the fade ends, so the walk would leave
-    // the stride rate that was just applied.
+    // the stride rate that was just applied. crossFadeTo only changes weight.
+    // A stopped action is not sampled, so the bones stay on the bind pose.
+    to.play();
     from.crossFadeTo(to, FADE, false);
   }
   ped.playing = name;
@@ -526,6 +528,9 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
       action.time = 0;
       action.setLoop(LoopOnce, 1);
       action.clampWhenFinished = true;
+      // release() stops every clip. Without play() the one-shots stay off the
+      // mixer, so a recycled ped's death never writes and the bind pose shows.
+      action.play();
     }
     const current = live.actions[ped.playing];
     current.time = unitHash(ped.salt + 29) * prototype.clips[ped.playing].duration;

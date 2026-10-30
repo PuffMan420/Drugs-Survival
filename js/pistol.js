@@ -1,3 +1,4 @@
+import { aimChord, pistolPose } from "./pose-layers.js";
 import {
   Audio,
   AudioLoader,
@@ -20,7 +21,11 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 const MAG = 12;
 const SHOT_TIME = 0.2;
+// Long enough for the forearm recoil to read, short enough to retrigger on the next shot.
+const SHOT_POSE = 0.4;
 const RELOAD_TIME = 1.67;
+// A left click while the right button is held can drop the right-button bit for one event.
+const AIM_CHORD = 120;
 const AIM_TAU = 0.08;
 const FLASH_LIFE = 0.18;
 const PUFF_FRAME = 0.035;
@@ -157,7 +162,10 @@ export async function createPistol({
   let mouseY = 0;
   let ammo = MAG;
   let shootLeft = 0;
+  let poseLeft = 0;
   let reloadLeft = 0;
+  let leftWas = false;
+  let rightAt = -1e9;
   const ground = new Vector3();
 
   function busy() {
@@ -210,6 +218,8 @@ export async function createPistol({
     if (!armed || busy() || !aiming || reloadLeft > 0 || shootLeft > 0 || ammo <= 0) return;
     ammo -= 1;
     shootLeft = SHOT_TIME;
+    poseLeft = SHOT_POSE;
+    player.kickPose("pistolShoot");
     flashIndex = (flashIndex + 1) % flashTextures.length;
     flash.material.map = flashTextures[flashIndex];
     flash.material.needsUpdate = true;
@@ -283,18 +293,49 @@ export async function createPistol({
 
   // Window capture, not the canvas alone. The letterbox around the view is the
   // page, and a wheel or click there never reached the canvas listeners.
-  window.addEventListener("pointermove", onPointer, true);
-  window.addEventListener("pointerdown", (event) => {
+  function noteButtons(event) {
     onPointer(event);
-    if (busy()) return;
-    if (event.button === 2) {
-      if (!armed) return;
-      aiming = true;
-      event.preventDefault();
-    } else if (event.button === 0) {
-      fire();
+    if (typeof event.buttons !== "number") {
+      if (event.type === "pointerup" && event.button === 2) aiming = false;
+      if (event.type !== "pointerdown" || busy()) return;
+      if (event.button === 2) {
+        if (!armed) return;
+        aiming = true;
+        rightAt = performance.now();
+        event.preventDefault();
+      } else if (event.button === 0) {
+        fire();
+      }
+      return;
     }
-  }, true);
+    const now = performance.now();
+    const right = (event.buttons & 2) !== 0;
+    const left = (event.buttons & 1) !== 0;
+    const blocked = busy();
+    if (right) rightAt = now;
+    let held = aiming;
+    if (!blocked) {
+      if (event.type === "pointerup" && !right) held = false;
+      else if (event.type === "pointermove" && !right && !left) held = false;
+    }
+    const chord = aimChord({
+      armed,
+      busy: blocked,
+      aiming: held,
+      right,
+      left,
+      leftWas,
+      sinceRight: now - rightAt,
+      hold: AIM_CHORD,
+    });
+    if (!blocked) aiming = chord.aiming;
+    if (chord.fire) fire();
+    leftWas = left;
+    if (event.button === 2) event.preventDefault();
+  }
+
+  window.addEventListener("pointermove", noteButtons, true);
+  window.addEventListener("pointerdown", noteButtons, true);
   window.addEventListener("wheel", (event) => {
     if (busy()) return;
     if (Math.abs(event.deltaY) < 1 && Math.abs(event.deltaX) < 1) return;
@@ -305,11 +346,10 @@ export async function createPistol({
     armed = !armed;
     aiming = false;
     shootLeft = 0;
+    poseLeft = 0;
     reloadLeft = 0;
   }, { capture: true, passive: false });
-  window.addEventListener("pointerup", (event) => {
-    if (event.button === 2) aiming = false;
-  }, true);
+  window.addEventListener("pointerup", noteButtons, true);
   window.addEventListener("contextmenu", (event) => event.preventDefault(), true);
   window.addEventListener("keydown", (event) => {
     if (event.repeat || event.code !== "KeyR") return;
@@ -332,16 +372,19 @@ export async function createPistol({
       const spot = armed && !busy() && pointer ? aimGround() : null;
       if (aiming && spot) player.aimAt(spot.x, spot.z);
       else player.clearAim();
-      let pose = "";
-      if (armed && !busy() && reloadLeft > 0) pose = "pistolReload";
-      else if (armed && !busy() && shootLeft > 0) pose = "pistolShoot";
-      else if (aiming) pose = "pistolAim";
-      else if (armed && player.speed < 1) pose = "pistolIdle";
-      player.forcePose(pose);
+      player.forcePose(pistolPose({
+        armed,
+        busy: busy(),
+        reloading: reloadLeft > 0,
+        shooting: poseLeft > 0,
+        aiming,
+        speed: player.speed,
+      }));
     },
     update(dt) {
       const step = Math.max(0, dt);
       if (shootLeft > 0) shootLeft = Math.max(0, shootLeft - step);
+      if (poseLeft > 0) poseLeft = Math.max(0, poseLeft - step);
       if (reloadLeft > 0) {
         reloadLeft = Math.max(0, reloadLeft - step);
         if (reloadLeft === 0) ammo = MAG;

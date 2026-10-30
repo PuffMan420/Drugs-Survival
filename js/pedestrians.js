@@ -260,7 +260,9 @@ function showClip(ped, name) {
     to.setEffectiveTimeScale(REACTIONS.includes(name) ? 1 : ped.vary);
     to.setEffectiveWeight(1);
     to.time = 0;
-    from.crossFadeTo(to, FADE, true);
+    // Warp rewrites timeScale when the fade ends, so the walk would leave
+    // the stride rate that was just applied.
+    from.crossFadeTo(to, FADE, false);
   }
   ped.playing = name;
 }
@@ -756,6 +758,9 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
           showClip(ped, panic ? "run" : "walk");
         } else {
           showClip(ped, "idle");
+        }
+        if (!REACTIONS.includes(ped.playing)) {
+          live.actions[ped.playing].setEffectiveTimeScale(ped.vary);
         }
         live.mixer.update(step);
         live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);

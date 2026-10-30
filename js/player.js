@@ -1,4 +1,5 @@
 import {
+  AnimationClip,
   AnimationMixer,
   Audio,
   AudioLoader,
@@ -16,6 +17,7 @@ import {
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { PLAYER_SPEED } from "./constants.js";
 import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
+import { isLowerBone, legsWhileAiming } from "./pose-layers.js";
 
 // Blue sedan footprint in js/cars.js (assets/cars3d/sedan.glb): 37 wide, 71 long.
 // A real height is a third of that length. He is drawn a bit larger than that
@@ -119,6 +121,11 @@ function clipNamed(animations, name) {
   return clip;
 }
 
+function maskedClip(clip, lower) {
+  const tracks = clip.tracks.filter((track) => isLowerBone(track.name.split(".")[0]) === lower);
+  return new AnimationClip(`${clip.name}_${lower ? "legs" : "arms"}`, clip.duration, tracks);
+}
+
 export async function createPlayer() {
   const loader = new GLTFLoader();
   const url = new URL("../assets/player/gubbe.glb", import.meta.url).href;
@@ -191,11 +198,23 @@ export async function createPlayer() {
     action.setEffectiveWeight(weight);
   }
 
-  function crossFade(from, to) {
+  function crossFade(from, to, fade) {
     to.paused = false;
     setWeight(to, 1);
     to.time = 0;
-    from.crossFadeTo(to, FADE, false);
+    from.crossFadeTo(to, fade, false);
+  }
+
+  // A 0.25s blend hides the pistol recoil, which is over in a few frames.
+  // The shoot clip's first frame matches the aim, so it can take the arms at once.
+  function glide(action, want, step, tau) {
+    action.stopFading();
+    action.stopWarping();
+    const now = action.getEffectiveWeight();
+    let next = now + (want - now) * (1 - Math.exp(-step / tau));
+    if (want === 0 && next < 0.02) next = 0;
+    if (want === 1 && next > 0.98) next = 1;
+    setWeight(action, next);
   }
 
   setWeight(actions.idle, 1);
@@ -224,6 +243,22 @@ export async function createPlayer() {
   actions.pistolAim.play();
   actions.pistolShoot.play();
   actions.pistolReload.play();
+  const lowerActions = {};
+  for (const name of ["idle", "walk", "jog", "sprint"]) {
+    lowerActions[name] = mixer.clipAction(maskedClip(actions[name].getClip(), true));
+    setWeight(lowerActions[name], 0);
+    lowerActions[name].play();
+  }
+  const upperActions = {};
+  for (const name of ["pistolAim", "pistolShoot", "pistolReload"]) {
+    upperActions[name] = mixer.clipAction(maskedClip(actions[name].getClip(), false));
+    setWeight(upperActions[name], 0);
+    upperActions[name].play();
+  }
+  upperActions.pistolShoot.setLoop(LoopOnce, 1);
+  upperActions.pistolShoot.clampWhenFinished = true;
+  upperActions.pistolReload.setLoop(LoopOnce, 1);
+  upperActions.pistolReload.clampWhenFinished = true;
   // Bones are still the bind T until the mixer writes. Do that before the
   // first paint, while idle is the only action with weight.
   mixer.update(0);
@@ -237,6 +272,9 @@ export async function createPlayer() {
   let facing = 0;
   let forced = "";
   let aim = null;
+  let layered = false;
+  let legGait = "idle";
+  let kick = "";
   const buffers = [null, null];
   let stepsReady = false;
 
@@ -295,9 +333,28 @@ export async function createPlayer() {
 
   function show(name) {
     if (name === playing) return;
-    crossFade(actions[playing], actions[name]);
+    if (name === "pistolShoot") {
+      for (const key of Object.keys(actions)) setWeight(actions[key], key === name ? 1 : 0);
+      actions.pistolShoot.reset().play();
+      playing = name;
+      return;
+    }
+    const fade = playing === "pistolShoot" ? 0.08 : FADE;
+    crossFade(actions[playing], actions[name], fade);
     playing = name;
     cycle = 0;
+  }
+
+  function restoreFull(name) {
+    if (name !== playing) {
+      show(name);
+      return;
+    }
+    for (const key of Object.keys(actions)) {
+      actions[key].stopFading();
+      actions[key].stopWarping();
+      setWeight(actions[key], key === name ? 1 : 0);
+    }
   }
 
   function gaitForSpeed(ground) {
@@ -346,6 +403,12 @@ export async function createPlayer() {
     forcePose(name) {
       forced = name || "";
     },
+    kickPose(name) {
+      kick = name || "";
+      // The click can land after this frame's pose was chosen. Keep the recoil
+      // on the arms for the update that is about to run.
+      if (kick) forced = kick;
+    },
     aimAt(x, z) {
       aim = { x, z };
     },
@@ -382,17 +445,68 @@ export async function createPlayer() {
       const dist = Math.hypot(dx, dz);
       const moved = dist > 0.001 && dist < PLACE_STEP;
       const ground = moved && step > 0 ? dist / step : 0;
-      if (holder.visible && dist < PLACE_STEP) show(forced || gaitForSpeed(ground));
+      const gait = gaitForSpeed(ground);
+      const split = legsWhileAiming(forced, gait !== "idle");
+      if (holder.visible && dist < PLACE_STEP) {
+        const tau = Math.max(step, 1 / 120);
+        if (split) {
+          if (!layered) {
+            const seed = actions[gait];
+            lowerActions[gait].time = seed.getEffectiveWeight() > 0.5 ? seed.time : 0;
+            legGait = gait;
+          } else if (gait !== legGait) {
+            lowerActions[gait].time = 0;
+            cycle = 0;
+            legGait = gait;
+          }
+          layered = true;
+          for (const key of Object.keys(actions)) glide(actions[key], 0, tau, 0.1);
+          for (const key of Object.keys(lowerActions)) glide(lowerActions[key], key === gait ? 1 : 0, tau, 0.1);
+          for (const key of Object.keys(upperActions)) {
+            glide(upperActions[key], key === forced ? 1 : 0, tau, forced === "pistolShoot" ? 0.04 : 0.1);
+          }
+        } else {
+          for (const key of Object.keys(lowerActions)) glide(lowerActions[key], 0, tau, 0.1);
+          for (const key of Object.keys(upperActions)) glide(upperActions[key], 0, tau, 0.08);
+          if (layered) {
+            layered = false;
+            restoreFull(forced || gait);
+          } else {
+            show(forced || gait);
+          }
+        }
+      }
+      if (kick && forced === kick) {
+        const upper = upperActions[kick];
+        if (split && upper) {
+          upper.reset().play();
+          setWeight(upper, 1);
+          for (const key of Object.keys(upperActions)) {
+            if (key !== kick) setWeight(upperActions[key], 0);
+          }
+        } else if (actions[kick] && playing === kick) {
+          actions[kick].reset().play();
+          setWeight(actions[kick], 1);
+        }
+        kick = "";
+      } else if (!forced) {
+        kick = "";
+      }
       for (const name of Object.keys(GAIT_SPEED)) {
-        actions[name].setEffectiveTimeScale(clipScale(name, ground));
+        const scale = clipScale(name, ground);
+        actions[name].setEffectiveTimeScale(scale);
+        lowerActions[name].setEffectiveTimeScale(scale);
       }
       if (forced && actions[forced]) actions[forced].setEffectiveTimeScale(1);
+      for (const name of Object.keys(upperActions)) upperActions[name].setEffectiveTimeScale(1);
       mixer.update(step);
       // The mesh is hidden in a car. A map jump is a huge step, not a footfall.
       // Clip time moves with the playback rate, so a faster gait steps sooner.
-      const marks = STEP_MARKS[playing];
+      // While aiming, the feet follow the gait even though the arms play the pistol.
+      const stepName = split ? gait : playing;
+      const marks = STEP_MARKS[stepName];
       if (holder.visible && moved && marks) {
-        const scale = clipScale(playing, ground);
+        const scale = clipScale(stepName, ground);
         let next = cycle + step * scale;
         let hits = 0;
         while (next >= marks.duration) {

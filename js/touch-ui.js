@@ -182,10 +182,17 @@ export function mountTouchUi(held, places = [], intent = null) {
 
   const actions = document.createElement("div");
   actions.id = "touch-actions";
+  const switchButton = gunButton("SWITCH", () => {
+    if (!pistolApi || !pistolApi.cycle) return;
+    pistolApi.cycle();
+    syncGunButtons(pistolApi.armed);
+  });
+  switchButton.id = "touch-switch";
   actions.append(
     keyButton("KeyE", "e", "E", "Car"),
     keyButton("KeyM", "m", "M", "Map"),
     keyButton("KeyB", "b", "B", "Build"),
+    switchButton,
   );
 
   gunRow = document.createElement("div");

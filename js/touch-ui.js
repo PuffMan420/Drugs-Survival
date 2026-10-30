@@ -31,6 +31,19 @@ export function stickWish(nx, ny, dead = STICK_DEAD, jogAt = STICK_JOG) {
   };
 }
 
+// Far enough that the facing code treats it as a real target, close enough to stay a direction.
+const AIM_REACH = 4;
+
+// The stick's unit wish, in the same world axes as walking. Null when it is centered.
+export function aimAlongStick(x, z, wishX, wishZ) {
+  const mag = Math.hypot(wishX, wishZ);
+  if (!(mag > 0)) return null;
+  return {
+    x: x + (wishX / mag) * AIM_REACH,
+    z: z + (wishZ / mag) * AIM_REACH,
+  };
+}
+
 export function clampStick(dx, dy, radius) {
   const reach = Math.max(1, radius);
   const length = Math.hypot(dx, dy);
@@ -96,6 +109,39 @@ function keyButton(code, key, label, caption) {
   return button;
 }
 
+let gunRow = null;
+let aimButton = null;
+let pistolApi = null;
+
+export function bindPistolTouch(api) {
+  pistolApi = api;
+}
+
+// Touch only. The row is created by mountTouchUi, which desktop never calls.
+export function syncGunButtons(armed) {
+  if (!gunRow) return;
+  const hide = !armed;
+  if (gunRow.hidden !== hide) gunRow.hidden = hide;
+  const on = Boolean(armed && pistolApi && pistolApi.aiming);
+  if (aimButton) {
+    aimButton.classList.toggle("is-on", on);
+    aimButton.setAttribute("aria-pressed", on ? "true" : "false");
+  }
+}
+
+function gunButton(label, onPress) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.setAttribute("aria-label", label);
+  button.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onPress();
+  });
+  return button;
+}
+
 export function mountTouchUi(held, places = [], intent = null) {
   if (!isTouchScreen()) return;
 
@@ -142,7 +188,23 @@ export function mountTouchUi(held, places = [], intent = null) {
     keyButton("KeyB", "b", "B", "Build"),
   );
 
-  pad.append(build, placeRow, actions);
+  gunRow = document.createElement("div");
+  gunRow.id = "touch-gun";
+  gunRow.hidden = true;
+  aimButton = gunButton("AIM", () => {
+    if (!pistolApi) return;
+    pistolApi.toggleAim();
+    syncGunButtons(pistolApi.armed);
+  });
+  aimButton.setAttribute("aria-pressed", "false");
+  gunRow.append(
+    aimButton,
+    gunButton("SHOOT", () => {
+      if (pistolApi) pistolApi.shoot();
+    }),
+  );
+
+  pad.append(gunRow, build, placeRow, actions);
   root.append(stick, pad);
   root.addEventListener("contextmenu", (event) => event.preventDefault());
   document.body.append(root);

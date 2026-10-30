@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { GROUND_H, GROUND_W } from "../js/constants.js";
-import { clampStick, displayFrame, stickAxes, stickWish } from "../js/touch-ui.js";
+import { aimAlongStick, clampStick, displayFrame, stickAxes, stickWish } from "../js/touch-ui.js";
 
 test("desktop frame stays the 16:9 letterbox", () => {
   const wide = displayFrame(1920, 1080, false, GROUND_W, GROUND_H);
@@ -66,6 +66,17 @@ test("a short stick push walks and a full push jogs", () => {
   const east = stickWish(1, 0);
   assert.equal(east.gait, "jog");
   assert.ok(Math.abs(east.x - 1) < 1e-9);
+});
+
+test("aim follows the stick and ignores a centered stick", () => {
+  assert.equal(aimAlongStick(10, 20, 0, 0), null);
+  const north = aimAlongStick(10, 20, 0, -1);
+  assert.ok(Math.abs(north.x - 10) < 1e-9);
+  assert.ok(north.z < 20);
+  assert.ok(Math.hypot(north.x - 10, north.z - 20) > 1);
+  const east = aimAlongStick(10, 20, 2, 0);
+  assert.ok(east.x > 10);
+  assert.ok(Math.abs(east.z - 20) < 1e-9);
 });
 
 test("stick clamp stays inside the base", () => {

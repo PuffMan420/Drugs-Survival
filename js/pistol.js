@@ -1,4 +1,5 @@
 import { aimChord, pistolPose } from "./pose-layers.js";
+import { aimAlongStick, isTouchScreen, syncGunButtons } from "./touch-ui.js";
 import {
   Audio,
   AudioLoader,
@@ -59,6 +60,7 @@ export async function createPistol({
   pedestrians,
   traffic,
   blocked,
+  stick = null,
 }) {
   const hand = player.model.getObjectByName("RightHand");
   if (!hand) throw new Error("The player is missing a right hand.");
@@ -166,6 +168,8 @@ export async function createPistol({
   let reloadLeft = 0;
   let leftWas = false;
   let rightAt = -1e9;
+  // Stick direction while aiming on a phone. The mouse keeps using the cursor ray.
+  let aimDir = null;
   const ground = new Vector3();
 
   function busy() {
@@ -254,8 +258,16 @@ export async function createPistol({
   function pickTarget() {
     // Same idea as three.js webgl_decals: a ray from the cursor, then the
     // first thing that ray actually meets. Here that is the pedestrian's box.
-    raycaster.setFromCamera(ndc, camera);
+    // On a phone the joystick is the cursor, so the ray leaves the chest
+    // along that direction. A mouse still uses the cursor.
     const ray = raycaster.ray;
+    const aimMag = aimDir ? Math.hypot(aimDir.x, aimDir.z) : 0;
+    if (aimDir && aimMag > 0) {
+      ray.origin.set(player.mesh.position.x, player.mesh.position.y + 2, player.mesh.position.z);
+      ray.direction.set(aimDir.x / aimMag, 0, aimDir.z / aimMag);
+    } else {
+      raycaster.setFromCamera(ndc, camera);
+    }
     let best = null;
     let bestT = Infinity;
     for (const ped of pedestrians.targets()) {
@@ -294,6 +306,9 @@ export async function createPistol({
   // Window capture, not the canvas alone. The letterbox around the view is the
   // page, and a wheel or click there never reached the canvas listeners.
   function noteButtons(event) {
+    // A finger is the AIM and SHOOT buttons, not a mouse click. Those buttons
+    // call toggleAim and shoot. A mouse still holds right-click and left-clicks.
+    if (event.pointerType === "touch") return;
     onPointer(event);
     if (typeof event.buttons !== "number") {
       if (event.type === "pointerup" && event.button === 2) aiming = false;
@@ -365,13 +380,43 @@ export async function createPistol({
   });
 
   return {
+    get armed() {
+      return armed;
+    },
+    get aiming() {
+      return aiming;
+    },
+    // Tap once to hold aim, tap again to release. Same flag as the right button.
+    toggleAim() {
+      if (!armed || busy()) return false;
+      aiming = !aiming;
+      return aiming;
+    },
+    // Same shot as a left click. fire() already ignores it unless he is aiming.
+    shoot() {
+      fire();
+    },
     pre() {
       const off = busy() || !armed;
       grip.visible = armed;
       if (off) aiming = false;
-      const spot = armed && !busy() && pointer ? aimGround() : null;
-      if (aiming && spot) player.aimAt(spot.x, spot.z);
-      else player.clearAim();
+      if (isTouchScreen()) {
+        syncGunButtons(armed);
+        if (aiming && stick && stick.active) {
+          const along = aimAlongStick(player.mesh.position.x, player.mesh.position.z, stick.x, stick.z);
+          if (along) {
+            player.aimAt(along.x, along.z);
+            aimDir = { x: stick.x, z: stick.z };
+          }
+        } else if (!aiming) {
+          aimDir = null;
+          player.clearAim();
+        }
+      } else {
+        const spot = armed && !busy() && pointer ? aimGround() : null;
+        if (aiming && spot) player.aimAt(spot.x, spot.z);
+        else player.clearAim();
+      }
       player.forcePose(pistolPose({
         armed,
         busy: busy(),

@@ -15,7 +15,7 @@ import {
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
-import { GROUND_H, GROUND_W, TILE } from "./constants.js";
+import { GROUND_H, GROUND_W, PLAYER_SPEED, TILE } from "./constants.js";
 import { walkableCells } from "./pedestrian-walk.js";
 
 // Same height fit as the player, including both extra 10% bumps and another 5%, so these figures stand with him.
@@ -23,20 +23,25 @@ const SEDAN_LENGTH = 71;
 const SCALE_BUMP = 1.15 * 1.1 * 1.1 * 1.05;
 const FEET_Y = 0.6;
 const FADE = 0.12;
-// A walk covers a little under one sidewalk tile per cycle. Run is twice that.
-const WALK_SPEED = 36;
-const RUN_SPEED = 72;
-const NAMES = ["idle", "walk", "run"];
-
-// Each file is loaded once. The crowd is cloned from these six.
-const FILES = [
-  "ped_criminalMaleA.glb",
-  "ped_humanFemaleA.glb",
-  "ped_skaterFemaleA.glb",
-  "ped_skaterMaleA.glb",
-  "ped_survivorFemaleA.glb",
-  "ped_survivorMaleB.glb",
-];
+// The clips are in-place. Ground speed is the same reference the player uses
+// for that clip, and playback is ground / reference, so the feet do not slide.
+const GAIT_SPEED = {
+  idle: 0,
+  walk: PLAYER_SPEED * 0.5,
+  jog: PLAYER_SPEED,
+  sprint: PLAYER_SPEED * 1.4,
+};
+const GAITS = ["idle", "walk", "jog", "sprint"];
+const REACTIONS = ["hitChest", "hitHead", "death"];
+const CLIP_NAMES = {
+  idle: "Idle_Loop",
+  walk: "Walk_Loop",
+  jog: "Jog_Fwd_Loop",
+  sprint: "Sprint_Loop",
+  hitChest: "Hit_Chest",
+  hitHead: "Hit_Head",
+  death: "Death01",
+};
 const CROWD = 1200;
 const BLOCK = 6;
 
@@ -140,16 +145,18 @@ function boneGroup(name) {
   return 3;
 }
 
-function skinnedMeshOf(root) {
+function bodyMesh(root) {
   let found = null;
   root.traverse((obj) => {
-    if (!found && obj.isSkinnedMesh) found = obj;
+    if (!obj.isSkinnedMesh || obj.name.startsWith("Bun")) return;
+    if (!found) found = obj;
   });
+  if (!found) throw new Error("The pedestrian is missing a body.");
   return found;
 }
 
 function clothMask(root) {
-  const mesh = skinnedMeshOf(root);
+  const mesh = bodyMesh(root);
   const geometry = mesh.geometry;
   const uv = geometry.attributes.uv;
   const skinIndex = geometry.attributes.skinIndex;
@@ -224,27 +231,25 @@ function sharedClothMaterial(base, mask, shirt, pants, shoes) {
       `#include <map_fragment>\n${CLOTH_TINT}`,
     );
   };
-  material.customProgramCacheKey = () => "ped-cloth-1";
+  material.customProgramCacheKey = () => `ped-cloth-${key}`;
   clothMaterials.set(key, material);
   return material;
 }
 
-const REACTIONS = ["hitChest", "hitHead", "death"];
-
 function bindActions(mixer, clips) {
-  const actions = {
-    idle: mixer.clipAction(clips.idle),
-    walk: mixer.clipAction(clips.walk),
-    run: mixer.clipAction(clips.run),
-    hitChest: mixer.clipAction(clips.hitChest),
-    hitHead: mixer.clipAction(clips.hitHead),
-    death: mixer.clipAction(clips.death),
-  };
-  for (const name of NAMES) actions[name].play();
+  const actions = {};
+  for (const name of Object.keys(CLIP_NAMES)) {
+    const action = mixer.clipAction(clips[name]);
+    action.enabled = true;
+    action.setEffectiveWeight(0);
+    action.play();
+    actions[name] = action;
+  }
   for (const name of REACTIONS) {
     actions[name].setLoop(LoopOnce, 1);
     actions[name].clampWhenFinished = true;
-    actions[name].play();
+    actions[name].paused = true;
+    actions[name].setEffectiveWeight(0);
   }
   return actions;
 }
@@ -255,11 +260,12 @@ function showClip(ped, name) {
   if (live) {
     const from = live.actions[ped.playing];
     const to = live.actions[name];
+    const once = REACTIONS.includes(name);
     to.paused = false;
     to.enabled = true;
-    to.setEffectiveTimeScale(REACTIONS.includes(name) ? 1 : ped.vary);
+    to.setEffectiveTimeScale(once || name === "idle" ? 1 : ped.vary);
     to.setEffectiveWeight(1);
-    to.time = 0;
+    if (once) to.time = 0;
     // Warp rewrites timeScale when the fade ends, so the walk would leave
     // the stride rate that was just applied.
     from.crossFadeTo(to, FADE, false);
@@ -353,7 +359,7 @@ function litMaterials(model) {
 }
 
 function fitModel(model) {
-  // Same root-scale measurement as the player. These files share his rig.
+  // Same root-scale measurement as the player. This is his rig.
   // v15's root is 1.0. Measure at 1.05/1.134, as he does, so the restored
   // scale lands on his height.
   const root = model.getObjectByName("Root");
@@ -411,7 +417,9 @@ function centerOf(tx, tz, span) {
 }
 
 function clipNamed(animations, name) {
-  return animations.find((clip) => clip.name === name) || null;
+  const clip = animations.find((item) => item.name === name);
+  if (!clip) throw new Error(`The pedestrian rig is missing the ${name} clip.`);
+  return clip;
 }
 
 export async function createPedestrians(scene, map, pieces = [], feetAt = null) {
@@ -423,60 +431,29 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
     return feetAt ? feetAt(x, z, FEET_Y) : FEET_Y;
   }
   const { span } = graph;
-  let reactions = null;
+  let gltf;
   try {
-    const rig = await loader.loadAsync(new URL("../assets/player/gubbe.glb", import.meta.url).href);
-    reactions = {
-      hitChest: clipNamed(rig.animations, "Hit_Chest"),
-      hitHead: clipNamed(rig.animations, "Hit_Head"),
-      death: clipNamed(rig.animations, "Death01"),
-    };
+    gltf = await loader.loadAsync(new URL("../assets/player/gubbe.glb", import.meta.url).href);
   } catch {
-    throw new Error("The hit and death clips failed to load.");
+    throw new Error("The pedestrian rig failed to load.");
   }
-  if (!reactions.hitChest || !reactions.hitHead || !reactions.death) {
-    throw new Error("The hit and death clips failed to load.");
+  const clips = {};
+  for (const [key, name] of Object.entries(CLIP_NAMES)) {
+    clips[key] = clipNamed(gltf.animations, name);
   }
-  dropHeadScaleTracks(reactions);
-
-  function clipsFor(gltf) {
-    const clips = {};
-    for (const name of NAMES) {
-      const own = clipNamed(gltf.animations, name);
-      if (!own) throw new Error(`A pedestrian model is missing the ${name} clip.`);
-      clips[name] = own;
-    }
-    clips.hitChest = reactions.hitChest;
-    clips.hitHead = reactions.hitHead;
-    clips.death = reactions.death;
-    return clips;
-  }
-
-  const prototypes = [];
-  for (const file of FILES) {
-    const url = new URL(`../pedestrians_v15/${file}`, import.meta.url).href;
-    let gltf;
-    try {
-      gltf = await loader.loadAsync(url);
-    } catch {
-      throw new Error(`The pedestrian model failed to load: ${file}`);
-    }
-    const clips = await clipsFor(gltf);
-    // Head.scale is a rest hold at 1, and the mixer would write it back
-    // over the smaller head.
-    dropHeadScaleTracks(clips);
-    const template = gltf.scene;
-    const mask = clothMask(template);
-    litMaterials(template);
-    fitModel(template);
-    prototypes.push({
-      file,
-      template,
-      clips,
-      mask,
-      material: skinnedMeshOf(template).material,
-    });
-  }
+  // Head.scale is a rest hold at 1, and the mixer would write it back
+  // over the smaller head.
+  dropHeadScaleTracks(clips);
+  const template = gltf.scene;
+  const mask = clothMask(template);
+  litMaterials(template);
+  fitModel(template);
+  const prototypes = [{
+    template,
+    clips,
+    mask,
+    material: bodyMesh(template).material,
+  }];
 
   const tiles = crowdTiles(graph.cells, graph.neighbors);
   const people = [];
@@ -487,6 +464,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
     const open = graph.neighbors(tx, tz);
     const preferred = open[Math.floor(unitHash(index + 7) * open.length)] || [0, 0];
     const home = centerOf(tx, tz, span);
+    const calm = unitHash(index + 19) < 0.3 ? "jog" : "walk";
     people.push({
       proto,
       shirt: clothColor(index * 3 + 1),
@@ -494,7 +472,8 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
       shoes: clothColor(index * 3 + 3),
       vary: 0.85 + unitHash(index + 11) * 0.3,
       salt: index + 3,
-      playing: "walk",
+      calm,
+      playing: calm,
       live: null,
       dx: preferred[0],
       dz: preferred[1],
@@ -511,7 +490,6 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
     if (!live) {
       const model = cloneSkeleton(prototype.template);
       const holder = new Group();
-      holder.name = prototype.file;
       holder.frustumCulled = false;
       holder.add(model);
       live = {
@@ -522,7 +500,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
       };
       live.actions = bindActions(live.mixer, prototype.clips);
     }
-    const mesh = skinnedMeshOf(live.model);
+    const mesh = bodyMesh(live.model);
     mesh.material = sharedClothMaterial(
       prototype.material,
       prototype.mask,
@@ -532,13 +510,22 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
     );
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    for (const name of NAMES) {
+    for (const name of GAITS) {
       const action = live.actions[name];
       action.enabled = true;
       action.paused = false;
-      action.setEffectiveTimeScale(ped.vary);
+      action.setEffectiveTimeScale(name === "idle" ? 1 : ped.vary);
       action.setEffectiveWeight(name === ped.playing ? 1 : 0);
       action.play();
+    }
+    for (const name of REACTIONS) {
+      const action = live.actions[name];
+      action.enabled = true;
+      action.paused = true;
+      action.setEffectiveWeight(0);
+      action.time = 0;
+      action.setLoop(LoopOnce, 1);
+      action.clampWhenFinished = true;
     }
     const current = live.actions[ped.playing];
     current.time = unitHash(ped.salt + 29) * prototype.clips[ped.playing].duration;
@@ -664,8 +651,24 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
     return ped.x >= rect.minX && ped.x <= rect.maxX && ped.z >= rect.minZ && ped.z <= rect.maxZ;
   }
 
-  const HIT_DUR = { hitChest: 0.333, hitHead: 0.417 };
-  const DEATH_DUR = 2.375;
+  function duration(ped, name) {
+    return ped.live.actions[name].getClip().duration;
+  }
+
+  // Death01's last key is the body on the ground. Hold that pose. A finished
+  // one-shot otherwise drops every bone back to the bind pose.
+  function pinDeath(ped) {
+    const live = ped.live;
+    const death = live.actions.death;
+    death.enabled = true;
+    death.paused = true;
+    death.setEffectiveTimeScale(1);
+    death.setEffectiveWeight(1);
+    death.time = death.getClip().duration;
+    for (const name of GAITS) live.actions[name].setEffectiveWeight(0);
+    live.actions.hitChest.setEffectiveWeight(0);
+    live.actions.hitHead.setEffectiveWeight(0);
+  }
 
   function fall(ped, step) {
     ped.phaseTime += step;
@@ -674,15 +677,16 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
       ped.z += ped.vz * step;
       ped.vx *= Math.pow(0.08, step);
       ped.vz *= Math.pow(0.08, step);
-      if (ped.phaseTime >= HIT_DUR[ped.hitClip]) {
+      if (ped.phaseTime >= duration(ped, ped.hitClip)) {
         ped.phase = "death";
         ped.phaseTime = 0;
         showClip(ped, "death");
       }
-    } else if (ped.phase === "death" && ped.phaseTime >= DEATH_DUR) {
+    } else if (ped.phase === "death" && ped.phaseTime >= duration(ped, "death")) {
       ped.phase = "down";
       ped.settled = true;
     }
+    if (ped.phase === "down") pinDeath(ped);
     const live = ped.live;
     live.mixer.update(step);
     live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);
@@ -728,10 +732,9 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
       const next = Boolean(value);
       if (next === panic) return;
       panic = next;
-      const name = panic ? "run" : "walk";
       for (const ped of people) {
         if (ped.dead) continue;
-        showClip(ped, name);
+        showClip(ped, panic ? "sprint" : ped.calm);
       }
     },
     update(dt, playerX, playerZ, spanW = GROUND_W, spanH = GROUND_H) {
@@ -750,17 +753,16 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
         if (!ped.live && inRect(ped, enter)) acquire(ped);
         if (!ped.live) continue;
         steer(ped, playerX, playerZ);
-        const speed = (panic ? RUN_SPEED : WALK_SPEED) * ped.vary;
-        advance(ped, speed * step, playerX, playerZ);
+        const moving = ped.dx !== 0 || ped.dz !== 0;
+        const gait = moving ? (panic ? "sprint" : ped.calm) : "idle";
         const live = ped.live;
-        if (ped.dx !== 0 || ped.dz !== 0) {
+        if (moving) {
           live.holder.rotation.y = Math.atan2(ped.dx, ped.dz);
-          showClip(ped, panic ? "run" : "walk");
-        } else {
-          showClip(ped, "idle");
+          advance(ped, GAIT_SPEED[gait] * ped.vary * step, playerX, playerZ);
         }
+        showClip(ped, gait);
         if (!REACTIONS.includes(ped.playing)) {
-          live.actions[ped.playing].setEffectiveTimeScale(ped.vary);
+          live.actions[ped.playing].setEffectiveTimeScale(ped.playing === "idle" ? 1 : ped.vary);
         }
         live.mixer.update(step);
         live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);

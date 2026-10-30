@@ -719,6 +719,7 @@ async function start() {
     playerSprite.mesh.visible = !drive.driving;
     playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ, player.y, dt);
     pistol.update(dt);
+    pedestrians.runOver(traffic.cars(), drive.driving ? drive.sample() : null);
     pedestrians.update(dt, player.x, player.z, spanW, spanH);
     camX = frameCenter(snappedX, halfW, city.mapW);
     camZ = frameCenter(snappedZ, halfH, city.mapH);

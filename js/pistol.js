@@ -1,3 +1,18 @@
+import {
+  GRAVITY,
+  PUNCH_POSE,
+  RELEASE,
+  THROW_REACH,
+  aimTarget,
+  arcPoint,
+  bottleSurface,
+  flightTime,
+  nextWeapon,
+  pickBottle,
+  throwVelocity,
+  carContains,
+  BOTTLES,
+} from "./bottle.js";
 import { aimChord, pistolPose } from "./pose-layers.js";
 import { aimAlongStick, isTouchScreen, syncGunButtons } from "./touch-ui.js";
 import {
@@ -6,10 +21,12 @@ import {
   Box3,
   DoubleSide,
   Group,
+  Matrix4,
   Mesh,
   MeshBasicMaterial,
   Object3D,
   PlaneGeometry,
+  Quaternion,
   Raycaster,
   Sprite,
   SpriteMaterial,
@@ -30,12 +47,22 @@ const AIM_CHORD = 120;
 const AIM_TAU = 0.08;
 const FLASH_LIFE = 0.18;
 const PUFF_FRAME = 0.035;
+const SPLASH_HOLD = 0.07;
+const SPLASH_FADE = 0.16;
 
 const raycaster = new Raycaster();
 const ndc = new Vector2();
 const muzzlePos = new Vector3();
 const pedBox = new Box3();
 const pedHit = new Vector3();
+const flightPos = new Vector3();
+const flightQuat = new Quaternion();
+const flightScale = new Vector3();
+const stepDir = new Vector3();
+const hitNormal = new Vector3();
+const instanceMatrix = new Matrix4();
+const dropFrom = new Vector3();
+const down = new Vector3(0, -1, 0);
 
 function loadTexture(url) {
   const loader = new TextureLoader();
@@ -64,7 +91,8 @@ export async function createPistol({
 }) {
   const hand = player.model.getObjectByName("RightHand");
   if (!hand) throw new Error("The player is missing a right hand.");
-  const gunGltf = await new GLTFLoader().loadAsync(new URL("../assets/gun/Pistol_1.glb", import.meta.url).href);
+  const loader = new GLTFLoader();
+  const gunGltf = await loader.loadAsync(new URL("../assets/gun/Pistol_1.glb", import.meta.url).href);
   const grip = new Group();
   // Pistol_6 is already scaled by 100, which makes the mesh about 2.4 units
   // long. The figure is 3.8 tall in the same space, so this brings the
@@ -83,6 +111,32 @@ export async function createPistol({
   const muzzle = new Object3D();
   muzzle.position.set(0.021, 0, 0);
   pistolMesh.add(muzzle);
+
+  const handRoot = new Group();
+  handRoot.position.set(0, 0.08, 0.02);
+  hand.add(handRoot);
+  const bottleModels = [];
+  for (const kind of BOTTLES) {
+    const gltf = await loader.loadAsync(new URL(`../assets/bottle/${kind.file}`, import.meta.url).href);
+    gltf.scene.traverse((obj) => {
+      if (!obj.isMesh) return;
+      obj.frustumCulled = false;
+      // The file's UVs are OpenGL-up. flipY puts brown, purple, and yellow on the liquids.
+      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const mat of mats) {
+        if (mat && mat.map) {
+          mat.map.flipY = true;
+          mat.map.needsUpdate = true;
+        }
+      }
+    });
+    gltf.scene.visible = false;
+    handRoot.add(gltf.scene);
+    const splats = await Promise.all(kind.splats.map((name) => (
+      loadTexture(new URL(`../assets/bottle/splat/${name}`, import.meta.url).href)
+    )));
+    bottleModels.push({ kind, model: gltf.scene, splats });
+  }
 
   const flashTextures = await Promise.all(urls("flash", [
     "flash00.png", "flash01.png", "flash02.png", "flash03.png", "flash04.png",
@@ -122,6 +176,18 @@ export async function createPistol({
   const decals = [];
   const pools = [];
 
+  const breakBuffers = [];
+  const breakVoices = [0, 1, 2, 3].map(() => new Audio(listener));
+  for (const name of ["hit1.ogg", "hit2.ogg", "hit3.ogg", "hit4.ogg"]) {
+    const url = new URL(`../assets/bottle/hit/${name}`, import.meta.url).href;
+    new AudioLoader().load(url, (buffer) => {
+      breakBuffers.push(buffer);
+    });
+  }
+  const stainMaterials = new Map();
+  const flights = [];
+  const splashes = [];
+
   const shot = new Audio(listener);
   const shotUrl = new URL("../assets/sound/pistol-shot.mp3", import.meta.url).href;
   new AudioLoader().load(shotUrl, (buffer) => {
@@ -154,9 +220,33 @@ export async function createPistol({
     if (event.target === canvas) focusGame();
   }, true);
 
-  // Empty hands until a scroll. One gesture equips or holsters, not a burst of toggles.
-  let armed = false;
+  // Hands, then the pistol, then the bottle. One wheel notch is one step.
+  let weapon = "hands";
+  let handIndex = 0;
+  let handHidden = false;
+  let pending = null;
   let wheelAt = 0;
+
+  function holding() {
+    return weapon !== "hands";
+  }
+
+  function cycleWeapon() {
+    if (busy()) return weapon;
+    weapon = nextWeapon(weapon);
+    aiming = false;
+    aimDir = null;
+    shootLeft = 0;
+    poseLeft = 0;
+    reloadLeft = 0;
+    pending = null;
+    handHidden = false;
+    if (weapon === "bottle") {
+      const picked = pickBottle();
+      handIndex = Math.max(0, BOTTLES.findIndex((item) => item.id === picked.id));
+    }
+    return weapon;
+  }
   let aiming = false;
   let aimBlend = 0;
   let pointer = false;
@@ -218,8 +308,274 @@ export async function createPistol({
     return mesh;
   }
 
+  function showHeld() {
+    grip.visible = weapon === "pistol";
+    const showBottle = weapon === "bottle" && !handHidden;
+    for (let i = 0; i < bottleModels.length; i += 1) {
+      bottleModels[i].model.visible = showBottle && i === handIndex;
+    }
+  }
+
+  function playBreak() {
+    if (breakBuffers.length === 0) return;
+    const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;
+    if (!(master > 0)) return;
+    const buffer = breakBuffers[Math.floor(Math.random() * breakBuffers.length)];
+    const voice = breakVoices.find((item) => !item.isPlaying) || breakVoices[0];
+    try {
+      if (voice.isPlaying) voice.stop();
+      voice.setBuffer(buffer);
+      voice.setLoop(false);
+      voice.setVolume(0.4);
+      voice.play();
+    } catch (error) {
+      console.error("The bottle break failed to play", error);
+    }
+  }
+
+  function describeHit(hit) {
+    const mesh = hit.object;
+    if (!mesh) return { bottleFx: true };
+    let underPlayer = false;
+    let ped = false;
+    let node = mesh;
+    while (node) {
+      if (node === player.mesh) underPlayer = true;
+      if (typeof node.name === "string" && node.name.startsWith("ped_")) ped = true;
+      if (node.userData && node.userData.bottleFx) return { bottleFx: true };
+      node = node.parent;
+    }
+    const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+    const records = mesh.userData && mesh.userData.records;
+    const piece = mesh.userData && mesh.userData.piece;
+    const file = (records && records[0] && records[0].file) || (piece && piece.file) || "";
+    return {
+      underPlayer,
+      ped,
+      transparent: Boolean(mat && mat.transparent && mat.depthWrite === false),
+      file,
+      car: Boolean(mesh.isInstancedMesh && mesh.castShadow && !records),
+      tree: Boolean(mesh.geometry && mesh.geometry.getAttribute("color")),
+    };
+  }
+
+  function openRay() {
+    raycaster.near = 0;
+    raycaster.far = Infinity;
+  }
+
+  function liquidMap(index) {
+    const textures = bottleModels[index].splats;
+    return textures[Math.floor(Math.random() * textures.length)];
+  }
+
+  function splashAt(point, normal, map) {
+    const material = new SpriteMaterial({
+      map,
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const sprite = new Sprite(material);
+    sprite.position.copy(point);
+    if (normal && normal.y > 0.5) sprite.position.y += 8;
+    else if (normal) sprite.position.addScaledVector(normal, 3);
+    else sprite.position.y += 8;
+    sprite.scale.set(22, 22, 1);
+    sprite.renderOrder = 3;
+    sprite.userData.bottleFx = true;
+    sprite.raycast = () => {};
+    scene.add(sprite);
+    splashes.push({ sprite, age: 0 });
+  }
+
+  function stainMaterial(map) {
+    let material = stainMaterials.get(map);
+    if (material) return material;
+    material = new MeshBasicMaterial({
+      map,
+      transparent: true,
+      depthWrite: false,
+      depthTest: true,
+      polygonOffset: true,
+      polygonOffsetFactor: -4,
+      toneMapped: false,
+      side: DoubleSide,
+    });
+    stainMaterials.set(map, material);
+    return material;
+  }
+
+  function stainAt(x, z, map) {
+    dropFrom.set(x, 800, z);
+    raycaster.set(dropFrom, down);
+    raycaster.near = 0;
+    raycaster.far = 900;
+    const hits = raycaster.intersectObjects(scene.children, true);
+    let y = player.mesh.position.y;
+    for (const hit of hits) {
+      if (bottleSurface(describeHit(hit)) === "ground") {
+        y = hit.point.y;
+        break;
+      }
+    }
+    openRay();
+    const mesh = new Mesh(splatGeo, stainMaterial(map));
+    mesh.position.set(x, y + 0.2, z);
+    mesh.rotation.y = Math.random() * Math.PI * 2;
+    mesh.scale.setScalar(5);
+    mesh.renderOrder = 2;
+    mesh.userData.bottleFx = true;
+    mesh.raycast = () => {};
+    scene.add(mesh);
+  }
+
+  function breakBottle(flight, point, normal) {
+    flight.mesh.removeFromParent();
+    const map = liquidMap(flight.index);
+    playBreak();
+    splashAt(point, normal, map);
+    stainAt(point.x, point.z, map);
+  }
+
+  function throwTarget() {
+    const origin = player.mesh.position;
+    if (isTouchScreen()) {
+      const dir = aimDir && Math.hypot(aimDir.x, aimDir.z) > 0
+        ? aimDir
+        : { x: player.dirX, z: player.dirZ };
+      const mag = Math.hypot(dir.x, dir.z) || 1;
+      return {
+        x: origin.x + (dir.x / mag) * THROW_REACH,
+        y: origin.y,
+        z: origin.z + (dir.z / mag) * THROW_REACH,
+      };
+    }
+    const spot = aimGround();
+    if (!spot) {
+      return aimTarget(origin, {
+        x: origin.x + player.dirX * THROW_REACH,
+        y: origin.y,
+        z: origin.z + player.dirZ * THROW_REACH,
+      });
+    }
+    return aimTarget(origin, spot);
+  }
+
+  function releaseBottle() {
+    const index = pending.index;
+    const target = pending.target;
+    pending = null;
+    const src = bottleModels[index].model;
+    src.visible = true;
+    src.updateWorldMatrix(true, true);
+    const flight = src.clone(true);
+    flight.traverse((obj) => {
+      obj.frustumCulled = false;
+      obj.userData.bottleFx = true;
+      obj.raycast = () => {};
+    });
+    flight.userData.bottleFx = true;
+    src.getWorldPosition(flightPos);
+    src.getWorldQuaternion(flightQuat);
+    src.getWorldScale(flightScale);
+    flight.position.copy(flightPos);
+    flight.quaternion.copy(flightQuat);
+    flight.scale.copy(flightScale);
+    flight.visible = true;
+    scene.add(flight);
+    const picked = pickBottle();
+    handIndex = Math.max(0, BOTTLES.findIndex((item) => item.id === picked.id));
+    handHidden = true;
+    const start = { x: flight.position.x, y: flight.position.y, z: flight.position.z };
+    const dist = Math.hypot(target.x - start.x, target.z - start.z);
+    const time = flightTime(dist);
+    flights.push({
+      mesh: flight,
+      index,
+      start,
+      velocity: throwVelocity(start, target, time, GRAVITY),
+      time,
+      age: 0,
+      prev: flight.position.clone(),
+    });
+  }
+
+  function beginThrow() {
+    if (poseLeft > 0 || pending) return;
+    const picked = pickBottle();
+    handIndex = Math.max(0, BOTTLES.findIndex((item) => item.id === picked.id));
+    handHidden = false;
+    pending = { age: 0, target: throwTarget(), index: handIndex };
+    poseLeft = PUNCH_POSE;
+    player.kickPose("punchCross");
+  }
+
+  function stepFlights(step) {
+    for (let i = flights.length - 1; i >= 0; i -= 1) {
+      const flight = flights[i];
+      flight.age += step;
+      const t = Math.min(flight.time, flight.age);
+      const point = arcPoint(flight.start, flight.velocity, t, GRAVITY);
+      flight.mesh.position.set(point.x, point.y, point.z);
+      flight.mesh.rotateZ(step * 9);
+      const from = flight.prev;
+      stepDir.set(point.x - from.x, point.y - from.y, point.z - from.z);
+      const length = stepDir.length();
+      let broken = null;
+      if (length > 1e-4) {
+        stepDir.multiplyScalar(1 / length);
+        raycaster.set(from, stepDir);
+        raycaster.near = 0;
+        raycaster.far = length;
+        const hits = raycaster.intersectObjects(scene.children, true);
+        for (const hit of hits) {
+          const surface = bottleSurface(describeHit(hit));
+          if (!surface) continue;
+          hitNormal.set(0, 1, 0);
+          if (hit.face) {
+            hitNormal.copy(hit.face.normal);
+            if (hit.instanceId != null && hit.object.getMatrixAt) {
+              hit.object.getMatrixAt(hit.instanceId, instanceMatrix);
+              hitNormal.transformDirection(instanceMatrix);
+            } else {
+              hitNormal.transformDirection(hit.object.matrixWorld);
+            }
+          }
+          broken = { point: hit.point, normal: hitNormal.clone(), dist: hit.distance };
+          break;
+        }
+        if (traffic && traffic.cars) {
+          for (const car of traffic.cars()) {
+            if (!carContains(point.x, point.y, point.z, car)) continue;
+            const dist = Math.hypot(point.x - from.x, point.y - from.y, point.z - from.z);
+            if (!broken || dist <= broken.dist) {
+              broken = { point: flight.mesh.position.clone(), normal: hitNormal.set(0, 1, 0).clone(), dist };
+            }
+            break;
+          }
+        }
+      }
+      openRay();
+      if (!broken && flight.age >= flight.time) {
+        broken = { point: flight.mesh.position.clone(), normal: new Vector3(0, 1, 0) };
+      }
+      if (broken) {
+        breakBottle(flight, broken.point, broken.normal);
+        flights.splice(i, 1);
+        continue;
+      }
+      flight.prev.set(point.x, point.y, point.z);
+    }
+  }
+
   function fire() {
-    if (!armed || busy() || !aiming || reloadLeft > 0 || shootLeft > 0 || ammo <= 0) return;
+    if (!holding() || busy() || !aiming) return;
+    if (weapon === "bottle") {
+      beginThrow();
+      return;
+    }
+    if (reloadLeft > 0 || shootLeft > 0 || ammo <= 0) return;
     ammo -= 1;
     shootLeft = SHOT_TIME;
     poseLeft = SHOT_POSE;
@@ -314,7 +670,7 @@ export async function createPistol({
       if (event.type === "pointerup" && event.button === 2) aiming = false;
       if (event.type !== "pointerdown" || busy()) return;
       if (event.button === 2) {
-        if (!armed) return;
+        if (!holding()) return;
         aiming = true;
         rightAt = performance.now();
         event.preventDefault();
@@ -334,7 +690,7 @@ export async function createPistol({
       else if (event.type === "pointermove" && !right && !left) held = false;
     }
     const chord = aimChord({
-      armed,
+      armed: holding(),
       busy: blocked,
       aiming: held,
       right,
@@ -358,11 +714,7 @@ export async function createPistol({
     const now = performance.now();
     if (now < wheelAt) return;
     wheelAt = now + 350;
-    armed = !armed;
-    aiming = false;
-    shootLeft = 0;
-    poseLeft = 0;
-    reloadLeft = 0;
+    cycleWeapon();
   }, { capture: true, passive: false });
   window.addEventListener("pointerup", noteButtons, true);
   window.addEventListener("contextmenu", (event) => event.preventDefault(), true);
@@ -370,7 +722,7 @@ export async function createPistol({
     if (event.repeat || event.code !== "KeyR") return;
     const tag = event.target && event.target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") return;
-    if (!armed || busy() || reloadLeft > 0 || ammo >= MAG) return;
+    if (weapon !== "pistol" || busy() || reloadLeft > 0 || ammo >= MAG) return;
     reloadLeft = RELOAD_TIME;
     shootLeft = 0;
   });
@@ -381,14 +733,20 @@ export async function createPistol({
 
   return {
     get armed() {
-      return armed;
+      return holding();
+    },
+    get weapon() {
+      return weapon;
+    },
+    cycle() {
+      return cycleWeapon();
     },
     get aiming() {
       return aiming;
     },
     // Tap once to hold aim, tap again to release. Same flag as the right button.
     toggleAim() {
-      if (!armed || busy()) return false;
+      if (!holding() || busy()) return false;
       aiming = !aiming;
       return aiming;
     },
@@ -397,11 +755,14 @@ export async function createPistol({
       fire();
     },
     pre() {
-      const off = busy() || !armed;
-      grip.visible = armed;
-      if (off) aiming = false;
+      const off = busy() || !holding();
+      showHeld();
+      if (off) {
+        aiming = false;
+        pending = null;
+      }
       if (isTouchScreen()) {
-        syncGunButtons(armed);
+        syncGunButtons(holding());
         if (aiming && stick && stick.active) {
           const along = aimAlongStick(player.mesh.position.x, player.mesh.position.z, stick.x, stick.z);
           if (along) {
@@ -413,23 +774,32 @@ export async function createPistol({
           player.clearAim();
         }
       } else {
-        const spot = armed && !busy() && pointer ? aimGround() : null;
+        const spot = holding() && !busy() && pointer ? aimGround() : null;
         if (aiming && spot) player.aimAt(spot.x, spot.z);
         else player.clearAim();
       }
       player.forcePose(pistolPose({
-        armed,
+        armed: holding(),
         busy: busy(),
         reloading: reloadLeft > 0,
         shooting: poseLeft > 0,
         aiming,
         speed: player.speed,
+        weapon,
       }));
     },
     update(dt) {
       const step = Math.max(0, dt);
       if (shootLeft > 0) shootLeft = Math.max(0, shootLeft - step);
       if (poseLeft > 0) poseLeft = Math.max(0, poseLeft - step);
+      if (pending) {
+        pending.age += step;
+        if (weapon !== "bottle" || busy()) pending = null;
+        else if (pending.age >= RELEASE) releaseBottle();
+      }
+      if (weapon === "bottle" && handHidden && poseLeft === 0) handHidden = false;
+      showHeld();
+      stepFlights(step);
       if (reloadLeft > 0) {
         reloadLeft = Math.max(0, reloadLeft - step);
         if (reloadLeft === 0) ammo = MAG;
@@ -451,6 +821,19 @@ export async function createPistol({
         flashLife -= step;
         muzzle.getWorldPosition(flash.position);
         if (flashLife <= 0) flash.visible = false;
+      }
+      for (let i = splashes.length - 1; i >= 0; i -= 1) {
+        const splash = splashes[i];
+        splash.age += step;
+        const fade = splash.age < SPLASH_HOLD
+          ? 1
+          : 1 - (splash.age - SPLASH_HOLD) / SPLASH_FADE;
+        splash.sprite.material.opacity = Math.max(0, fade);
+        if (splash.age >= SPLASH_HOLD + SPLASH_FADE) {
+          splash.sprite.removeFromParent();
+          splash.sprite.material.dispose();
+          splashes.splice(i, 1);
+        }
       }
       for (let i = puffs.length - 1; i >= 0; i -= 1) {
         const puff = puffs[i];

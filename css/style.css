@@ -369,4 +369,11 @@ canvas {
     background: #ffe14a;
     color: #000;
   }
+
+  #touch-switch {
+    box-sizing: border-box;
+    width: auto;
+    min-width: 80px;
+    padding: 0 8px;
+  }
 }

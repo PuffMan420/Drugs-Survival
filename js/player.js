@@ -235,6 +235,10 @@ export async function createPlayer() {
   actions.pistolShoot.clampWhenFinished = true;
   actions.pistolReload.setLoop(LoopOnce, 1);
   actions.pistolReload.clampWhenFinished = true;
+  actions.punchCross = mixer.clipAction(clipNamed(gltf.animations, "Punch_Cross"));
+  setWeight(actions.punchCross, 0);
+  actions.punchCross.setLoop(LoopOnce, 1);
+  actions.punchCross.clampWhenFinished = true;
   actions.idle.play();
   actions.walk.play();
   actions.jog.play();
@@ -243,6 +247,7 @@ export async function createPlayer() {
   actions.pistolAim.play();
   actions.pistolShoot.play();
   actions.pistolReload.play();
+  actions.punchCross.play();
   const lowerActions = {};
   for (const name of ["idle", "walk", "jog", "sprint"]) {
     lowerActions[name] = mixer.clipAction(maskedClip(actions[name].getClip(), true));
@@ -250,7 +255,7 @@ export async function createPlayer() {
     lowerActions[name].play();
   }
   const upperActions = {};
-  for (const name of ["pistolAim", "pistolShoot", "pistolReload"]) {
+  for (const name of ["pistolAim", "pistolShoot", "pistolReload", "punchCross"]) {
     upperActions[name] = mixer.clipAction(maskedClip(actions[name].getClip(), false));
     setWeight(upperActions[name], 0);
     upperActions[name].play();
@@ -259,6 +264,8 @@ export async function createPlayer() {
   upperActions.pistolShoot.clampWhenFinished = true;
   upperActions.pistolReload.setLoop(LoopOnce, 1);
   upperActions.pistolReload.clampWhenFinished = true;
+  upperActions.punchCross.setLoop(LoopOnce, 1);
+  upperActions.punchCross.clampWhenFinished = true;
   // Bones are still the bind T until the mixer writes. Do that before the
   // first paint, while idle is the only action with weight.
   mixer.update(0);
@@ -462,8 +469,9 @@ export async function createPlayer() {
           layered = true;
           for (const key of Object.keys(actions)) glide(actions[key], 0, tau, 0.1);
           for (const key of Object.keys(lowerActions)) glide(lowerActions[key], key === gait ? 1 : 0, tau, 0.1);
+          const fast = forced === "pistolShoot" || forced === "punchCross";
           for (const key of Object.keys(upperActions)) {
-            glide(upperActions[key], key === forced ? 1 : 0, tau, forced === "pistolShoot" ? 0.04 : 0.1);
+            glide(upperActions[key], key === forced ? 1 : 0, tau, fast ? 0.04 : 0.1);
           }
         } else {
           for (const key of Object.keys(lowerActions)) glide(lowerActions[key], 0, tau, 0.1);

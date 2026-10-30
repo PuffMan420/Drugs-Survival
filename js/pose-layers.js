@@ -39,8 +39,9 @@ export function splitTrackNames(names) {
 
 // Shoot wins over the held aim so the recoil plays, and the aim pose returns
 // when the shot window ends. Reload wins over both.
-export function pistolPose({ armed, busy, reloading, shooting, aiming, speed }) {
+export function pistolPose({ armed, busy, reloading, shooting, aiming, speed, weapon = "pistol" }) {
   if (!armed || busy) return "";
+  if (weapon === "bottle") return shooting ? "punchCross" : "";
   if (reloading) return "pistolReload";
   if (shooting) return "pistolShoot";
   if (aiming) return "pistolAim";
@@ -49,6 +50,8 @@ export function pistolPose({ armed, busy, reloading, shooting, aiming, speed }) 
 }
 
 export function legsWhileAiming(pose, moving) {
+  // The cross is the throw. Its legs never play; the gait does, including a stand.
+  if (pose === "punchCross") return true;
   return moving && LEG_POSES.has(pose);
 }
 

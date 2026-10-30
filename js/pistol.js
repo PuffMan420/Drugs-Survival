@@ -5,7 +5,6 @@ import {
   THROW_REACH,
   aimTarget,
   arcPoint,
-  bottleSurface,
   flightTime,
   nextWeapon,
   pickBottle,
@@ -13,6 +12,7 @@ import {
   carContains,
   BOTTLES,
 } from "./bottle.js";
+import { TILE } from "./constants.js";
 import { aimChord, pistolPose } from "./pose-layers.js";
 import { aimAlongStick, isTouchScreen, syncGunButtons } from "./touch-ui.js";
 import {
@@ -21,7 +21,6 @@ import {
   Box3,
   DoubleSide,
   Group,
-  Matrix4,
   Mesh,
   MeshBasicMaterial,
   Object3D,
@@ -58,11 +57,11 @@ const pedHit = new Vector3();
 const flightPos = new Vector3();
 const flightQuat = new Quaternion();
 const flightScale = new Vector3();
-const stepDir = new Vector3();
-const hitNormal = new Vector3();
-const instanceMatrix = new Matrix4();
-const dropFrom = new Vector3();
-const down = new Vector3(0, -1, 0);
+// Same footprint the player uses. A scene raycast is not used: it walks every instanced road.
+const PED_REACH = 16;
+const PED_REACH_SQ = PED_REACH * PED_REACH;
+// Same placement scale as the road batches: a piece is 4 tiles on a side.
+const PIECE = TILE * 4;
 
 function loadTexture(url) {
   const loader = new TextureLoader();
@@ -333,43 +332,12 @@ export async function createPistol({
     }
   }
 
-  function describeHit(hit) {
-    const mesh = hit.object;
-    if (!mesh) return { bottleFx: true };
-    let underPlayer = false;
-    let ped = false;
-    let node = mesh;
-    while (node) {
-      if (node === player.mesh) underPlayer = true;
-      if (typeof node.name === "string" && node.name.startsWith("ped_")) ped = true;
-      if (node.userData && node.userData.bottleFx) return { bottleFx: true };
-      node = node.parent;
-    }
-    const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-    const records = mesh.userData && mesh.userData.records;
-    const piece = mesh.userData && mesh.userData.piece;
-    const file = (records && records[0] && records[0].file) || (piece && piece.file) || "";
-    return {
-      underPlayer,
-      ped,
-      transparent: Boolean(mat && mat.transparent && mat.depthWrite === false),
-      file,
-      car: Boolean(mesh.isInstancedMesh && mesh.castShadow && !records),
-      tree: Boolean(mesh.geometry && mesh.geometry.getAttribute("color")),
-    };
-  }
-
-  function openRay() {
-    raycaster.near = 0;
-    raycaster.far = Infinity;
-  }
-
   function liquidMap(index) {
     const textures = bottleModels[index].splats;
     return textures[Math.floor(Math.random() * textures.length)];
   }
 
-  function splashAt(point, normal, map) {
+  function splashAt(x, y, z, map) {
     const material = new SpriteMaterial({
       map,
       transparent: true,
@@ -377,10 +345,7 @@ export async function createPistol({
       toneMapped: false,
     });
     const sprite = new Sprite(material);
-    sprite.position.copy(point);
-    if (normal && normal.y > 0.5) sprite.position.y += 8;
-    else if (normal) sprite.position.addScaledVector(normal, 3);
-    else sprite.position.y += 8;
+    sprite.position.set(x, y + 8, z);
     sprite.scale.set(22, 22, 1);
     sprite.renderOrder = 3;
     sprite.userData.bottleFx = true;
@@ -406,20 +371,7 @@ export async function createPistol({
     return material;
   }
 
-  function stainAt(x, z, map) {
-    dropFrom.set(x, 800, z);
-    raycaster.set(dropFrom, down);
-    raycaster.near = 0;
-    raycaster.far = 900;
-    const hits = raycaster.intersectObjects(scene.children, true);
-    let y = player.mesh.position.y;
-    for (const hit of hits) {
-      if (bottleSurface(describeHit(hit)) === "ground") {
-        y = hit.point.y;
-        break;
-      }
-    }
-    openRay();
+  function stainAt(x, y, z, map) {
     const mesh = new Mesh(splatGeo, stainMaterial(map));
     mesh.position.set(x, y + 0.2, z);
     mesh.rotation.y = Math.random() * Math.PI * 2;
@@ -430,12 +382,63 @@ export async function createPistol({
     scene.add(mesh);
   }
 
-  function breakBottle(flight, point, normal) {
+  function breakBottle(flight, point) {
     flight.mesh.removeFromParent();
     const map = liquidMap(flight.index);
     playBreak();
-    splashAt(point, normal, map);
-    stainAt(point.x, point.z, map);
+    splashAt(point.x, point.y, point.z, map);
+    stainAt(point.x, flight.groundY, point.z, map);
+  }
+
+  function hitsPed(point) {
+    if (!pedestrians || !pedestrians.targets) return false;
+    const list = pedestrians.targets();
+    for (let i = 0; i < list.length; i += 1) {
+      const ped = list[i];
+      const dx = point.x - ped.x;
+      const dz = point.z - ped.z;
+      if (dx * dx + dz * dz > PED_REACH_SQ) continue;
+      const feet = ped.live ? ped.live.holder.position.y : point.y;
+      if (point.y < feet - 4 || point.y > feet + 40) continue;
+      return true;
+    }
+    return false;
+  }
+
+  function hitsCar(point) {
+    if (!traffic || !traffic.cars) return false;
+    const list = traffic.cars();
+    for (let i = 0; i < list.length; i += 1) {
+      if (carContains(point.x, point.y, point.z, list[i])) return true;
+    }
+    return false;
+  }
+
+  function hitsWall(point) {
+    const build = scene.getObjectByName("build");
+    if (!build) return false;
+    let found = false;
+    build.traverse((obj) => {
+      if (found) return;
+      const records = obj.userData && obj.userData.records;
+      const single = obj.userData && obj.userData.piece;
+      const list = records && records.length ? records : (single ? [single] : null);
+      if (!list) return;
+      const file = list[0].file || "";
+      if (!file || file.startsWith("road")) return;
+      for (let i = 0; i < list.length; i += 1) {
+        const record = list[i];
+        const scale = record.scale || 1;
+        const cx = (record.x + 0.5) * TILE;
+        const cz = (record.z + 0.5) * TILE;
+        const reach = PIECE * 0.5 * scale;
+        if (Math.abs(point.x - cx) > reach || Math.abs(point.z - cz) > reach) continue;
+        if (point.y < -2 || point.y > PIECE * scale) continue;
+        found = true;
+        return;
+      }
+    });
+    return found;
   }
 
   function throwTarget() {
@@ -497,7 +500,7 @@ export async function createPistol({
       velocity: throwVelocity(start, target, time, GRAVITY),
       time,
       age: 0,
-      prev: flight.position.clone(),
+      groundY: target.y,
     });
   }
 
@@ -519,53 +522,10 @@ export async function createPistol({
       const point = arcPoint(flight.start, flight.velocity, t, GRAVITY);
       flight.mesh.position.set(point.x, point.y, point.z);
       flight.mesh.rotateZ(step * 9);
-      const from = flight.prev;
-      stepDir.set(point.x - from.x, point.y - from.y, point.z - from.z);
-      const length = stepDir.length();
-      let broken = null;
-      if (length > 1e-4) {
-        stepDir.multiplyScalar(1 / length);
-        raycaster.set(from, stepDir);
-        raycaster.near = 0;
-        raycaster.far = length;
-        const hits = raycaster.intersectObjects(scene.children, true);
-        for (const hit of hits) {
-          const surface = bottleSurface(describeHit(hit));
-          if (!surface) continue;
-          hitNormal.set(0, 1, 0);
-          if (hit.face) {
-            hitNormal.copy(hit.face.normal);
-            if (hit.instanceId != null && hit.object.getMatrixAt) {
-              hit.object.getMatrixAt(hit.instanceId, instanceMatrix);
-              hitNormal.transformDirection(instanceMatrix);
-            } else {
-              hitNormal.transformDirection(hit.object.matrixWorld);
-            }
-          }
-          broken = { point: hit.point, normal: hitNormal.clone(), dist: hit.distance };
-          break;
-        }
-        if (traffic && traffic.cars) {
-          for (const car of traffic.cars()) {
-            if (!carContains(point.x, point.y, point.z, car)) continue;
-            const dist = Math.hypot(point.x - from.x, point.y - from.y, point.z - from.z);
-            if (!broken || dist <= broken.dist) {
-              broken = { point: flight.mesh.position.clone(), normal: hitNormal.set(0, 1, 0).clone(), dist };
-            }
-            break;
-          }
-        }
-      }
-      openRay();
-      if (!broken && flight.age >= flight.time) {
-        broken = { point: flight.mesh.position.clone(), normal: new Vector3(0, 1, 0) };
-      }
-      if (broken) {
-        breakBottle(flight, broken.point, broken.normal);
+      if (hitsPed(point) || hitsCar(point) || hitsWall(point) || flight.age >= flight.time) {
+        breakBottle(flight, point);
         flights.splice(i, 1);
-        continue;
       }
-      flight.prev.set(point.x, point.y, point.z);
     }
   }
 

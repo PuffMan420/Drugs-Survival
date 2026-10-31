@@ -99,8 +99,12 @@ export async function createPistol({
   // The butt is 0.34 behind the grip origin. The extra scale would push
   // that into the palm, so the hold shifts forward by the same amount.
   grip.scale.setScalar(0.25 * 1.5);
-  grip.rotation.z = Math.PI / 2;
-  grip.position.set(0, 0.08 + 0.34 * 0.25 * 0.5, 0.02);
+  // The barrel is the mesh +X. A quarter turn around Z lays it along the
+  // fingers (+Y). The grip bulge is the mesh +Z, which is the back of this
+  // hand, so a half turn around the barrel swings the grip into the palm (−Z).
+  grip.rotation.x = Math.PI;
+  grip.rotation.z = -Math.PI / 2;
+  grip.position.set(0, 0.08 + 0.34 * 0.25 * 0.5, -0.04);
   grip.add(gunGltf.scene);
   hand.add(grip);
   let pistolMesh = null;

@@ -20,6 +20,9 @@ export const GROUP = {
   ROAD: 1,
   WHEEL: 2,
   SOLID: 4,
+  // Pedestrian ragdolls. They filter ROAD, so the ground can include this
+  // bit without the chassis (which never filters ROAD) landing on it.
+  RAGDOLL: 8,
 };
 
 export function groups(membership, mask) {

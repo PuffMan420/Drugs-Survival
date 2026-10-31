@@ -12,7 +12,9 @@ import {
   LoopOnce,
   MeshLambertMaterial,
   PlaneGeometry,
+  Quaternion,
   SRGBColorSpace,
+  Vector3,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { PLAYER_SPEED } from "./constants.js";
@@ -282,6 +284,14 @@ export async function createPlayer() {
   let layered = false;
   let legGait = "idle";
   let kick = "";
+  let blendOut = false;
+  // Aim curls the right fingers toward −Z, so that is the palm. The left palm
+  // is +Z. Rolling the wrist a quarter turn around the fingers faces that palm
+  // at the right hand, and the shift moves the hand onto the grip from below.
+  const leftHand = model.getObjectByName("LeftHand");
+  const supportRoll = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), -Math.PI / 2);
+  const supportShift = new Vector3(0.08, -0.05, 0.02);
+  const supportWorld = new Vector3();
   const buffers = [null, null];
   let stepsReady = false;
 
@@ -457,6 +467,7 @@ export async function createPlayer() {
       if (holder.visible && dist < PLACE_STEP) {
         const tau = Math.max(step, 1 / 120);
         if (split) {
+          blendOut = false;
           if (!layered) {
             const seed = actions[gait];
             lowerActions[gait].time = seed.getEffectiveWeight() > 0.5 ? seed.time : 0;
@@ -476,11 +487,24 @@ export async function createPlayer() {
         } else {
           for (const key of Object.keys(lowerActions)) glide(lowerActions[key], 0, tau, 0.1);
           for (const key of Object.keys(upperActions)) glide(upperActions[key], 0, tau, 0.08);
-          if (layered) {
+          const next = forced || gait;
+          if (layered && next === playing) {
             layered = false;
-            restoreFull(forced || gait);
-          } else {
-            show(forced || gait);
+            blendOut = true;
+          } else if (layered || next !== playing) {
+            layered = false;
+            blendOut = false;
+            show(next);
+          } else if (!blendOut) {
+            show(next);
+          }
+          if (blendOut) {
+            for (const key of Object.keys(actions)) glide(actions[key], key === playing ? 1 : 0, tau, 0.12);
+            let upperLeft = 0;
+            for (const key of Object.keys(upperActions)) {
+              upperLeft = Math.max(upperLeft, upperActions[key].getEffectiveWeight());
+            }
+            if (upperLeft < 0.02 && actions[playing].getEffectiveWeight() > 0.98) blendOut = false;
           }
         }
       }
@@ -508,6 +532,14 @@ export async function createPlayer() {
       if (forced && actions[forced]) actions[forced].setEffectiveTimeScale(1);
       for (const name of Object.keys(upperActions)) upperActions[name].setEffectiveTimeScale(1);
       mixer.update(step);
+      if (leftHand && (forced === "pistolAim" || forced === "pistolShoot")) {
+        leftHand.quaternion.multiply(supportRoll);
+        leftHand.updateMatrixWorld(true);
+        leftHand.getWorldPosition(supportWorld);
+        supportWorld.add(supportShift);
+        leftHand.parent.worldToLocal(supportWorld);
+        leftHand.position.copy(supportWorld);
+      }
       // The mesh is hidden in a car. A map jump is a huge step, not a footfall.
       // Clip time moves with the playback rate, so a faster gait steps sooner.
       // While aiming, the feet follow the gait even though the arms play the pistol.

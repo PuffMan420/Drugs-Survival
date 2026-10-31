@@ -1,7 +1,7 @@
 // What every body in the shared world collides with: the ground, roads
 // placed in build mode, the buildings near the followed body, and kinematic
 // stand-ins for the traffic cars around it. Roads are a ROAD surface that
-// only wheels ray-cast; buildings and traffic are SOLID.
+// only wheels ray-cast, and ragdolls land on it; buildings and traffic are SOLID.
 
 import { TILE } from "./constants.js";
 import { builtRoadStrips } from "./built-lanes.js";
@@ -83,7 +83,7 @@ function addRoadBox(RAPIER, world, body, a, b, half) {
     RAPIER.ColliderDesc.cuboid(half, thick / 2, len / 2 + 3)
       .setTranslation((a.x + b.x) / 2 - ux * thick / 2, (a.y + b.y) / 2 - uy * thick / 2, (a.z + b.z) / 2 - uz * thick / 2)
       .setRotation(quatFromBasis(rx, ry, rz, ux, uy, uz, dx, dy, dz))
-      .setCollisionGroups(groups(GROUP.ROAD, GROUP.WHEEL)),
+      .setCollisionGroups(groups(GROUP.ROAD, GROUP.WHEEL | GROUP.RAGDOLL)),
     body,
   );
 }
@@ -195,7 +195,7 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
   world.createCollider(
     RAPIER.ColliderDesc.cuboid(mapW, 2, mapD)
       .setTranslation(mapW / 2, 0.6 - 2, mapD / 2)
-      .setCollisionGroups(groups(GROUP.ROAD, GROUP.WHEEL)),
+      .setCollisionGroups(groups(GROUP.ROAD, GROUP.WHEEL | GROUP.RAGDOLL)),
     fixedBody,
   );
 
@@ -230,7 +230,7 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
     );
     world.createCollider(
       RAPIER.ColliderDesc.cuboid(16, 7, 30)
-        .setCollisionGroups(groups(GROUP.SOLID, GROUP.SOLID))
+        .setCollisionGroups(groups(GROUP.SOLID, GROUP.SOLID | GROUP.RAGDOLL))
         .setRestitution(0),
       body,
     );
@@ -274,7 +274,7 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
           blockColliders.push(world.createCollider(
             RAPIER.ColliderDesc.cuboid(hx, hy, hz)
               .setTranslation((building.x + building.w / 2) * TILE, hy, (building.z + building.d / 2) * TILE)
-              .setCollisionGroups(groups(GROUP.SOLID, GROUP.SOLID))
+              .setCollisionGroups(groups(GROUP.SOLID, GROUP.SOLID | GROUP.RAGDOLL))
               .setFriction(0.8)
               .setRestitution(0),
             fixedBody,
@@ -335,12 +335,16 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
 
   // The object whose x and z the buildings and traffic stand-ins follow.
   let focus = null;
+  // Buildings around a walking player while a ragdoll exists. Traffic
+  // stand-ins stay tied to the driven car.
+  let watch = null;
 
   physics.addSystem({
     fixedUpdate() {
-      if (!focus) return;
-      streamBlocks(focus.x, focus.z);
-      syncTraffic(cars(), focus);
+      const at = focus || watch;
+      if (!at) return;
+      streamBlocks(at.x, at.z);
+      if (focus) syncTraffic(cars(), focus);
     },
   });
 
@@ -350,6 +354,15 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
       if ((target || null) !== focus) releaseAll();
       focus = target || null;
       if (focus) streamBlocks(focus.x, focus.z);
+      else if (watch) streamBlocks(watch.x, watch.z);
+    },
+    watch(x, z) {
+      if (x == null) {
+        watch = null;
+        return;
+      }
+      watch = { x, z };
+      if (!focus) streamBlocks(x, z);
     },
     roadColliderCount() {
       return roadColliders.size;

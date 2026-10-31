@@ -543,7 +543,13 @@ async function start() {
     if (!response.ok) return null;
     return response.arrayBuffer();
   });
-  const pedestrians = await createPedestrians(scene, map, savedLayout.pieces, (x, z, streetY) => sidewalks.feetY(x, z, streetY));
+  const pedestrians = await createPedestrians(
+    scene,
+    map,
+    savedLayout.pieces,
+    (x, z, streetY) => sidewalks.feetY(x, z, streetY),
+    { physics, physicsScene, mobile: isTouchScreen() },
+  );
   window.pedestrians = pedestrians;
   const glow = createGlow(scene);
   const sun = createSun(scene);
@@ -652,6 +658,8 @@ async function start() {
       });
     }
     // Physics keeps its own clock: whole 1/60 s steps, capped per frame.
+    // Ragdolls need the buildings even when nobody is driving.
+    pedestrians.ragdollFocus(player.x, player.z);
     physics.step(frameDt);
 
     pistol.pre();

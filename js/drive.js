@@ -3,7 +3,8 @@
 // that yaws the body while the sphere's velocity keeps going, which is the
 // drift. A Rapier ray-cast suspension still plants the chassis on the road
 // and the cuboid still blocks on buildings and the other cars. Every other
-// car stays on the traffic sim. The world only steps while someone is driving.
+// car stays on the traffic sim. The world steps while someone is driving,
+// and while a pedestrian ragdoll is still simulating.
 
 import { createArcadeVehicle } from "./kenney-vehicle.js";
 import { GROUP, groups, yawQuat } from "./physics.js";
@@ -159,7 +160,7 @@ export function createDrive(physics, scene) {
       chassisCol = world.createCollider(
         RAPIER.ColliderDesc.cuboid(hx, hy, hz)
           .setTranslation(0, -1.5, -h * 0.04)
-          .setCollisionGroups(groups(GROUP.SOLID, GROUP.SOLID))
+          .setCollisionGroups(groups(GROUP.SOLID, GROUP.SOLID | GROUP.RAGDOLL))
           .setFriction(0.5)
           .setRestitution(0)
           .setDensity(0),

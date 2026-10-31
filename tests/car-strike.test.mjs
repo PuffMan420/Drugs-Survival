@@ -13,6 +13,7 @@ test("a slow car and a parked car do not strike", () => {
 test("a fast traffic car strikes along its nose", () => {
   const motion = carVelocity({ ...car, speed: CAR_KILL_SPEED + 1, angle: 0 }, null);
   assert.ok(motion);
+  assert.equal(motion.speed, CAR_KILL_SPEED + 1);
   assert.ok(Math.abs(motion.dirX) < 1e-6);
   assert.ok(motion.dirZ < 0);
 });
@@ -24,6 +25,7 @@ test("the driven car uses its velocity, not the speed it had in traffic", () => 
   assert.ok(motion);
   assert.equal(motion.dirX, 40);
   assert.equal(motion.dirZ, 0);
+  assert.equal(motion.speed, 40);
 });
 
 test("the ped has to be inside the car box on the same level", () => {

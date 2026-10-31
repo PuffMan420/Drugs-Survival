@@ -10,12 +10,15 @@ import {
   LinearMipmapLinearFilter,
   MeshLambertMaterial,
   NoColorSpace,
+  Quaternion,
   SRGBColorSpace,
+  Vector3,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { carReachesPed, carVelocity } from "./car-strike.js";
 import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
+import { createRagdolls } from "./ped-ragdoll.js";
 import { GROUND_H, GROUND_W, PLAYER_SPEED, TILE } from "./constants.js";
 import { walkableCells } from "./pedestrian-walk.js";
 
@@ -24,9 +27,19 @@ const SEDAN_LENGTH = 71;
 const SCALE_BUMP = 1.15 * 1.1 * 1.1 * 1.05;
 const FEET_Y = 0.6;
 const FADE = 0.12;
-// A car kill pops the body off the ground, then it lands during Death01.
-const HOP_UP = 55;
-const HOP_GRAVITY = 240;
+// Capsules, parent before child so a bone is written after the one it hangs from.
+const RAGDOLL_BONES = [
+  ["torso", "Hips", "UpperChest"],
+  ["head", "Head", "Head_end"],
+  ["leftArm", "LeftArm", "LeftForeArm"],
+  ["leftFore", "LeftForeArm", "LeftHand"],
+  ["rightArm", "RightArm", "RightForeArm"],
+  ["rightFore", "RightForeArm", "RightHand"],
+  ["leftThigh", "LeftUpLeg", "LeftLeg"],
+  ["leftShin", "LeftLeg", "LeftFoot"],
+  ["rightThigh", "RightUpLeg", "RightLeg"],
+  ["rightShin", "RightLeg", "RightFoot"],
+];
 // The clips are in-place. Ground speed is the same reference the player uses
 // for that clip, and playback is ground / reference, so the feet do not slide.
 const GAIT_SPEED = {
@@ -428,7 +441,35 @@ function clipNamed(animations, name) {
   return clip;
 }
 
-export async function createPedestrians(scene, map, pieces = [], feetAt = null) {
+const ragPos = new Vector3();
+const ragA = new Vector3();
+const ragB = new Vector3();
+const ragBodyQuat = new Quaternion();
+const ragWorldQuat = new Quaternion();
+const ragParentQuat = new Quaternion();
+
+function writeBone(bone, worldPos, worldQuat) {
+  const parent = bone.parent;
+  if (!parent) return;
+  parent.updateWorldMatrix(true, false);
+  ragPos.copy(worldPos);
+  parent.worldToLocal(ragPos);
+  parent.getWorldQuaternion(ragParentQuat);
+  bone.position.copy(ragPos);
+  bone.quaternion.copy(ragParentQuat.invert()).multiply(worldQuat);
+  bone.updateMatrix();
+}
+
+function resetBones(model) {
+  model.traverse((obj) => {
+    if (!obj.isSkinnedMesh) return;
+    if (obj.skeleton) obj.skeleton.pose();
+    obj.frustumCulled = true;
+  });
+  shrinkHead(model);
+}
+
+export async function createPedestrians(scene, map, pieces = [], feetAt = null, rig = null) {
   const loader = new GLTFLoader();
   const graph = sidewalkGraph(map, pieces);
   // feetAt reads the sidewalk lip from the road meshes. The cast shadow is
@@ -436,6 +477,9 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
   function sole(x, z) {
     return feetAt ? feetAt(x, z, FEET_Y) : FEET_Y;
   }
+  const ragdolls = rig && rig.physics
+    ? createRagdolls(rig.physics, { limit: rig.mobile ? 4 : 8, near: 800 })
+    : null;
   const { span } = graph;
   let gltf;
   try {
@@ -546,6 +590,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
   }
 
   function release(ped) {
+    endRagdoll(ped, true);
     const live = ped.live;
     ped.live = null;
     live.holder.removeFromParent();
@@ -698,20 +743,10 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
     if (ped.phase === "down") pinDeath(ped);
     const live = ped.live;
     live.mixer.update(step);
-    let y = sole(ped.x, ped.z);
-    if (ped.hop > 0 || ped.vy > 0) {
-      ped.hop += ped.vy * step;
-      ped.vy -= HOP_GRAVITY * step;
-      if (ped.hop < 0) {
-        ped.hop = 0;
-        ped.vy = 0;
-      }
-      y += ped.hop;
-    }
-    live.holder.position.set(ped.x, y, ped.z);
+    live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);
   }
 
-  function hurt(ped, dirX, dirZ, lift = 0) {
+  function hurt(ped, dirX, dirZ) {
     if (!ped || ped.dead || !ped.live) return null;
     ped.dead = true;
     ped.settled = false;
@@ -722,10 +757,6 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
     const len = Math.hypot(dirX, dirZ) || 1;
     ped.vx = (dirX / len) * 40;
     ped.vz = (dirZ / len) * 40;
-    if (lift > 0) {
-      ped.vy = lift;
-      ped.hop = 0;
-    }
     showClip(ped, ped.hitClip);
     return {
       x: ped.x,
@@ -733,6 +764,101 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
       y: ped.live.holder.position.y + 16,
       ground: sole(ped.x, ped.z) + 0.35,
     };
+  }
+
+  function endRagdoll(ped, reset) {
+    const doll = ped.ragdoll;
+    if (!doll) return;
+    if (doll.sim) ragdolls.drop(doll);
+    ped.ragdoll = null;
+    if (reset && ped.live) resetBones(ped.live.model);
+  }
+
+  function measureSegments(model) {
+    model.updateMatrixWorld(true);
+    const segments = [];
+    for (const [id, fromName, toName] of RAGDOLL_BONES) {
+      const from = model.getObjectByName(fromName);
+      const to = model.getObjectByName(toName);
+      if (!from || !to) return null;
+      from.getWorldPosition(ragA);
+      to.getWorldPosition(ragB);
+      const dx = ragB.x - ragA.x;
+      const dy = ragB.y - ragA.y;
+      const dz = ragB.z - ragA.z;
+      const length = Math.hypot(dx, dy, dz);
+      if (length < 0.4) return null;
+      const radius = Math.min(Math.max(length * 0.22, 1.4), length * 0.42);
+      segments.push({
+        id,
+        bone: from,
+        x: ragA.x,
+        y: ragA.y,
+        z: ragA.z,
+        dx,
+        dy,
+        dz,
+        length,
+        radius,
+      });
+    }
+    return segments;
+  }
+
+  function startRagdoll(ped, dirX, dirZ, speed) {
+    if (!ragdolls) return false;
+    const model = ped.live.model;
+    const segments = measureSegments(model);
+    if (!segments) return false;
+    const doll = ragdolls.spawn(segments, { x: dirX * speed, z: dirZ * speed });
+    const binds = [];
+    for (const seg of segments) {
+      seg.bone.getWorldQuaternion(ragWorldQuat);
+      const part = doll.parts.get(seg.id);
+      const q = part.body.rotation();
+      binds.push({
+        id: seg.id,
+        bone: seg.bone,
+        restBodyInv: new Quaternion(q.x, q.y, q.z, q.w).invert(),
+        restBone: ragWorldQuat.clone(),
+      });
+    }
+    for (const action of Object.values(ped.live.actions)) {
+      action.paused = true;
+      action.setEffectiveWeight(0);
+    }
+    model.traverse((obj) => {
+      if (obj.isSkinnedMesh) obj.frustumCulled = false;
+    });
+    ped.ragdoll = doll;
+    ped.ragdollBinds = binds;
+    ped.dead = true;
+    ped.settled = false;
+    ped.pooled = false;
+    ped.phase = "ragdoll";
+    return true;
+  }
+
+  function applyRagdoll(ped) {
+    const doll = ped.ragdoll;
+    if (!doll || !doll.sim) {
+      ped.settled = true;
+      return;
+    }
+    const torso = doll.pose("torso");
+    if (torso) {
+      ped.x = torso.x;
+      ped.z = torso.z;
+    }
+    for (const bind of ped.ragdollBinds) {
+      const pose = doll.pose(bind.id);
+      if (!pose) continue;
+      ragBodyQuat.set(pose.qx, pose.qy, pose.qz, pose.qw);
+      ragWorldQuat.copy(ragBodyQuat).multiply(bind.restBodyInv).multiply(bind.restBone);
+      ragPos.set(pose.x, pose.y, pose.z);
+      writeBone(bind.bone, ragPos, ragWorldQuat);
+    }
+    if (doll.settled) ped.settled = true;
   }
 
   const movingCars = [];
@@ -760,7 +886,10 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
       for (let i = 0; i < count; i += 1) {
         const slot = movingCars[i];
         if (!carReachesPed(slot.car, ped.x, ped.z, y)) continue;
-        hurt(ped, slot.motion.dirX, slot.motion.dirZ, HOP_UP);
+        const len = Math.hypot(slot.motion.dirX, slot.motion.dirZ) || 1;
+        const nx = slot.motion.dirX / len;
+        const nz = slot.motion.dirZ / len;
+        if (!startRagdoll(ped, nx, nz, slot.motion.speed)) hurt(ped, nx, nz);
         break;
       }
     }
@@ -794,13 +923,20 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null) 
         showClip(ped, panic ? "sprint" : ped.calm);
       }
     },
+    ragdollFocus(x, z) {
+      if (!rig || !rig.physicsScene) return;
+      const awake = ragdolls && ragdolls.active > 0;
+      rig.physicsScene.watch(awake ? x : null, awake ? z : null);
+    },
     update(dt, playerX, playerZ, spanW = GROUND_W, spanH = GROUND_H) {
       const step = Math.min(Math.max(dt, 0), 0.05);
+      if (ragdolls) ragdolls.maintain(step, playerX, playerZ);
       const enter = viewRect(playerX, playerZ, enterMargin, spanW, spanH);
       const leave = viewRect(playerX, playerZ, leaveMargin, spanW, spanH);
       for (const ped of people) {
         if (ped.live && ped.dead) {
-          fall(ped, step);
+          if (ped.ragdoll) applyRagdoll(ped);
+          else fall(ped, step);
           continue;
         }
         if (ped.live && !inRect(ped, leave)) {

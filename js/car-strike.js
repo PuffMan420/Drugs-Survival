@@ -13,12 +13,12 @@ export function carVelocity(car, driven) {
     const dirZ = driven.vz || 0;
     const speed = Math.hypot(dirX, dirZ);
     if (!(speed > CAR_KILL_SPEED)) return null;
-    return { dirX, dirZ };
+    return { dirX, dirZ, speed };
   }
   const speed = car.speed || 0;
   if (!(speed > CAR_KILL_SPEED)) return null;
   const angle = car.angle || 0;
-  return { dirX: -Math.sin(angle), dirZ: -Math.cos(angle) };
+  return { dirX: -Math.sin(angle), dirZ: -Math.cos(angle), speed };
 }
 
 export function carReachesPed(car, x, z, y) {

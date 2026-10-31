@@ -16,7 +16,7 @@ import {
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
-import { carReachesPed, carVelocity } from "./car-strike.js";
+import { carContact, carVelocity } from "./car-strike.js";
 import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
 import { createRagdolls } from "./ped-ragdoll.js";
 import { GROUND_H, GROUND_W, PLAYER_SPEED, TILE } from "./constants.js";
@@ -590,6 +590,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
   }
 
   function release(ped) {
+    pedHist.delete(ped);
     endRagdoll(ped, true);
     const live = ped.live;
     ped.live = null;
@@ -805,12 +806,12 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     return segments;
   }
 
-  function startRagdoll(ped, dirX, dirZ, speed) {
+  function startRagdoll(ped, kickX, kickZ) {
     if (!ragdolls) return false;
     const model = ped.live.model;
     const segments = measureSegments(model);
     if (!segments) return false;
-    const doll = ragdolls.spawn(segments, { x: dirX * speed, z: dirZ * speed });
+    const doll = ragdolls.spawn(segments, { x: kickX, z: kickZ });
     const binds = [];
     for (const seg of segments) {
       seg.bone.getWorldQuaternion(ragWorldQuat);
@@ -862,6 +863,29 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
   }
 
   const movingCars = [];
+  const carHist = new Map();
+  const pedHist = new Map();
+
+  function rememberStrike(cars) {
+    const seen = new Set();
+    if (cars) {
+      for (let i = 0; i < cars.length; i += 1) {
+        const car = cars[i];
+        seen.add(car);
+        carHist.set(car, { x: car.x, z: car.z, angle: car.angle || 0 });
+      }
+    }
+    for (const car of carHist.keys()) {
+      if (!seen.has(car)) carHist.delete(car);
+    }
+    for (const ped of people) {
+      if (!ped.live || ped.dead) {
+        pedHist.delete(ped);
+        continue;
+      }
+      pedHist.set(ped, { x: ped.x, z: ped.z });
+    }
+  }
 
   function runOver(cars, driven) {
     let count = 0;
@@ -879,20 +903,37 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
         count += 1;
       }
     }
-    if (count === 0) return;
-    for (const ped of people) {
-      if (!ped.live || ped.dead) continue;
-      const y = ped.live.holder.position.y;
-      for (let i = 0; i < count; i += 1) {
-        const slot = movingCars[i];
-        if (!carReachesPed(slot.car, ped.x, ped.z, y)) continue;
-        const len = Math.hypot(slot.motion.dirX, slot.motion.dirZ) || 1;
-        const nx = slot.motion.dirX / len;
-        const nz = slot.motion.dirZ / len;
-        if (!startRagdoll(ped, nx, nz, slot.motion.speed)) hurt(ped, nx, nz);
-        break;
+    for (let i = 0; i < count; i += 1) {
+      const slot = movingCars[i];
+      const car = slot.car;
+      const was = carHist.get(car);
+      const jumped = was && Math.hypot(car.x - was.x, car.z - was.z) > 200;
+      for (const ped of people) {
+        if (!ped.live || ped.dead) continue;
+        const prior = pedHist.get(ped);
+        const pedJumped = prior && Math.hypot(ped.x - prior.x, ped.z - prior.z) > 100;
+        const prev = was && !jumped
+          ? {
+            x: was.x,
+            z: was.z,
+            angle: was.angle,
+            pedX: prior && !pedJumped ? prior.x : ped.x,
+            pedZ: prior && !pedJumped ? prior.z : ped.z,
+          }
+          : null;
+        const y = ped.live.holder.position.y;
+        const contact = carContact(car, ped.x, ped.z, y, prev);
+        if (!contact) continue;
+        ped.x = contact.x;
+        ped.z = contact.z;
+        ped.live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);
+        ped.live.holder.updateMatrixWorld(true);
+        const kickX = contact.nx * slot.motion.speed + slot.motion.vx;
+        const kickZ = contact.nz * slot.motion.speed + slot.motion.vz;
+        if (!startRagdoll(ped, kickX, kickZ)) hurt(ped, kickX, kickZ);
       }
     }
+    rememberStrike(cars);
   }
 
   return {

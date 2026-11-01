@@ -26,6 +26,10 @@ test("a shot while aiming plays the shoot pose, then aim returns", () => {
   assert.equal(pistolPose({ ...aimed, aiming: false, speed: 40 }), "");
   assert.equal(pistolPose({ ...aimed, weapon: "bottle" }), "");
   assert.equal(pistolPose({ ...aimed, weapon: "bottle", shooting: true }), "punchCross");
+  assert.equal(pistolPose({ ...aimed, weapon: "bat", aiming: false }), "swordIdle");
+  assert.equal(pistolPose({ ...aimed, weapon: "bat", aiming: true }), "swordIdle");
+  assert.equal(pistolPose({ ...aimed, weapon: "bat", shooting: true }), "swordAttack");
+  assert.equal(pistolPose({ ...aimed, weapon: "bat", shooting: true, reloading: true }), "swordAttack");
 });
 
 test("a left click fires while right-click is held, and once just after it drops", () => {
@@ -47,6 +51,8 @@ test("moving while aiming, shooting, or reloading keeps the gait on the legs", (
   assert.equal(legsWhileAiming("", true), false);
   assert.equal(legsWhileAiming("punchCross", true), true);
   assert.equal(legsWhileAiming("punchCross", false), true);
+  assert.equal(legsWhileAiming("swordIdle", true), false);
+  assert.equal(legsWhileAiming("swordAttack", true), false);
 });
 
 function glbTrackNames(path, clipName) {

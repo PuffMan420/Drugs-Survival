@@ -298,6 +298,14 @@ export async function createPlayer() {
   actions.pistolShoot.play();
   actions.pistolReload.play();
   actions.punchCross.play();
+  actions.swordIdle = mixer.clipAction(clipNamed(gltf.animations, "Sword_Idle"));
+  actions.swordAttack = mixer.clipAction(clipNamed(gltf.animations, "Sword_Attack"));
+  setWeight(actions.swordIdle, 0);
+  setWeight(actions.swordAttack, 0);
+  actions.swordAttack.setLoop(LoopOnce, 1);
+  actions.swordAttack.clampWhenFinished = true;
+  actions.swordIdle.play();
+  actions.swordAttack.play();
   const lowerActions = {};
   for (const name of ["idle", "walk", "jog", "sprint"]) {
     lowerActions[name] = mixer.clipAction(maskedClip(actions[name].getClip(), true));
@@ -397,13 +405,13 @@ export async function createPlayer() {
 
   function show(name) {
     if (name === playing) return;
-    if (name === "pistolShoot") {
+    if (name === "pistolShoot" || name === "swordAttack") {
       for (const key of Object.keys(actions)) setWeight(actions[key], key === name ? 1 : 0);
-      actions.pistolShoot.reset().play();
+      actions[name].reset().play();
       playing = name;
       return;
     }
-    const fade = playing === "pistolShoot" ? 0.08 : FADE;
+    const fade = playing === "pistolShoot" || playing === "swordAttack" ? 0.08 : FADE;
     crossFade(actions[playing], actions[name], fade);
     playing = name;
     cycle = 0;

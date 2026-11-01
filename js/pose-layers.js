@@ -42,6 +42,8 @@ export function splitTrackNames(names) {
 export function pistolPose({ armed, busy, reloading, shooting, aiming, weapon = "pistol" }) {
   if (!armed || busy) return "";
   if (weapon === "bottle") return shooting ? "punchCross" : "";
+  // The sword clips are the whole body. Aim and reload belong to the pistol.
+  if (weapon === "bat") return shooting ? "swordAttack" : "swordIdle";
   if (reloading) return "pistolReload";
   if (shooting) return "pistolShoot";
   if (aiming) return "pistolAim";

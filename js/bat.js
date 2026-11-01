@@ -15,11 +15,11 @@ export const BAT_RUN_SPAN = 0.22;
 // Offsets from the hips, in character space: right, up, forward.
 // Carry is the idle and jog hold. Hang is the relaxed sprint.
 const BAT_CARRY = {
-  // Arm hangs. The thick end points down across the front of the legs.
-  hand: [0.22, 0.02, 0.26],
-  barrel: [-0.48, -0.58, 0.55],
-  knuckles: [0.25, 0.75, 0.15],
-  pole: [0.3, -0.15, -1],
+  // Straight arm at his side, not across the belly. The thick end points down.
+  hand: [0.36, -0.08, 0.04],
+  barrel: [-0.55, -0.68, 0.32],
+  knuckles: [0.2, 0.8, 0.1],
+  pole: [0.15, -0.2, -1],
 };
 const BAT_HANG = {
   hand: [0.28, 0.02, 0.22],

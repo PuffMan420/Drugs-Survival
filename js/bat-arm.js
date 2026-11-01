@@ -105,6 +105,8 @@ export function applyBatArm(model, holder, pose) {
   worldToLocal(arm, worldQ);
   arm.updateMatrixWorld(true);
 
+  // pose.barrel is the thick end. BAT_EULER sends that end out the thumb (hand -X).
+  barrel.negate();
   basisQuat(barrel, knuckles, worldQ);
   const handWorld = worldQ.clone();
   handWorld.setFromRotationMatrix(basis);

@@ -102,27 +102,25 @@ function unit(v) {
   return v.map((n) => n / len);
 }
 
-test("the handle stays in the fist and the barrel leaves through the pinky", () => {
-  assert.deepEqual(BAT_HAND, [0.02, 0.2, -0.02]);
+test("the knob stays in the fist and the barrel leaves through the thumb", () => {
+  assert.deepEqual(BAT_HAND, [0, 0.205, -0.089]);
   assert.equal(BAT_EULER.length, 3);
   const axis = batBarrelAxis();
   assert.ok(Math.abs(Math.hypot(...axis) - 1) < 1e-6);
-  assert.ok(axis[0] > 0.99, `pinky ${axis}`);
+  assert.ok(axis[0] < -0.99, `thumb side ${axis}`);
   assert.ok(Math.abs(axis[1]) < 1e-6 && Math.abs(axis[2]) < 1e-6);
 });
 
-test("idle and jog lay the bat across the belt, and a sprint lets it hang", () => {
+test("idle and jog point the barrel up, and a sprint lets it hang", () => {
   assert.equal(BAT_RUN_START, 1.12);
   assert.equal(BAT_RUN_SPAN, 0.22);
   const carry = batHoldPose(-1, 0);
   const jog = batHoldPose(-1, 1);
   assert.deepEqual(jog, carry);
   const barrel = unit(carry.barrel);
-  assert.ok(barrel[0] < -0.9, `across to his left ${barrel}`);
-  assert.ok(Math.abs(barrel[1]) < 0.2, `level ${barrel}`);
-  assert.ok(barrel[2] > 0, `in front ${barrel}`);
+  assert.ok(barrel[1] > 0.7, `up ${barrel}`);
+  assert.ok(barrel[0] > 0, `out to his right ${barrel}`);
   assert.ok(carry.hand[0] > 0.2, "right hip");
-  assert.ok(carry.hand[2] > 0.15, "in front of the belt");
   const hang = unit(batHoldPose(-1, 1.4).barrel);
   assert.ok(hang[1] < -0.7, `down ${hang}`);
   assert.ok(hang[2] > 0.3, `forward ${hang}`);
@@ -131,21 +129,13 @@ test("idle and jog lay the bat across the belt, and a sprint lets it hang", () =
   assert.ok(mid.barrel[1] > batHoldPose(-1, 1.4).barrel[1]);
 });
 
-test("the swing starts and ends on the hip hold, and the hit reaches forward", () => {
+test("the sword clip owns the swing, and the hold pose stays put", () => {
+  assert.equal(BAT_SWING, 1.5);
+  assert.ok(BAT_HIT > 0 && BAT_HIT < BAT_SWING);
   const carry = batHoldPose(-1, 0);
-  const start = batHoldPose(0, 1.4);
-  const end = batHoldPose(BAT_SWING, 0);
-  assert.deepEqual(start.hand, carry.hand);
-  assert.deepEqual(start.barrel, carry.barrel);
-  assert.deepEqual(end.hand, start.hand);
-  assert.deepEqual(end.barrel, start.barrel);
-  const hit = batHoldPose(BAT_HIT, 0);
-  const hitBarrel = unit(hit.barrel);
-  assert.ok(hitBarrel[2] > 0.9, `hit forward ${hitBarrel}`);
-  assert.ok(Math.abs(hitBarrel[1]) < 0.2, `hit level ${hitBarrel}`);
-  assert.ok(hit.hand[2] > start.hand[2] + 0.25, "extended");
-  const cock = unit(batHoldPose(0.22, 0).barrel);
-  assert.ok(cock[2] < -0.5, `cocked back ${cock}`);
+  assert.deepEqual(batHoldPose(0, 0).barrel, carry.barrel);
+  assert.deepEqual(batHoldPose(BAT_HIT, 0).hand, carry.hand);
+  assert.deepEqual(batHoldPose(BAT_SWING, 0).barrel, carry.barrel);
 });
 
 test("a melee hit stays within five percent of normal pitch", () => {

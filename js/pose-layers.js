@@ -45,8 +45,8 @@ export function pistolPose({ armed, busy, reloading, shooting, aiming, weapon = 
   if (weapon === "hands") return shooting ? punch : "";
   if (!armed) return "";
   if (weapon === "bottle") return shooting ? "punchCross" : "";
-  // The bat keeps the gait. The arm and the bat are posed after the mixer.
-  if (weapon === "bat") return "";
+  // Idle and jog keep the gait. The swing is the sword clip.
+  if (weapon === "bat") return shooting ? "swordAttack" : "";
   if (reloading) return "pistolReload";
   if (shooting) return "pistolShoot";
   if (aiming) return "pistolAim";

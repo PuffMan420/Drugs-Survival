@@ -1,24 +1,25 @@
 // Melee bat. Clean until a kill, then BloodAndGrime holds, then a slow
-// blend into Grime. Grime stays. The swing lasts 1.5 s and the hand is
-// furthest forward at the 0.5 s hit. It starts and ends on the hip carry.
+// blend into Grime. Grime stays. The swing is Sword_Attack (1.5 s). The
+// hit lands at 0.5 s. Idle and jog keep the barrel up in the pistol grip.
 
 export const BAT_SCALE = 0.024;
 // Hand local: +Y runs wrist to knuckles, +X toward the pinky, -Z is the palm.
-// The mesh +Y is the barrel, from the knob (negative) to the tip. The fist sits
-// on the handle just past the knob, and the barrel leaves through the pinky.
-export const BAT_HAND = [0.02, 0.2, -0.02];
-export const BAT_EULER = [0, 0, -Math.PI / 2];
+// Same seat as the pistol grip. The mesh +Y is the thick barrel, from the knob
+// (negative) to the tip. It leaves through the thumb, so the knob sits at the
+// bottom of the fist and the barrel points up out of that side.
+export const BAT_HAND = [0, 0.205, -0.089];
+export const BAT_EULER = [0, 0, Math.PI / 2];
 // Jog speed ratio is 1, sprint is 1.4. The hang blends in across this gap.
 export const BAT_RUN_START = 1.12;
 export const BAT_RUN_SPAN = 0.22;
 // Offsets from the hips, in character space: right, up, forward.
-// Carry is the hip hold. Hang is the relaxed run. The swing returns to carry.
+// Carry is the idle and jog hold. Hang is the relaxed sprint.
 const BAT_CARRY = {
-  // Right hand at the belt. The barrel lies across the front, toward his left.
-  hand: [0.24, 0.22, 0.32],
-  barrel: [-0.995, -0.02, 0.08],
-  knuckles: [0.08, 0.55, 0.83],
-  pole: [0.25, -0.15, -1],
+  // Right hand by the hip. The thick end points up and out past the thumb.
+  hand: [0.32, 0.28, 0.2],
+  barrel: [0.35, 0.9, 0.2],
+  knuckles: [0.15, 0.05, 0.95],
+  pole: [1, 0.1, -0.2],
 };
 const BAT_HANG = {
   hand: [0.28, 0.02, 0.22],
@@ -26,14 +27,6 @@ const BAT_HANG = {
   knuckles: [0.82, 0.2, -0.12],
   pole: [1, -0.1, -0.35],
 };
-// Arm swing. The hit at 0.5 s reaches forward. 0 and 1.5 s are the belt carry.
-const BAT_SWING_KEYS = [
-  { t: 0, ...BAT_CARRY },
-  { t: 0.22, hand: [0.48, 0.48, -0.18], barrel: [0.2, 0.55, -0.8], knuckles: [0.1, 0.95, 0.1], pole: [1, 0.2, -0.4] },
-  { t: 0.5, hand: [0.12, 0.28, 0.58], barrel: [-0.15, -0.04, 0.99], knuckles: [0.05, 1, 0.1], pole: [0.8, 0.1, -0.3] },
-  { t: 0.9, hand: [-0.12, 0.32, 0.28], barrel: [-0.9, 0.08, 0.25], knuckles: [0.05, 0.9, 0.2], pole: [0.4, 0.2, -0.6] },
-  { t: 1.5, ...BAT_CARRY },
-];
 export const BAT_HIT = 0.5;
 export const BAT_SWING = 1.5;
 // One tile forward, and a narrow gate so a ped beside him is not in front.
@@ -83,19 +76,9 @@ function blendHold(a, b, t) {
   };
 }
 
-// swingAge is seconds into Sword timing, or negative when he is not swinging.
+// The sword clip owns the swing. This is only the idle, jog, and sprint hold.
 // speedRatio is ground speed / PLAYER_SPEED. Sprint blends into the hang.
-export function batHoldPose(swingAge, speedRatio) {
-  if (swingAge >= 0 && swingAge < BAT_SWING) {
-    const keys = BAT_SWING_KEYS;
-    let i = 0;
-    while (i + 1 < keys.length && keys[i + 1].t < swingAge) i += 1;
-    const a = keys[i];
-    const b = keys[Math.min(keys.length - 1, i + 1)];
-    const span = b.t - a.t || 1;
-    const t = Math.min(1, Math.max(0, (swingAge - a.t) / span));
-    return blendHold(a, b, t);
-  }
+export function batHoldPose(_swingAge, speedRatio) {
   const u = Math.min(1, Math.max(0, (speedRatio - BAT_RUN_START) / BAT_RUN_SPAN));
   return blendHold(BAT_CARRY, BAT_HANG, u * u * (3 - 2 * u));
 }

@@ -965,7 +965,7 @@ export async function createPistol({
         if (aiming && spot) player.aimAt(spot.x, spot.z);
         else player.clearAim();
       }
-      player.holdPistol(weapon === "pistol" && holding() && !busy());
+      player.holdPistol(holding() && !busy() && (weapon === "pistol" || weapon === "bat"));
       player.forcePose(pistolPose({
         armed: holding(),
         busy: busy(),
@@ -1077,8 +1077,8 @@ export async function createPistol({
         const pool = splatAt(corpse.x, corpse.y, corpse.z, 4);
         pools.push({ mesh: pool, age: 0 });
       }
-      if (weapon === "bat") {
-        applyBatArm(player.model, player.mesh, batHoldPose(swinging ? swingAge : -1, player.speed / PLAYER_SPEED));
+      if (weapon === "bat" && !swinging) {
+        applyBatArm(player.model, player.mesh, batHoldPose(-1, player.speed / PLAYER_SPEED));
       }
       for (const pool of pools) {
         pool.age += step;

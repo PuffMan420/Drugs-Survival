@@ -1,10 +1,12 @@
 import {
+  BAT_EULER,
   BAT_HAND,
   BAT_HIT,
   BAT_SCALE,
   BAT_SWING,
   batHits,
   freshBatWear,
+  meleePlaybackRate,
   stepBatWear,
 } from "./bat.js";
 import {
@@ -195,6 +197,7 @@ export async function createPistol({
   const batRoot = new Group();
   batRoot.scale.setScalar(BAT_SCALE);
   batRoot.position.set(BAT_HAND[0], BAT_HAND[1], BAT_HAND[2]);
+  batRoot.rotation.set(BAT_EULER[0], BAT_EULER[1], BAT_EULER[2]);
   batRoot.visible = false;
   batGltf.scene.traverse((obj) => {
     if (!obj.isMesh) return;
@@ -274,6 +277,17 @@ export async function createPistol({
     shot.setBuffer(buffer);
     shot.setLoop(false);
     shot.setVolume(0.4);
+  });
+  const meleeHit = new Audio(listener);
+  let meleeReady = false;
+  const meleeUrl = new URL("../assets/sound/melee-hit.ogg", import.meta.url).href;
+  new AudioLoader().load(meleeUrl, (buffer) => {
+    meleeHit.setBuffer(buffer);
+    meleeHit.setLoop(false);
+    meleeHit.setVolume(1);
+    meleeReady = true;
+  }, undefined, (error) => {
+    console.error("The melee hit sound failed to load", error);
   });
 
   const crosshair = document.createElement("div");
@@ -647,18 +661,36 @@ export async function createPistol({
     player.kickPose("swordAttack");
   }
 
+  function playMeleeHit() {
+    if (!meleeReady) return;
+    const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;
+    if (!(master > 0)) return;
+    try {
+      if (meleeHit.isPlaying) meleeHit.stop();
+      meleeHit.setLoop(false);
+      meleeHit.setVolume(1);
+      meleeHit.setPlaybackRate(meleePlaybackRate(Math.random()));
+      meleeHit.play();
+    } catch (error) {
+      console.error("The melee hit failed to play", error);
+    }
+  }
+
   function strikeBat() {
     const from = player.mesh.position;
     const dirX = player.dirX;
     const dirZ = player.dirZ;
     let killed = false;
+    let connected = false;
     for (const ped of pedestrians.targets()) {
       if (!batHits(from.x, from.z, dirX, dirZ, ped.x, ped.z)) continue;
       const hurt = pedestrians.hurt(ped, ped.x - from.x, ped.z - from.z);
       if (!hurt) continue;
       killed = true;
+      connected = true;
       bleed(hurt);
     }
+    if (connected) playMeleeHit();
     return killed;
   }
 
@@ -679,11 +711,15 @@ export async function createPistol({
     const from = player.mesh.position;
     const dirX = player.dirX;
     const dirZ = player.dirZ;
+    let connected = false;
     for (const ped of pedestrians.targets()) {
       if (!punchHits(from.x, from.z, dirX, dirZ, ped.x, ped.z)) continue;
       const hurt = pedestrians.hurt(ped, ped.x - from.x, ped.z - from.z);
-      if (hurt) bleed(hurt);
+      if (!hurt) continue;
+      connected = true;
+      bleed(hurt);
     }
+    if (connected) playMeleeHit();
   }
 
   function beginThrow() {

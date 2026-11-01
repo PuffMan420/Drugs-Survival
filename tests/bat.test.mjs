@@ -1,17 +1,22 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { createHash } from "node:crypto";
 import {
   BAT_BLOOD_HOLD,
+  BAT_EULER,
   BAT_GRIME_FADE,
+  BAT_HAND,
   BAT_HIT,
   BAT_REACH,
   BAT_SCALE,
   BAT_SIDE,
   BAT_SWING,
+  batBarrelAxis,
   batEaseIn,
   batHits,
   freshBatWear,
+  meleePlaybackRate,
   stepBatWear,
 } from "../js/bat.js";
 
@@ -88,6 +93,49 @@ function pngSize(url) {
   const data = readFileSync(url);
   return [data.readUInt32BE(16), data.readUInt32BE(20)];
 }
+
+function quatRot(q, v) {
+  const [x, y, z, w] = q;
+  const ix = w * v[0] + y * v[2] - z * v[1];
+  const iy = w * v[1] + z * v[0] - x * v[2];
+  const iz = w * v[2] + x * v[1] - y * v[0];
+  const iw = -x * v[0] - y * v[1] - z * v[2];
+  return [
+    ix * w + iw * -x + iy * -z - iz * -y,
+    iy * w + iw * -y + iz * -x - ix * -z,
+    iz * w + iw * -z + ix * -y - iy * -x,
+  ];
+}
+
+test("the handle stays in the fist and the barrel points up, then through the swing", () => {
+  assert.deepEqual(BAT_HAND, [0, 0.16, -0.06]);
+  assert.equal(BAT_EULER.length, 3);
+  const axis = batBarrelAxis();
+  const len = Math.hypot(...axis);
+  assert.ok(Math.abs(len - 1) < 1e-6);
+  // Sword_Idle at 0.4 s, and Sword_Attack at the 0.5 s hit. RightHand world quats.
+  const idle = quatRot([0.91451, -0.24075, -0.22508, -0.23463], axis);
+  const hit = quatRot([0.23511, 0.28878, -0.91592, -0.14973], axis);
+  assert.ok(idle[1] > 0.9, `idle up ${idle}`);
+  assert.ok(idle[2] < -0.25, `idle back ${idle}`);
+  assert.ok(hit[2] > 0.95, `swing forward ${hit}`);
+  assert.ok(Math.abs(hit[1]) < 0.05, `swing level ${hit}`);
+});
+
+test("a melee hit stays within five percent of normal pitch", () => {
+  assert.equal(meleePlaybackRate(0), 0.95);
+  assert.equal(meleePlaybackRate(0.5), 1);
+  assert.equal(meleePlaybackRate(1), 1.05);
+  assert.equal(meleePlaybackRate(-2), 0.95);
+  assert.equal(meleePlaybackRate(4), 1.05);
+});
+
+test("the melee hit sound is the darker clip", () => {
+  const data = readFileSync(new URL("../assets/sound/melee-hit.ogg", import.meta.url));
+  assert.equal(data.subarray(0, 4).toString("utf8"), "OggS");
+  assert.equal(createHash("sha256").update(data).digest("hex"),
+    "6a8cca996d54163ea47e29a16e8eca35ea17455a689514844e095bf2a624fef6");
+});
 
 test("the three bat textures are 512 square", () => {
   for (const name of ["clean.png", "blood.png", "grime.png"]) {

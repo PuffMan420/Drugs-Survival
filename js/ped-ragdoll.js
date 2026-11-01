@@ -67,7 +67,7 @@ function linSpeed(body) {
 
 export function createPedRagdoll(RAPIER, world, physics, segments, kick) {
   const parts = new Map();
-  const groupsRagdoll = groups(GROUP.RAGDOLL, GROUP.ROAD | GROUP.SOLID);
+  const groupsRagdoll = groups(GROUP.RAGDOLL, GROUP.ROAD | GROUP.SOLID | GROUP.SHELL);
   for (const seg of segments) {
     const radius = Math.min(Math.max(seg.radius, 1.2), seg.length * 0.4);
     const half = Math.max(seg.length * 0.5 - radius, 0.25);

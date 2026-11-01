@@ -15,6 +15,7 @@ import {
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { AO_SKIP_LAYER, TILE } from "./constants.js";
 import { KITS } from "./kenney-city-catalog.js";
+import { isBuildingFile, setModelBounds } from "./model-shell.js";
 import { layoutFrom, roadKey, roadRecord } from "./kenney-roads.js";
 import { createRoadBatches } from "./road-batch.js";
 import { outerCurbSamples, sideRoadUV } from "./road-side-skin.js";
@@ -993,6 +994,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       linearize(scene);
       if (isSignalFile(file)) prepareSignal(scene);
       if (file.includes("building")) sharpenBuilding(scene);
+      if (isBuildingFile(file)) rememberBounds(kit, file, scene);
       templates.set(key, scene);
       return scene;
     }).catch((error) => {
@@ -1001,6 +1003,20 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     });
     templates.set(key, pending);
     return pending;
+  }
+
+  function rememberBounds(kit, file, root) {
+    root.updateMatrixWorld(true);
+    const box = new Box3().setFromObject(root);
+    if (box.isEmpty()) return;
+    setModelBounds(kit, file, {
+      minX: box.min.x,
+      minY: box.min.y,
+      minZ: box.min.z,
+      maxX: box.max.x,
+      maxY: box.max.y,
+      maxZ: box.max.z,
+    });
   }
 
   function applyScale(root, pieceScale, flipped) {

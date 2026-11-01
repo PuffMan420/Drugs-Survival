@@ -7,6 +7,7 @@
 // and while a pedestrian ragdoll is still simulating.
 
 import { createArcadeVehicle } from "./kenney-vehicle.js";
+import { carShell } from "./model-shell.js";
 import { GROUP, groups, yawQuat } from "./physics.js";
 
 const MASS = 90;
@@ -177,6 +178,18 @@ export function createDrive(physics, scene) {
         },
         { x: 0, y: 0, z: 0, w: 1 },
         true,
+      );
+      // The drawn body. Density stays 0 so the chassis mass above is unchanged.
+      // Ragdolls hit this shell; the smaller cuboid still does the driving.
+      const shell = carShell(best);
+      world.createCollider(
+        RAPIER.ColliderDesc.cuboid(shell.hx, shell.hy, shell.hz)
+          .setTranslation(0, -LIFT + shell.lift, 0)
+          .setCollisionGroups(groups(GROUP.SHELL, GROUP.RAGDOLL))
+          .setFriction(0.85)
+          .setRestitution(0.12)
+          .setDensity(0),
+        chassis,
       );
       vehicle = world.createVehicleController(chassis);
       const wx = Math.max(8, w * 0.3);

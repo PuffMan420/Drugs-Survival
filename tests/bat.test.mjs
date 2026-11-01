@@ -9,12 +9,15 @@ import {
   BAT_HAND,
   BAT_HIT,
   BAT_REACH,
+  BAT_RUN_SPAN,
+  BAT_RUN_START,
   BAT_SCALE,
   BAT_SIDE,
   BAT_SWING,
   batBarrelAxis,
   batEaseIn,
   batHits,
+  batHoldPose,
   freshBatWear,
   meleePlaybackRate,
   stepBatWear,
@@ -94,32 +97,54 @@ function pngSize(url) {
   return [data.readUInt32BE(16), data.readUInt32BE(20)];
 }
 
-function quatRot(q, v) {
-  const [x, y, z, w] = q;
-  const ix = w * v[0] + y * v[2] - z * v[1];
-  const iy = w * v[1] + z * v[0] - x * v[2];
-  const iz = w * v[2] + x * v[1] - y * v[0];
-  const iw = -x * v[0] - y * v[1] - z * v[2];
-  return [
-    ix * w + iw * -x + iy * -z - iz * -y,
-    iy * w + iw * -y + iz * -x - ix * -z,
-    iz * w + iw * -z + ix * -y - iy * -x,
-  ];
+function unit(v) {
+  const len = Math.hypot(...v);
+  return v.map((n) => n / len);
 }
 
-test("the handle stays in the fist and the barrel points up, then through the swing", () => {
-  assert.deepEqual(BAT_HAND, [0, 0.16, -0.06]);
+test("the handle stays in the fist and the barrel leaves through the pinky", () => {
+  assert.deepEqual(BAT_HAND, [0.02, 0.2, -0.02]);
   assert.equal(BAT_EULER.length, 3);
   const axis = batBarrelAxis();
-  const len = Math.hypot(...axis);
-  assert.ok(Math.abs(len - 1) < 1e-6);
-  // Sword_Idle at 0.4 s, and Sword_Attack at the 0.5 s hit. RightHand world quats.
-  const idle = quatRot([0.91451, -0.24075, -0.22508, -0.23463], axis);
-  const hit = quatRot([0.23511, 0.28878, -0.91592, -0.14973], axis);
-  assert.ok(idle[1] > 0.9, `idle up ${idle}`);
-  assert.ok(idle[2] < -0.25, `idle back ${idle}`);
-  assert.ok(hit[2] > 0.95, `swing forward ${hit}`);
-  assert.ok(Math.abs(hit[1]) < 0.05, `swing level ${hit}`);
+  assert.ok(Math.abs(Math.hypot(...axis) - 1) < 1e-6);
+  assert.ok(axis[0] > 0.99, `pinky ${axis}`);
+  assert.ok(Math.abs(axis[1]) < 1e-6 && Math.abs(axis[2]) < 1e-6);
+});
+
+test("idle and jog carry the bat forward from the hip, and a sprint lets it hang", () => {
+  assert.equal(BAT_RUN_START, 1.12);
+  assert.equal(BAT_RUN_SPAN, 0.22);
+  const carry = batHoldPose(-1, 0);
+  const jog = batHoldPose(-1, 1);
+  assert.deepEqual(jog, carry);
+  const barrel = unit(carry.barrel);
+  assert.ok(barrel[2] > 0.9, `forward ${barrel}`);
+  assert.ok(barrel[1] < -0.1 && barrel[1] > -0.45, `slightly down ${barrel}`);
+  assert.ok(carry.hand[0] > 0.25, "right hip");
+  assert.ok(carry.hand[2] > 0, "in front");
+  const hang = unit(batHoldPose(-1, 1.4).barrel);
+  assert.ok(hang[1] < -0.7, `down ${hang}`);
+  assert.ok(hang[2] > 0.3, `forward ${hang}`);
+  const mid = batHoldPose(-1, BAT_RUN_START + BAT_RUN_SPAN / 2);
+  assert.ok(mid.barrel[1] < carry.barrel[1]);
+  assert.ok(mid.barrel[1] > batHoldPose(-1, 1.4).barrel[1]);
+});
+
+test("the swing starts and ends on the hip hold, and the hit reaches forward", () => {
+  const carry = batHoldPose(-1, 0);
+  const start = batHoldPose(0, 1.4);
+  const end = batHoldPose(BAT_SWING, 0);
+  assert.deepEqual(start.hand, carry.hand);
+  assert.deepEqual(start.barrel, carry.barrel);
+  assert.deepEqual(end.hand, start.hand);
+  assert.deepEqual(end.barrel, start.barrel);
+  const hit = batHoldPose(BAT_HIT, 0);
+  const hitBarrel = unit(hit.barrel);
+  assert.ok(hitBarrel[2] > 0.9, `hit forward ${hitBarrel}`);
+  assert.ok(Math.abs(hitBarrel[1]) < 0.2, `hit level ${hitBarrel}`);
+  assert.ok(hit.hand[2] > start.hand[2] + 0.25, "extended");
+  const cock = unit(batHoldPose(0.22, 0).barrel);
+  assert.ok(cock[2] < -0.5, `cocked back ${cock}`);
 });
 
 test("a melee hit stays within five percent of normal pitch", () => {

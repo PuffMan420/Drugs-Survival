@@ -1358,6 +1358,9 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
 
   function setEnabled(next) {
     enabled = next;
+    canvas.classList.toggle("is-building", enabled);
+    // The aim loop writes an inline cursor. Clear it so the hammer rule applies.
+    if (enabled) canvas.style.cursor = "";
     panel.hidden = !enabled;
     if (!enabled) {
       thumbs.disconnect();

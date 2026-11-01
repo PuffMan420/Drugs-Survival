@@ -4,7 +4,10 @@
 
 export const BAT_SCALE = 0.024;
 // Hand local: +Y runs wrist to knuckles, -Z is the palm. The mesh +Y is the barrel.
-export const BAT_HAND = [0, 0.08, -0.04];
+// The fist sits on the handle. XYZ euler turns the barrel up and slightly back
+// over the shoulder in Sword_Idle, and forward at the Sword_Attack hit (0.5 s).
+export const BAT_HAND = [0, 0.16, -0.06];
+export const BAT_EULER = [2.10431, -0.400945, 0.230927];
 export const BAT_HIT = 0.5;
 export const BAT_SWING = 1.5;
 // One tile forward, and a narrow gate so a ped beside him is not in front.
@@ -39,6 +42,29 @@ export function stepBatWear(state, dt, killed = false) {
   }
   if (time >= BAT_GRIME_FADE) return { stage: "grime", clock: 0, mix: 1 };
   return { stage: "fade", clock: time, mix: batEaseIn(time / BAT_GRIME_FADE) };
+}
+
+// Mesh +Y after BAT_EULER, in hand space. Three.js rotation order XYZ.
+export function batBarrelAxis() {
+  const [x, y, z] = BAT_EULER;
+  const cx = Math.cos(x);
+  const sx = Math.sin(x);
+  const cy = Math.cos(y);
+  const sy = Math.sin(y);
+  const cz = Math.cos(z);
+  const sz = Math.sin(z);
+  const y1 = cx;
+  const z1 = sx;
+  const x2 = sy * z1;
+  const y2 = y1;
+  const z2 = cy * z1;
+  return [cz * x2 - sz * y2, sz * x2 + cz * y2, z2];
+}
+
+// Playback rate for a melee hit. unit is 0..1, and the result stays within 5%.
+export function meleePlaybackRate(unit) {
+  const u = Math.min(1, Math.max(0, unit));
+  return 1 + (u - 0.5) * 0.1;
 }
 
 // dirX/dirZ is the way he faces, a unit vector. along is forward, lateral is sideways.

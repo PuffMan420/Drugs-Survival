@@ -1,4 +1,13 @@
 import {
+  BAT_HAND,
+  BAT_HIT,
+  BAT_SCALE,
+  BAT_SWING,
+  batHits,
+  freshBatWear,
+  stepBatWear,
+} from "./bat.js";
+import {
   GRAVITY,
   PUNCH_POSE,
   RELEASE,
@@ -24,6 +33,7 @@ import {
   Group,
   Mesh,
   MeshBasicMaterial,
+  MeshLambertMaterial,
   Object3D,
   PlaneGeometry,
   Quaternion,
@@ -143,6 +153,65 @@ export async function createPistol({
     bottleModels.push({ kind, model: gltf.scene, splats });
   }
 
+  const batUrl = new URL("../assets/bat/bat.glb", import.meta.url).href;
+  const [batGltf, batClean, batBlood, batGrime] = await Promise.all([
+    loader.loadAsync(batUrl),
+    loadTexture(new URL("../assets/bat/clean.png", import.meta.url).href),
+    loadTexture(new URL("../assets/bat/blood.png", import.meta.url).href),
+    loadTexture(new URL("../assets/bat/grime.png", import.meta.url).href),
+  ]);
+  for (const texture of [batClean, batBlood, batGrime]) {
+    texture.flipY = false;
+    texture.needsUpdate = true;
+  }
+  const batMix = { value: 0 };
+  const batMap2 = { value: batGrime };
+  const batMaterial = new MeshLambertMaterial({ map: batClean, side: DoubleSide });
+  batMaterial.customProgramCacheKey = () => "bat-wear-1";
+  batMaterial.onBeforeCompile = (shader) => {
+    shader.uniforms.batMix = batMix;
+    shader.uniforms.batMap2 = batMap2;
+    if (!shader.fragmentShader.includes("#include <map_fragment>")) {
+      console.error("Bat wear shader could not find map_fragment");
+    }
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <map_pars_fragment>",
+        "#include <map_pars_fragment>\nuniform sampler2D batMap2;\nuniform float batMix;\n",
+      )
+      .replace(
+        "#include <map_fragment>",
+        [
+          "#ifdef USE_MAP",
+          "	vec4 sampledDiffuseColor = texture2D( map, vMapUv );",
+          "	vec4 sampledGrime = texture2D( batMap2, vMapUv );",
+          "	sampledDiffuseColor = mix( sampledDiffuseColor, sampledGrime, batMix );",
+          "	diffuseColor *= sampledDiffuseColor;",
+          "#endif",
+        ].join("\n"),
+      );
+  };
+  const batRoot = new Group();
+  batRoot.scale.setScalar(BAT_SCALE);
+  batRoot.position.set(BAT_HAND[0], BAT_HAND[1], BAT_HAND[2]);
+  batRoot.visible = false;
+  batGltf.scene.traverse((obj) => {
+    if (!obj.isMesh) return;
+    obj.frustumCulled = false;
+    const previous = obj.material;
+    obj.material = batMaterial;
+    const list = Array.isArray(previous) ? previous : [previous];
+    for (const mat of list) {
+      if (mat && mat !== batMaterial && mat.dispose) mat.dispose();
+    }
+  });
+  batRoot.add(batGltf.scene);
+  hand.add(batRoot);
+  let wear = freshBatWear();
+  let swinging = false;
+  let swingAge = 0;
+  let didHit = false;
+
   const flashTextures = await Promise.all(urls("flash", [
     "flash00.png", "flash01.png", "flash02.png", "flash03.png", "flash04.png",
     "flash05.png", "flash06.png", "flash07.png", "flash08.png",
@@ -230,7 +299,7 @@ export async function createPistol({
     if (event.target === canvas) focusGame();
   }, true);
 
-  // Hands, then the pistol, then the bottle. One wheel notch is one step.
+  // Hands, then the pistol, then the bottle, then the bat. One wheel notch is one step.
   let weapon = "hands";
   let handIndex = 0;
   let handHidden = false;
@@ -249,6 +318,9 @@ export async function createPistol({
     shootLeft = 0;
     poseLeft = 0;
     reloadLeft = 0;
+    swinging = false;
+    swingAge = 0;
+    didHit = false;
     pending = null;
     handHidden = false;
     if (weapon === "bottle") {
@@ -347,6 +419,7 @@ export async function createPistol({
 
   function showHeld() {
     grip.visible = weapon === "pistol";
+    batRoot.visible = weapon === "bat";
     const showBottle = weapon === "bottle" && !handHidden;
     for (let i = 0; i < bottleModels.length; i += 1) {
       bottleModels[i].model.visible = showBottle && i === handIndex;
@@ -542,6 +615,45 @@ export async function createPistol({
     });
   }
 
+  function bleed(hurt) {
+    puffAt(hurt.x, hurt.y, hurt.z);
+    const n = 2 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < n; i += 1) {
+      const ang = Math.random() * Math.PI * 2;
+      const dist = 3 + Math.random() * 8;
+      splatAt(
+        hurt.x + Math.cos(ang) * dist,
+        hurt.ground,
+        hurt.z + Math.sin(ang) * dist,
+        6 + Math.random() * 4,
+      );
+    }
+  }
+
+  function beginSwing() {
+    if (poseLeft > 0 || swinging) return;
+    poseLeft = BAT_SWING;
+    swinging = true;
+    swingAge = 0;
+    didHit = false;
+    player.kickPose("swordAttack");
+  }
+
+  function strikeBat() {
+    const from = player.mesh.position;
+    const dirX = player.dirX;
+    const dirZ = player.dirZ;
+    let killed = false;
+    for (const ped of pedestrians.targets()) {
+      if (!batHits(from.x, from.z, dirX, dirZ, ped.x, ped.z)) continue;
+      const hurt = pedestrians.hurt(ped, ped.x - from.x, ped.z - from.z);
+      if (!hurt) continue;
+      killed = true;
+      bleed(hurt);
+    }
+    return killed;
+  }
+
   function beginThrow() {
     if (poseLeft > 0 || pending) return;
     const picked = pickBottle();
@@ -568,7 +680,12 @@ export async function createPistol({
   }
 
   function fire() {
-    if (!holding() || busy() || !aiming) return;
+    if (!holding() || busy()) return;
+    if (weapon === "bat") {
+      beginSwing();
+      return;
+    }
+    if (!aiming) return;
     if (weapon === "bottle") {
       beginThrow();
       return;
@@ -594,20 +711,7 @@ export async function createPistol({
     } else if (hit) {
       const from = player.mesh.position;
       const hurt = pedestrians.hurt(hit.ped, hit.ped.x - from.x, hit.ped.z - from.z);
-      if (hurt) {
-        puffAt(hurt.x, hurt.y, hurt.z);
-        const n = 2 + Math.floor(Math.random() * 2);
-        for (let i = 0; i < n; i += 1) {
-          const ang = Math.random() * Math.PI * 2;
-          const dist = 3 + Math.random() * 8;
-          splatAt(
-            hurt.x + Math.cos(ang) * dist,
-            hurt.ground,
-            hurt.z + Math.sin(ang) * dist,
-            6 + Math.random() * 4,
-          );
-        }
-      }
+      if (hurt) bleed(hurt);
     }
     if (ammo === 0) reloadLeft = RELOAD_TIME;
   }
@@ -701,7 +805,8 @@ export async function createPistol({
       hold: AIM_CHORD,
     });
     if (!blocked) aiming = chord.aiming;
-    if (chord.fire) fire();
+    const batClick = !blocked && weapon === "bat" && left && !leftWas;
+    if (chord.fire || batClick) fire();
     leftWas = left;
     if (event.button === 2) event.preventDefault();
   }
@@ -751,7 +856,7 @@ export async function createPistol({
       aiming = !aiming;
       return aiming;
     },
-    // Same shot as a left click. fire() already ignores it unless he is aiming.
+    // Same press as a left click. The bat swings immediately. The pistol and the bottle still need aim.
     shoot() {
       fire();
     },
@@ -794,6 +899,21 @@ export async function createPistol({
       const step = Math.max(0, dt);
       if (shootLeft > 0) shootLeft = Math.max(0, shootLeft - step);
       if (poseLeft > 0) poseLeft = Math.max(0, poseLeft - step);
+      let killed = false;
+      if (swinging && weapon === "bat") {
+        const prev = swingAge;
+        swingAge += step;
+        if (!didHit && prev < BAT_HIT && swingAge >= BAT_HIT) {
+          didHit = true;
+          killed = strikeBat();
+        }
+        if (swingAge >= BAT_SWING) swinging = false;
+      } else if (swinging) {
+        swinging = false;
+      }
+      wear = stepBatWear(wear, step, killed);
+      batMix.value = wear.mix;
+      if (wear.stage !== "clean" && batMaterial.map !== batBlood) batMaterial.map = batBlood;
       if (pending) {
         pending.age += step;
         if (weapon !== "bottle" || busy()) pending = null;

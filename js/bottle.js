@@ -1,7 +1,7 @@
-// Throw math and the hands -> pistol -> bottle cycle. The punch clip's
+// Throw math and the hands -> pistol -> bottle -> bat cycle. The punch clip's
 // RightForeArm is furthest from rest at 0.375s, which is when the bottle leaves the hand.
 
-export const WEAPONS = ["hands", "pistol", "bottle"];
+export const WEAPONS = ["hands", "pistol", "bottle", "bat"];
 export const RELEASE = 0.375;
 export const PUNCH_POSE = 0.72;
 // Three ground tiles. A phone has no cursor, so the lob uses this reach.

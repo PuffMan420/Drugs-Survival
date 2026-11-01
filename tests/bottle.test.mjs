@@ -17,10 +17,11 @@ import {
   throwVelocity,
 } from "../js/bottle.js";
 
-test("the wheel walks hands, pistol, bottle, then hands", () => {
+test("the wheel walks hands, pistol, bottle, bat, then hands", () => {
   assert.equal(nextWeapon("hands"), "pistol");
   assert.equal(nextWeapon("pistol"), "bottle");
-  assert.equal(nextWeapon("bottle"), "hands");
+  assert.equal(nextWeapon("bottle"), "bat");
+  assert.equal(nextWeapon("bat"), "hands");
   assert.equal(nextWeapon("nope"), "pistol");
 });
 

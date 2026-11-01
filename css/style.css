@@ -23,6 +23,12 @@ canvas {
   cursor: none;
 }
 
+/* Build mode has no crosshair, so the hammer stands in for the pointer.
+   The hotspot is the hammer head. */
+#view.is-building {
+  cursor: url("../assets/cursors/hammer.png") 11 11, auto;
+}
+
 #view:focus {
   outline: none;
 }

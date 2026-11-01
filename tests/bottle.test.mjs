@@ -10,6 +10,7 @@ import {
   arcPoint,
   bottleSurface,
   carContains,
+  carRayHit,
   flightTime,
   nextWeapon,
   pickBottle,
@@ -73,6 +74,22 @@ test("a bottle meets a car inside its footprint and misses the roof line", () =>
   const turned = { x: 0, z: 0, y: 0.6, w: 10, h: 20, angle: Math.PI / 2 };
   assert.equal(carContains(8, 10, 0, turned), true);
   assert.equal(carContains(0, 10, 8, turned), false);
+});
+
+test("a bullet ray meets the near face of a car and misses from inside", () => {
+  const car = { x: 0, z: 0, y: 0.6, w: 10, h: 20, angle: 0 };
+  const front = carRayHit({ x: 0, y: 10, z: -40 }, { x: 0, y: 0, z: 1 }, car);
+  assert.ok(Math.abs(front.t - 30) < 1e-6);
+  assert.ok(Math.abs(front.z + 10) < 1e-6);
+  assert.equal(carContains(front.x, front.y, front.z, car), true);
+  assert.equal(carRayHit({ x: 20, y: 10, z: -40 }, { x: 0, y: 0, z: 1 }, car), null);
+  assert.equal(carRayHit({ x: 0, y: 10, z: 0 }, { x: 0, y: 0, z: 1 }, car), null);
+  const turned = { x: 0, z: 0, y: 0.6, w: 10, h: 20, angle: Math.PI / 2 };
+  const side = carRayHit({ x: 40, y: 10, z: 0 }, { x: -1, y: 0, z: 0 }, turned);
+  assert.ok(Math.abs(side.x - 10) < 1e-6);
+  assert.equal(carContains(side.x, side.y, side.z, turned), true);
+  const roof = carRayHit({ x: 0, y: 80, z: 0 }, { x: 0, y: -1, z: 0 }, car);
+  assert.ok(Math.abs(roof.y - 46.6) < 1e-6);
 });
 
 test("hits sort into ground, car, wall, and pedestrian", () => {

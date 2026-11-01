@@ -10,6 +10,7 @@ import {
   pickBottle,
   throwVelocity,
   carContains,
+  carRayHit,
   BOTTLES,
 } from "./bottle.js";
 import { TILE } from "./constants.js";
@@ -48,6 +49,9 @@ const FLASH_LIFE = 0.18;
 const PUFF_FRAME = 0.035;
 const SPLASH_HOLD = 0.07;
 const SPLASH_FADE = 0.16;
+// One third of the blood puff (36 * 0.7 * 0.6), gone in 0.3 s.
+const CAR_HIT_SCALE = (36 * 0.7 * 0.6) / 3;
+const CAR_HIT_LIFE = 0.3;
 
 const raycaster = new Raycaster();
 const ndc = new Vector2();
@@ -151,6 +155,10 @@ export async function createPistol({
   const splatTextures = await Promise.all(urls("splat", [
     "splat1.png", "splat2.png", "splat3.png", "splat4.png", "splat5.png",
   ]).map(loadTexture));
+  const carHitTextures = await Promise.all(urls("car-hit", [
+    "car-hit-1.png", "car-hit-2.png", "car-hit-3.png",
+    "car-hit-4.png", "car-hit-5.png", "car-hit-6.png",
+  ]).map(loadTexture));
 
   const flash = new Sprite(new SpriteMaterial({
     map: flashTextures[0],
@@ -172,6 +180,7 @@ export async function createPistol({
     toneMapped: false,
   });
   const puffs = [];
+  const carHits = [];
   const splatGeo = new PlaneGeometry(1, 1);
   splatGeo.rotateX(-Math.PI / 2);
   const decals = [];
@@ -286,6 +295,33 @@ export async function createPistol({
     sprite.renderOrder = 3;
     scene.add(sprite);
     puffs.push({ sprite, frame: 0, age: 0 });
+  }
+
+  function carHitAt(x, y, z) {
+    const material = new SpriteMaterial({
+      map: carHitTextures[Math.floor(Math.random() * carHitTextures.length)],
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const sprite = new Sprite(material);
+    sprite.position.set(x, y, z);
+    sprite.scale.set(CAR_HIT_SCALE, CAR_HIT_SCALE, 1);
+    sprite.renderOrder = 3;
+    scene.add(sprite);
+    carHits.push({ sprite, age: 0 });
+  }
+
+  function nearestCar(ray) {
+    if (!traffic || !traffic.cars) return null;
+    const list = traffic.cars();
+    let best = null;
+    for (let i = 0; i < list.length; i += 1) {
+      const hit = carRayHit(ray.origin, ray.direction, list[i]);
+      if (!hit || (best && hit.t >= best.t)) continue;
+      best = hit;
+    }
+    return best;
   }
 
   function splatAt(x, y, z, size) {
@@ -552,7 +588,10 @@ export async function createPistol({
     playShot();
     traffic.scare(player.mesh.position.x, player.mesh.position.z);
     const hit = pickTarget();
-    if (hit) {
+    const car = nearestCar(raycaster.ray);
+    if (car && !(hit && hit.t <= car.t)) {
+      carHitAt(car.x, car.y, car.z);
+    } else if (hit) {
       const from = player.mesh.position;
       const hurt = pedestrians.hurt(hit.ped, hit.ped.x - from.x, hit.ped.z - from.z);
       if (hurt) {
@@ -598,7 +637,7 @@ export async function createPistol({
         best = ped;
       }
     }
-    return best ? { ped: best } : null;
+    return best ? { ped: best, t: bestT } : null;
   }
 
   function aimGround() {
@@ -809,6 +848,16 @@ export async function createPistol({
           puff.sprite.removeFromParent();
           puff.sprite.material.dispose();
           puffs.splice(i, 1);
+        }
+      }
+      for (let i = carHits.length - 1; i >= 0; i -= 1) {
+        const mark = carHits[i];
+        mark.age += step;
+        mark.sprite.material.opacity = Math.max(0, 1 - mark.age / CAR_HIT_LIFE);
+        if (mark.age >= CAR_HIT_LIFE) {
+          mark.sprite.removeFromParent();
+          mark.sprite.material.dispose();
+          carHits.splice(i, 1);
         }
       }
       for (const corpse of pedestrians.freshCorpses()) {

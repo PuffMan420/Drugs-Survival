@@ -1,6 +1,6 @@
 // Melee bat. Clean until a kill, then BloodAndGrime holds, then a slow
 // blend into Grime. Grime stays. The swing is Sword_Attack (1.5 s). The
-// hit lands at 0.5 s. Idle and jog keep the barrel up in the pistol grip.
+// hit lands at 0.5 s. Idle and jog let the barrel hang down across the legs.
 
 export const BAT_SCALE = 0.024;
 // Hand local: +Y runs wrist to knuckles, +X toward the pinky, -Z is the palm.
@@ -15,11 +15,11 @@ export const BAT_RUN_SPAN = 0.22;
 // Offsets from the hips, in character space: right, up, forward.
 // Carry is the idle and jog hold. Hang is the relaxed sprint.
 const BAT_CARRY = {
-  // Right hand by the hip. The thick end points up and out past the thumb.
-  hand: [0.32, 0.28, 0.2],
-  barrel: [0.35, 0.9, 0.2],
-  knuckles: [0.15, 0.05, 0.95],
-  pole: [1, 0.1, -0.2],
+  // Arm hangs. The thick end points down across the front of the legs.
+  hand: [0.22, 0.02, 0.26],
+  barrel: [-0.48, -0.58, 0.55],
+  knuckles: [0.25, 0.75, 0.15],
+  pole: [0.3, -0.15, -1],
 };
 const BAT_HANG = {
   hand: [0.28, 0.02, 0.22],

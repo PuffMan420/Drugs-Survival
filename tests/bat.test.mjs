@@ -111,22 +111,22 @@ test("the knob stays in the fist and the barrel leaves through the thumb", () =>
   assert.ok(Math.abs(axis[1]) < 1e-6 && Math.abs(axis[2]) < 1e-6);
 });
 
-test("idle and jog point the barrel up, and a sprint lets it hang", () => {
+test("idle and jog hang the barrel down across the legs, and a sprint lets it drop forward", () => {
   assert.equal(BAT_RUN_START, 1.12);
   assert.equal(BAT_RUN_SPAN, 0.22);
   const carry = batHoldPose(-1, 0);
   const jog = batHoldPose(-1, 1);
   assert.deepEqual(jog, carry);
   const barrel = unit(carry.barrel);
-  assert.ok(barrel[1] > 0.7, `up ${barrel}`);
-  assert.ok(barrel[0] > 0, `out to his right ${barrel}`);
-  assert.ok(carry.hand[0] > 0.2, "right hip");
+  assert.ok(barrel[1] < -0.5, `down ${barrel}`);
+  assert.ok(barrel[0] < -0.3, `across to his left ${barrel}`);
+  assert.ok(barrel[2] > 0.2, `in front of the legs ${barrel}`);
+  assert.ok(carry.hand[0] > 0.15, "right side");
   const hang = unit(batHoldPose(-1, 1.4).barrel);
   assert.ok(hang[1] < -0.7, `down ${hang}`);
   assert.ok(hang[2] > 0.3, `forward ${hang}`);
-  const mid = batHoldPose(-1, BAT_RUN_START + BAT_RUN_SPAN / 2);
-  assert.ok(mid.barrel[1] < carry.barrel[1]);
-  assert.ok(mid.barrel[1] > batHoldPose(-1, 1.4).barrel[1]);
+  const mid = unit(batHoldPose(-1, BAT_RUN_START + BAT_RUN_SPAN / 2).barrel);
+  assert.ok(mid[0] > barrel[0] && mid[0] < hang[0], `blend across ${mid}`);
 });
 
 test("the sword clip owns the swing, and the hold pose stays put", () => {

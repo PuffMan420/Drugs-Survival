@@ -88,6 +88,122 @@ test("the world steps for a ragdoll and stops when the bodies are gone", async (
   assert.equal(physics.step(STEP), 0);
 });
 
+function quatMul(a, b) {
+  return {
+    x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+    y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+    z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+    w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+  };
+}
+
+function quatConj(q) {
+  return { x: -q.x, y: -q.y, z: -q.z, w: q.w };
+}
+
+function rotate(q, v) {
+  const tx = 2 * (q.y * v.z - q.z * v.y);
+  const ty = 2 * (q.z * v.x - q.x * v.z);
+  const tz = 2 * (q.x * v.y - q.y * v.x);
+  return {
+    x: v.x + q.w * tx + (q.y * tz - q.z * ty),
+    y: v.y + q.w * ty + (q.z * tx - q.x * tz),
+    z: v.z + q.w * tz + (q.x * ty - q.y * tx),
+  };
+}
+
+function boneDir(body) {
+  return rotate(body.rotation(), { x: 0, y: 1, z: 0 });
+}
+
+function signedBend(parent, child, axis) {
+  const a = boneDir(parent);
+  const b = boneDir(child);
+  const cx = a.y * b.z - a.z * b.y;
+  const cy = a.z * b.x - a.x * b.z;
+  const cz = a.x * b.y - a.y * b.x;
+  const sin = cx * axis.x + cy * axis.y + cz * axis.z;
+  const cos = a.x * b.x + a.y * b.y + a.z * b.z;
+  return Math.atan2(sin, cos);
+}
+
+function hingeOf(joint, body) {
+  const frame = joint.frameX1();
+  return rotate(quatMul(body.rotation(), frame), { x: 1, y: 0, z: 0 });
+}
+
+test("knees, elbows and the neck stay inside human ranges", async () => {
+  const physics = await createPhysics();
+  const dolls = createRagdolls(physics, { limit: 2, near: 5000 });
+  const bent = figure(0, 0);
+  const shin = bent.find((seg) => seg.id === "leftShin");
+  const thigh = bent.find((seg) => seg.id === "leftThigh");
+  // Thirty degrees of knee flexion around world X. The thigh bone's X is that hinge.
+  const lean = Math.PI / 6;
+  shin.dx = 0;
+  shin.dy = -Math.cos(lean);
+  shin.dz = -Math.sin(lean);
+  const thighQuat = quatFromY(thigh.dx, thigh.dy, thigh.dz);
+  thigh.qx = thighQuat.x;
+  thigh.qy = thighQuat.y;
+  thigh.qz = thighQuat.z;
+  thigh.qw = thighQuat.w;
+  const doll = dolls.spawn(bent, null);
+  const thighPart = doll.parts.get("leftThigh");
+  const shinPart = doll.parts.get("leftShin");
+  const head = doll.parts.get("head");
+  const torso = doll.parts.get("torso");
+  torso.body.setBodyType(physics.RAPIER.RigidBodyType.Fixed, true);
+  thighPart.body.setBodyType(physics.RAPIER.RigidBodyType.Fixed, true);
+
+  const knee = doll.joints[6];
+  const neck = doll.joints[0];
+  const elbow = doll.joints[2];
+  const Ang = physics.RAPIER.JointAxis;
+  const kneeX = [knee.rawSet.jointLimitsMin(knee.handle, Ang.AngX), knee.rawSet.jointLimitsMax(knee.handle, Ang.AngX)];
+  const kneeZ = [knee.rawSet.jointLimitsMin(knee.handle, Ang.AngZ), knee.rawSet.jointLimitsMax(knee.handle, Ang.AngZ)];
+  assert.ok(knee.rawSet.jointLimitsEnabled(knee.handle, Ang.AngX));
+  assert.ok(kneeX[1] - kneeX[0] > 2.2 && kneeX[1] - kneeX[0] < 2.8, `knee hinge span ${kneeX}`);
+  assert.ok(Math.abs(kneeZ[0]) < 0.25 && Math.abs(kneeZ[1]) < 0.25, `knee side bend ${kneeZ}`);
+  const neckX = neck.rawSet.jointLimitsMax(neck.handle, Ang.AngX);
+  const neckY = neck.rawSet.jointLimitsMax(neck.handle, Ang.AngY);
+  assert.ok(neckX < 0.85 && neckX > 0.55, `neck swing ${neckX}`);
+  assert.ok(neckY < 1.4 && neckY > 0.9, `neck twist ${neckY}`);
+  assert.ok(elbow.rawSet.jointLimitsMax(elbow.handle, Ang.AngZ) < 0.25);
+
+  let maxBend = -Infinity;
+  let minBend = Infinity;
+  for (let i = 0; i < 90; i += 1) {
+    const hinge = hingeOf(knee, thighPart.body);
+    shinPart.body.setAngvel({ x: hinge.x * 12, y: hinge.y * 12, z: hinge.z * 12 }, true);
+    physics.world.step();
+    const bend = signedBend(thighPart.body, shinPart.body, hingeOf(knee, thighPart.body));
+    maxBend = Math.max(maxBend, bend);
+    minBend = Math.min(minBend, bend);
+  }
+  for (let i = 0; i < 90; i += 1) {
+    const hinge = hingeOf(knee, thighPart.body);
+    shinPart.body.setAngvel({ x: -hinge.x * 12, y: -hinge.y * 12, z: -hinge.z * 12 }, true);
+    physics.world.step();
+    const bend = signedBend(thighPart.body, shinPart.body, hingeOf(knee, thighPart.body));
+    maxBend = Math.max(maxBend, bend);
+    minBend = Math.min(minBend, bend);
+  }
+  assert.ok(maxBend < 2.6, `knee flexed to ${maxBend}`);
+  assert.ok(minBend > -0.2, `knee hyperextended to ${minBend}`);
+
+  let neckBend = 0;
+  for (let i = 0; i < 60; i += 1) {
+    head.body.setAngvel({ x: 10, y: 10, z: 10 }, true);
+    physics.world.step();
+    const a = boneDir(torso.body);
+    const b = boneDir(head.body);
+    const bend = Math.acos(Math.min(1, Math.max(-1, a.x * b.x + a.y * b.y + a.z * b.z)));
+    neckBend = Math.max(neckBend, bend);
+  }
+  assert.ok(neckBend < 1.15, `neck folded to ${neckBend}`);
+});
+
 test("mobile keeps four ragdolls and the oldest one freezes", async () => {
   const physics = await createPhysics();
   const dolls = createRagdolls(physics, { limit: 4, near: 5000 });

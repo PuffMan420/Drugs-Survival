@@ -13,3 +13,6 @@
 - Every PR includes zoomed screenshots.
 - Explore first and wait for plan approval before building.
 - Rebase on main before reporting.
+
+## Cursor Cloud specific instructions
+Preinstalled by `.cursor/install.sh`: `blender` (4.2.3, run headless `blender -b -P script.py`), `ffmpeg`, python3 Pillow+numpy, node + `tests/` deps (`cd tests && npm test`), `gltf-transform`, Playwright Chromium. Game is served on http://localhost:8080. Do not download Blender again.

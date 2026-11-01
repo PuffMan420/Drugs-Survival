@@ -12,6 +12,7 @@ import {
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { isBulkyCar } from "./car-kind.js";
+import { rockVertexColors } from "./bed-rocks.js";
 import { foldHeadlightGeometry } from "./headlights.js";
 import { pushOutOfCars } from "./car-push.js";
 import { createSim, headingAngle, planCars, settleParked } from "./routes.js";
@@ -402,6 +403,26 @@ function installPaintShader(material, baseLum) {
   };
 }
 
+// Rocks in the truck bed share one grey sheet. A vertex colour per lump
+// darkens that sheet, and each lump gets a different grey. The body is a
+// different mesh, so its paint stays put.
+function shadeBedRocks(geometry, material) {
+  const index = geometry.getIndex();
+  const position = geometry.getAttribute("position");
+  if (!index || !position || !material) return;
+  const packed = new Float32Array(position.count * 3);
+  for (let i = 0; i < position.count; i += 1) {
+    packed[i * 3] = position.getX(i);
+    packed[i * 3 + 1] = position.getY(i);
+    packed[i * 3 + 2] = position.getZ(i);
+  }
+  geometry.setAttribute(
+    "color",
+    new Float32BufferAttribute(rockVertexColors(packed, index.array), 3),
+  );
+  material.vertexColors = true;
+}
+
 function bakeLevel(scene, catalog) {
   scene.updateMatrixWorld(true);
   const parts = [];
@@ -412,6 +433,7 @@ function bakeLevel(scene, catalog) {
     const paintable = !wheel && applyPaintMask(geometry, catalog.get(obj.name), obj.name);
     const material = Array.isArray(obj.material) ? obj.material[0] : obj.material;
     if (material) material.toneMapped = false;
+    if (obj.name === "trash") shadeBedRocks(geometry, material);
     if (paintable) installPaintShader(material, averagePaintLuma(material, geometry));
     parts.push({ name: obj.name, geometry, material, paintable });
   });

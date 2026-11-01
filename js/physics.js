@@ -23,6 +23,9 @@ export const GROUP = {
   // Pedestrian ragdolls. They filter ROAD, so the ground can include this
   // bit without the chassis (which never filters ROAD) landing on it.
   RAGDOLL: 8,
+  // A box around the drawn car or building. Ragdolls hit it and stop.
+  // Wheels and chassis do not, so driving keeps its own smaller box.
+  SHELL: 16,
 };
 
 export function groups(membership, mask) {

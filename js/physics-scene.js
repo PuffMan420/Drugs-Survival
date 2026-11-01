@@ -2,9 +2,12 @@
 // placed in build mode, the buildings near the followed body, and kinematic
 // stand-ins for the traffic cars around it. Roads are a ROAD surface that
 // only wheels ray-cast, and ragdolls land on it; buildings and traffic are SOLID.
+// Drawn cars and buildings also get a SHELL box fitted to the mesh. Ragdolls
+// hit that box. The driving cuboids stay the size they were.
 
 import { TILE } from "./constants.js";
 import { builtRoadStrips } from "./built-lanes.js";
+import { buildingShells, carShell } from "./model-shell.js";
 import { GROUP, groups, yawQuat } from "./physics.js";
 
 const BLOCK_CELL = 480;
@@ -12,6 +15,9 @@ const BLOCK_RANGE = 2;
 const BLOCK_MOVE = 240;
 const CAR_POOL = 12;
 const CAR_REACH = 220;
+// Every car a ragdoll can still reach. Separate from the 12 driving stand-ins.
+const SHELL_POOL = 48;
+const SHELL_REACH = 900;
 // A stand-in that would move further than this in one step is teleported, so
 // Rapier never gives it the huge velocity that launches the driven car.
 const TELEPORT = 30;
@@ -203,6 +209,37 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
   // so dragging one piece in build mode only rebuilds that piece.
   const roadColliders = new Map();
 
+  const buildingColliders = new Map();
+
+  function shellDesc(hx, hy, hz) {
+    return RAPIER.ColliderDesc.cuboid(hx, hy, hz)
+      .setCollisionGroups(groups(GROUP.SHELL, GROUP.RAGDOLL))
+      .setFriction(0.85)
+      .setRestitution(0.12)
+      .setDensity(0);
+  }
+
+  function syncBuildings(list) {
+    const wanted = new Map();
+    for (const shell of buildingShells(list)) {
+      if (!wanted.has(shell.key)) wanted.set(shell.key, shell);
+    }
+    for (const [key, collider] of buildingColliders) {
+      if (wanted.has(key)) continue;
+      world.removeCollider(collider, true);
+      buildingColliders.delete(key);
+    }
+    for (const [key, shell] of wanted) {
+      if (buildingColliders.has(key)) continue;
+      buildingColliders.set(key, world.createCollider(
+        shellDesc(shell.hx, shell.hy, shell.hz)
+          .setTranslation(shell.x, shell.y, shell.z)
+          .setRotation(yawQuat(shell.yaw)),
+        fixedBody,
+      ));
+    }
+  }
+
   function setRoads(list) {
     const wanted = new Map();
     for (const box of roadBoxes(list)) {
@@ -219,6 +256,7 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
       const collider = addRoadBox(RAPIER, world, fixedBody, box.a, box.b, box.half);
       if (collider) roadColliders.set(key, collider);
     }
+    syncBuildings(list);
   }
 
   setRoads(pieces);
@@ -336,15 +374,121 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
   // The object whose x and z the buildings and traffic stand-ins follow.
   let focus = null;
   // Buildings around a walking player while a ragdoll exists. Traffic
-  // stand-ins stay tied to the driven car.
+  // stand-ins stay tied to the driven car. Car shells follow the ragdoll.
   let watch = null;
+
+  let shellPool = null;
+  let shellAssigned = null;
+  let shellFree = null;
+
+  function ensureShells() {
+    if (shellPool) return;
+    shellPool = [];
+    shellAssigned = new Map();
+    shellFree = [];
+    for (let i = 0; i < SHELL_POOL; i += 1) {
+      const body = world.createRigidBody(
+        RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(0, -900, i * 30),
+      );
+      body.userData = { slot: i, live: false };
+      shellPool.push(body);
+      shellFree.push(body);
+    }
+  }
+
+  function fitShell(body, shell) {
+    const prev = body.userData.fit;
+    if (
+      prev
+      && Math.abs(prev.hx - shell.hx) < 0.05
+      && Math.abs(prev.hy - shell.hy) < 0.05
+      && Math.abs(prev.hz - shell.hz) < 0.05
+    ) return;
+    if (!body.userData.shellCol) {
+      body.userData.shellCol = world.createCollider(shellDesc(shell.hx, shell.hy, shell.hz), body);
+    } else {
+      body.userData.shellCol.setHalfExtents({ x: shell.hx, y: shell.hy, z: shell.hz });
+    }
+    body.userData.fit = { hx: shell.hx, hy: shell.hy, hz: shell.hz };
+  }
+
+  function carTurn(car) {
+    const q = car.quat;
+    if (q && Number.isFinite(q.x) && Number.isFinite(q.y) && Number.isFinite(q.z) && Number.isFinite(q.w)) return q;
+    return yawQuat(car.angle || 0);
+  }
+
+  function placeShell(body, car) {
+    const shell = carShell(car);
+    const at = {
+      x: car.x,
+      y: (car.y == null ? 0.6 : car.y) + shell.lift,
+      z: car.z,
+    };
+    const turn = carTurn(car);
+    fitShell(body, shell);
+    const now = body.translation();
+    if (body.userData.live && Math.hypot(at.x - now.x, at.y - now.y, at.z - now.z) <= TELEPORT) {
+      body.setNextKinematicTranslation(at);
+      body.setNextKinematicRotation(turn);
+      return;
+    }
+    body.setTranslation(at, true);
+    body.setRotation(turn, true);
+    body.userData.live = true;
+  }
+
+  function parkShell(body) {
+    body.userData.live = false;
+    body.setTranslation({ x: 0, y: -900, z: body.userData.slot * 30 }, false);
+    body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, false);
+    shellFree.push(body);
+  }
+
+  function releaseShells() {
+    if (!shellAssigned || shellAssigned.size === 0) return;
+    for (const body of shellAssigned.values()) parkShell(body);
+    shellAssigned.clear();
+  }
+
+  function syncShells(list, around) {
+    ensureShells();
+    const near = [];
+    for (const car of list) {
+      if (!car || car.held || car === focus) continue;
+      if (!Number.isFinite(car.x) || !Number.isFinite(car.z)) continue;
+      const dx = car.x - around.x;
+      const dz = car.z - around.z;
+      const d2 = dx * dx + dz * dz;
+      if (d2 <= SHELL_REACH * SHELL_REACH) near.push({ car, d2 });
+    }
+    near.sort((a, b) => a.d2 - b.d2);
+    if (near.length > shellPool.length) near.length = shellPool.length;
+    const keep = new Set();
+    for (const item of near) keep.add(item.car);
+    for (const [car, body] of shellAssigned) {
+      if (keep.has(car)) continue;
+      shellAssigned.delete(car);
+      parkShell(body);
+    }
+    for (const { car } of near) {
+      let body = shellAssigned.get(car);
+      if (!body) {
+        body = shellFree.pop();
+        if (!body) continue;
+        shellAssigned.set(car, body);
+      }
+      placeShell(body, car);
+    }
+  }
 
   physics.addSystem({
     fixedUpdate() {
       const at = focus || watch;
-      if (!at) return;
-      streamBlocks(at.x, at.z);
+      if (at) streamBlocks(at.x, at.z);
       if (focus) syncTraffic(cars(), focus);
+      if (watch) syncShells(cars(), watch);
+      else releaseShells();
     },
   });
 

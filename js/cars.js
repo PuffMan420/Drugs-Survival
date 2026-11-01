@@ -495,7 +495,17 @@ function bakeLevel(scene, catalog) {
     part.geometry.computeBoundingBox();
     part.geometry.computeBoundingSphere();
   }
-  return { parts, width, length };
+  let low = Infinity;
+  let high = -Infinity;
+  for (const part of parts) {
+    const box = part.geometry.boundingBox;
+    if (!box) continue;
+    if (box.min.y < low) low = box.min.y;
+    if (box.max.y > high) high = box.max.y;
+  }
+  const height = Number.isFinite(low) ? Math.max(0.001, high - low) : 1;
+  const lift = Number.isFinite(low) ? (low + high) / 2 : 0.5;
+  return { parts, width, length, height, lift };
 }
 
 // Headlight quads are exclusive vertices on the baked body. Folding them
@@ -603,6 +613,8 @@ export async function createTraffic(scene, map, pieces = []) {
     baked.set(file, {
       width: measured.width,
       length: measured.length,
+      height: measured.height,
+      lift: measured.lift,
       levels,
     });
   }));
@@ -616,6 +628,8 @@ export async function createTraffic(scene, map, pieces = []) {
       scaleX: car.w / file.width * DRAW_SCALE,
       scaleY: car.h / file.length * DRAW_SCALE,
       scaleZ: car.h / file.length * DRAW_SCALE,
+      bodyH: file.height / file.length * car.h * DRAW_SCALE,
+      bodyLift: file.lift / file.length * car.h * DRAW_SCALE,
       levels: file.levels,
     };
   });
@@ -634,6 +648,8 @@ export async function createTraffic(scene, map, pieces = []) {
     car.model = pick(car.hash);
     car.w = models[car.model].w;
     car.h = models[car.model].h;
+    car.bodyH = models[car.model].bodyH;
+    car.bodyLift = models[car.model].bodyLift;
     car.bulky = !!models[car.model].bulky;
     car.y = GROUND_Y;
     car.angle = headingAngle(car.hx, car.hz);

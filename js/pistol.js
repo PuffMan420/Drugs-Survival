@@ -965,7 +965,8 @@ export async function createPistol({
         if (aiming && spot) player.aimAt(spot.x, spot.z);
         else player.clearAim();
       }
-      player.holdPistol(holding() && !busy() && (weapon === "pistol" || weapon === "bat"));
+      player.holdPistol(holding() && !busy() && weapon === "pistol");
+      player.holdBat(holding() && !busy() && weapon === "bat");
       player.forcePose(pistolPose({
         armed: holding(),
         busy: busy(),

@@ -111,17 +111,18 @@ test("the handle stays in the fist and the barrel leaves through the pinky", () 
   assert.ok(Math.abs(axis[1]) < 1e-6 && Math.abs(axis[2]) < 1e-6);
 });
 
-test("idle and jog carry the bat forward from the hip, and a sprint lets it hang", () => {
+test("idle and jog lay the bat across the belt, and a sprint lets it hang", () => {
   assert.equal(BAT_RUN_START, 1.12);
   assert.equal(BAT_RUN_SPAN, 0.22);
   const carry = batHoldPose(-1, 0);
   const jog = batHoldPose(-1, 1);
   assert.deepEqual(jog, carry);
   const barrel = unit(carry.barrel);
-  assert.ok(barrel[2] > 0.9, `forward ${barrel}`);
-  assert.ok(barrel[1] < -0.1 && barrel[1] > -0.45, `slightly down ${barrel}`);
-  assert.ok(carry.hand[0] > 0.25, "right hip");
-  assert.ok(carry.hand[2] > 0, "in front");
+  assert.ok(barrel[0] < -0.9, `across to his left ${barrel}`);
+  assert.ok(Math.abs(barrel[1]) < 0.2, `level ${barrel}`);
+  assert.ok(barrel[2] > 0, `in front ${barrel}`);
+  assert.ok(carry.hand[0] > 0.2, "right hip");
+  assert.ok(carry.hand[2] > 0.15, "in front of the belt");
   const hang = unit(batHoldPose(-1, 1.4).barrel);
   assert.ok(hang[1] < -0.7, `down ${hang}`);
   assert.ok(hang[2] > 0.3, `forward ${hang}`);

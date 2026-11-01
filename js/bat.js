@@ -14,22 +14,25 @@ export const BAT_RUN_SPAN = 0.22;
 // Offsets from the hips, in character space: right, up, forward.
 // Carry is the hip hold. Hang is the relaxed run. The swing returns to carry.
 const BAT_CARRY = {
-  hand: [0.4, 0.18, 0.26],
-  barrel: [0.06, -0.2, 0.97],
-  knuckles: [0.22, 0.96, 0.12],
+  // Right hand at the belt. The barrel lies across the front, toward his left.
+  hand: [0.24, 0.22, 0.32],
+  barrel: [-0.995, -0.02, 0.08],
+  knuckles: [0.08, 0.55, 0.83],
+  pole: [0.25, -0.15, -1],
 };
 const BAT_HANG = {
   hand: [0.28, 0.02, 0.22],
   barrel: [0.04, -0.74, 0.67],
   knuckles: [0.82, 0.2, -0.12],
+  pole: [1, -0.1, -0.35],
 };
-// Arm swing. The hit at 0.5 s is the level extension. 0 and 1.5 s are the carry.
+// Arm swing. The hit at 0.5 s reaches forward. 0 and 1.5 s are the belt carry.
 const BAT_SWING_KEYS = [
-  { t: 0, hand: BAT_CARRY.hand, barrel: BAT_CARRY.barrel, knuckles: BAT_CARRY.knuckles },
-  { t: 0.22, hand: [0.5, 0.42, -0.22], barrel: [0.25, 0.48, -0.84], knuckles: [0.1, 0.95, 0.1] },
-  { t: 0.5, hand: [0.16, 0.22, 0.58], barrel: [-0.08, -0.06, 1], knuckles: [0.05, 1, 0] },
-  { t: 0.9, hand: [-0.08, 0.3, 0.32], barrel: [-0.78, 0.22, 0.35], knuckles: [0.1, 0.9, -0.1] },
-  { t: 1.5, hand: BAT_CARRY.hand, barrel: BAT_CARRY.barrel, knuckles: BAT_CARRY.knuckles },
+  { t: 0, ...BAT_CARRY },
+  { t: 0.22, hand: [0.48, 0.48, -0.18], barrel: [0.2, 0.55, -0.8], knuckles: [0.1, 0.95, 0.1], pole: [1, 0.2, -0.4] },
+  { t: 0.5, hand: [0.12, 0.28, 0.58], barrel: [-0.15, -0.04, 0.99], knuckles: [0.05, 1, 0.1], pole: [0.8, 0.1, -0.3] },
+  { t: 0.9, hand: [-0.12, 0.32, 0.28], barrel: [-0.9, 0.08, 0.25], knuckles: [0.05, 0.9, 0.2], pole: [0.4, 0.2, -0.6] },
+  { t: 1.5, ...BAT_CARRY },
 ];
 export const BAT_HIT = 0.5;
 export const BAT_SWING = 1.5;
@@ -76,6 +79,7 @@ function blendHold(a, b, t) {
     hand: lerp3(a.hand, b.hand, t),
     barrel: lerp3(a.barrel, b.barrel, t),
     knuckles: lerp3(a.knuckles, b.knuckles, t),
+    pole: lerp3(a.pole || [1, 0.15, -0.45], b.pole || [1, 0.15, -0.45], t),
   };
 }
 

@@ -89,7 +89,8 @@ export function applyBatArm(model, holder, pose) {
   knuckles.copy(right).multiplyScalar(kr).addScaledVector(up, ku).addScaledVector(forward, kf);
   if (knuckles.lengthSq() < 1e-8) knuckles.copy(up);
 
-  pole.copy(right).addScaledVector(forward, -0.45).addScaledVector(up, 0.2);
+  const [pr, pu, pf] = pose.pole || [1, 0.15, -0.45];
+  pole.copy(right).multiplyScalar(pr).addScaledVector(up, pu).addScaledVector(forward, pf);
   const along = handTarget.clone().sub(shoulder);
   const span = along.length() || 1;
   along.multiplyScalar(1 / span);

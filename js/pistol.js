@@ -158,7 +158,7 @@ export async function createPistol({
     depthWrite: false,
     toneMapped: false,
   }));
-  flash.scale.set(22 * 0.6, 22 * 0.6, 1);
+  flash.scale.set(22 * 0.6 * 0.6, 22 * 0.6 * 0.6, 1);
   flash.visible = false;
   flash.renderOrder = 3;
   scene.add(flash);
@@ -282,7 +282,7 @@ export async function createPistol({
   function puffAt(x, y, z) {
     const sprite = new Sprite(puffMaterial.clone());
     sprite.position.set(x, y, z);
-    sprite.scale.set(36 * 0.7, 36 * 0.7, 1);
+    sprite.scale.set(36 * 0.7 * 0.6, 36 * 0.7 * 0.6, 1);
     sprite.renderOrder = 3;
     scene.add(sprite);
     puffs.push({ sprite, frame: 0, age: 0 });

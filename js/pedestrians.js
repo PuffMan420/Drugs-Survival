@@ -790,6 +790,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
       const length = Math.hypot(dx, dy, dz);
       if (length < 0.4) return null;
       const radius = Math.min(Math.max(length * 0.22, 1.4), length * 0.42);
+      from.getWorldQuaternion(ragWorldQuat);
       segments.push({
         id,
         bone: from,
@@ -801,6 +802,10 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
         dz,
         length,
         radius,
+        qx: ragWorldQuat.x,
+        qy: ragWorldQuat.y,
+        qz: ragWorldQuat.z,
+        qw: ragWorldQuat.w,
       });
     }
     return segments;

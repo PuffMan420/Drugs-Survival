@@ -8,9 +8,11 @@ import {
   MeshStandardMaterial,
   Object3D,
   SRGBColorSpace,
+  Uint32BufferAttribute,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { isBulkyCar } from "./car-kind.js";
+import { foldHeadlightGeometry } from "./headlights.js";
 import { pushOutOfCars } from "./car-push.js";
 import { createSim, headingAngle, planCars, settleParked } from "./routes.js";
 import { signalNow } from "./signals.js";
@@ -429,7 +431,12 @@ function bakeLevel(scene, catalog) {
   }
   const cx = (minX + maxX) / 2;
   const cz = (minZ + maxZ) / 2;
+  // Measured before the headlight fold so a lamp that reaches the nose
+  // corner cannot change how big the car is drawn.
+  const width = Math.max(0.001, maxX - minX);
+  const length = Math.max(0.001, maxZ - minZ);
   for (const part of parts) {
+    foldBakedHeadlights(part.geometry, catalog && catalog.get(part.name));
     part.geometry.translate(-cx, -minY, -cz);
     // Kenney cars face +Z. A heading of 0 drives toward -Z, same as the sprites.
     part.geometry.rotateY(Math.PI);
@@ -466,22 +473,47 @@ function bakeLevel(scene, catalog) {
     part.geometry.computeBoundingBox();
     part.geometry.computeBoundingSphere();
   }
-  let widthMin = Infinity;
-  let widthMax = -Infinity;
-  let lengthMin = Infinity;
-  let lengthMax = -Infinity;
-  for (const part of parts) {
-    const box = part.geometry.boundingBox;
-    if (box.min.x < widthMin) widthMin = box.min.x;
-    if (box.max.x > widthMax) widthMax = box.max.x;
-    if (box.min.z < lengthMin) lengthMin = box.min.z;
-    if (box.max.z > lengthMax) lengthMax = box.max.z;
+  return { parts, width, length };
+}
+
+// Headlight quads are exclusive vertices on the baked body. Folding them
+// after the paint mask (which matches on the original positions) and after
+// the bounds above keeps the body colour and the car footprint put.
+function foldBakedHeadlights(geometry, keys) {
+  if (!keys) return;
+  const index = geometry.getIndex();
+  const position = geometry.getAttribute("position");
+  const normal = geometry.getAttribute("normal");
+  const uv = geometry.getAttribute("uv");
+  if (!index || !position || !normal || !uv) return;
+  const tris = index.count / 3;
+  const cats = new Array(tris);
+  let any = false;
+  for (let tri = 0; tri < tris; tri += 1) {
+    const i0 = index.getX(tri * 3);
+    const i1 = index.getX(tri * 3 + 1);
+    const i2 = index.getX(tri * 3 + 2);
+    const cat = keys.get(triKey(position, i0, i1, i2));
+    cats[tri] = cat == null ? -1 : cat;
+    if (cat === 2) any = true;
   }
-  return {
-    parts,
-    width: Math.max(0.001, widthMax - widthMin),
-    length: Math.max(0.001, lengthMax - lengthMin),
-  };
+  if (!any) return;
+  const paintAttr = geometry.getAttribute("aPaint");
+  const folded = foldHeadlightGeometry({
+    positions: position.array.slice(0, position.count * 3),
+    normals: normal.array.slice(0, normal.count * 3),
+    uvs: uv.array.slice(0, uv.count * 2),
+    indices: index.array.slice(0, index.count),
+    cats,
+    paint: paintAttr ? paintAttr.array.slice(0, paintAttr.count) : null,
+  });
+  geometry.setAttribute("position", new Float32BufferAttribute(folded.positions, 3));
+  geometry.setAttribute("normal", new Float32BufferAttribute(folded.normals, 3));
+  geometry.setAttribute("uv", new Float32BufferAttribute(folded.uvs, 2));
+  geometry.setIndex(new Uint32BufferAttribute(folded.indices, 1));
+  if (folded.paint) {
+    geometry.setAttribute("aPaint", new Float32BufferAttribute(folded.paint, 1));
+  }
 }
 
 function disposeModel(scene) {

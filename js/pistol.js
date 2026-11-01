@@ -93,14 +93,11 @@ export async function createPistol({
   const loader = new GLTFLoader();
   const gunGltf = await loader.loadAsync(new URL("../assets/gun/Pistol_1.glb", import.meta.url).href);
   const grip = new Group();
-  // Pistol_6 is already scaled by 100, which makes the mesh about 2.4 units
-  // long. The figure is 3.8 tall in the same space, so 0.25 brings the
-  // barrel down to a handgun, and 1.5 makes it readable from above.
-  // The butt is 0.34 behind the grip origin. The extra scale would push
-  // that into the palm, so the hold shifts forward by the same amount.
-  grip.scale.setScalar(0.25 * 1.5);
+  // Hand-local: +Y is wrist to knuckles, +X toward the pinky, -Z is the palm.
+  // 0.85 fits the gun on the larger hand. Bottles stay on handRoot.
+  grip.scale.setScalar(0.25 * 1.5 * 0.85);
   grip.rotation.z = Math.PI / 2;
-  grip.position.set(0, 0.08 + 0.34 * 0.25 * 0.5, 0.02);
+  grip.position.set(0, 0.205, -0.089);
   grip.add(gunGltf.scene);
   hand.add(grip);
   let pistolMesh = null;
@@ -743,6 +740,7 @@ export async function createPistol({
         if (aiming && spot) player.aimAt(spot.x, spot.z);
         else player.clearAim();
       }
+      player.holdPistol(weapon === "pistol" && holding() && !busy());
       player.forcePose(pistolPose({
         armed: holding(),
         busy: busy(),

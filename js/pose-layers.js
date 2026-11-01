@@ -39,13 +39,13 @@ export function splitTrackNames(names) {
 
 // Shoot wins over the held aim so the recoil plays, and the aim pose returns
 // when the shot window ends. Reload wins over both.
-export function pistolPose({ armed, busy, reloading, shooting, aiming, speed, weapon = "pistol" }) {
+export function pistolPose({ armed, busy, reloading, shooting, aiming, weapon = "pistol" }) {
   if (!armed || busy) return "";
   if (weapon === "bottle") return shooting ? "punchCross" : "";
   if (reloading) return "pistolReload";
   if (shooting) return "pistolShoot";
   if (aiming) return "pistolAim";
-  if (speed < 1) return "pistolIdle";
+  // Held, but not aiming: Idle_Loop / Walk / Jog / Sprint carry the gun.
   return "";
 }
 

@@ -12,6 +12,7 @@ import {
   LoopOnce,
   MeshLambertMaterial,
   PlaneGeometry,
+  Quaternion,
   SRGBColorSpace,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -33,6 +34,42 @@ const SHADOW_Y = 0.35;
 const PLACE_STEP = 240;
 // Long enough to read the change, short enough that the gaits still connect.
 const FADE = 0.25;
+// Aim and shoot keep a relaxed left arm. 0.7 is Idle_Loop, the rest is the pistol clip.
+const LEFT_ARM_IDLE = 0.7;
+const RIGHT_GRIP_POSE = {
+  RightHandThumb1: [0.0768, 0.8103, -0.4474, -0.3706],
+  RightHandThumb2: [-0.3985, -0.1105, -0.2049, 0.8871],
+  RightHandThumb3: [0, 0, 0, 1],
+  RightHandIndex1: [-0.0612, -0.0749, 0.0446, 0.9943],
+  RightHandIndex2: [-0.015, 0.0767, -0.0003, 0.9969],
+  RightHandIndex3: [-0.005, -0.0282, -0.0003, 0.9996],
+  RightHandMiddle1: [-0.6692, -0.06, -0.049, 0.739],
+  RightHandMiddle2: [-0.2129, 0.0681, 0.0139, 0.9746],
+  RightHandMiddle3: [-0.3474, -0.0294, -0.0109, 0.9372],
+  RightHandRing1: [-0.7047, -0.0322, -0.0834, 0.7038],
+  RightHandRing2: [-0.1145, 0.0623, 0.0066, 0.9914],
+  RightHandRing3: [-0.1048, -0.0338, -0.0034, 0.9939],
+  RightHandPinky1: [-0.6294, -0.0124, -0.1215, 0.7674],
+  RightHandPinky2: [-0.1146, 0.0531, 0.0061, 0.992],
+  RightHandPinky3: [-0.1047, -0.0367, -0.0035, 0.9938],
+};
+
+function isLeftArmBone(name) {
+  return name.startsWith("LeftShoulder")
+    || name.startsWith("LeftArm")
+    || name.startsWith("LeftForeArm")
+    || name.startsWith("LeftHand");
+}
+
+function clipWithout(clip, drop) {
+  const tracks = clip.tracks.filter((track) => !drop(track.name.split(".")[0]));
+  return new AnimationClip(`${clip.name}_kept`, clip.duration, tracks);
+}
+
+function clipOnly(clip, keep) {
+  const tracks = clip.tracks.filter((track) => keep(track.name.split(".")[0]));
+  return new AnimationClip(`${clip.name}_left`, clip.duration, tracks);
+}
 // Most of a speed change lands inside a third of a second. Not a snap.
 const SPEED_TAU = 0.16;
 // About nine tenths of a 90° turn is done by 0.12s, and it is finished by 0.15s.
@@ -221,14 +258,27 @@ export async function createPlayer() {
   setWeight(actions.walk, 0);
   setWeight(actions.jog, 0);
   setWeight(actions.sprint, 0);
-  const pistolClips = {
-    pistolIdle: "Pistol_Idle_Loop",
-    pistolAim: "Pistol_Aim_Neutral",
-    pistolShoot: "Pistol_Shoot",
-    pistolReload: "Pistol_Reload",
+  const pistolSources = {
+    pistolIdle: clipNamed(gltf.animations, "Pistol_Idle_Loop"),
+    pistolAim: clipNamed(gltf.animations, "Pistol_Aim_Neutral"),
+    pistolShoot: clipNamed(gltf.animations, "Pistol_Shoot"),
+    pistolReload: clipNamed(gltf.animations, "Pistol_Reload"),
   };
-  for (const key of Object.keys(pistolClips)) {
-    actions[key] = mixer.clipAction(clipNamed(gltf.animations, pistolClips[key]));
+  // Aim and shoot are two-handed. The left arm is a separate blend, so those
+  // clips no longer drive LeftShoulder, LeftArm, LeftForeArm, or LeftHand.
+  const leftIdle = mixer.clipAction(clipOnly(actions.idle.getClip(), isLeftArmBone));
+  const leftAim = mixer.clipAction(clipOnly(pistolSources.pistolAim, isLeftArmBone));
+  const leftShoot = mixer.clipAction(clipOnly(pistolSources.pistolShoot, isLeftArmBone));
+  for (const action of [leftIdle, leftAim, leftShoot]) {
+    setWeight(action, 0);
+    action.play();
+  }
+  for (const key of Object.keys(pistolSources)) {
+    const source = pistolSources[key];
+    const clip = key === "pistolAim" || key === "pistolShoot"
+      ? clipWithout(source, isLeftArmBone)
+      : source;
+    actions[key] = mixer.clipAction(clip);
     setWeight(actions[key], 0);
   }
   actions.pistolShoot.setLoop(LoopOnce, 1);
@@ -266,6 +316,13 @@ export async function createPlayer() {
   upperActions.pistolReload.clampWhenFinished = true;
   upperActions.punchCross.setLoop(LoopOnce, 1);
   upperActions.punchCross.clampWhenFinished = true;
+  const rightGrip = [];
+  for (const [name, value] of Object.entries(RIGHT_GRIP_POSE)) {
+    const bone = model.getObjectByName(name);
+    if (!bone) continue;
+    rightGrip.push([bone, new Quaternion(value[0], value[1], value[2], value[3])]);
+  }
+  let pistolHeld = false;
   // Bones are still the bind T until the mixer writes. Do that before the
   // first paint, while idle is the only action with weight.
   mixer.update(0);
@@ -405,6 +462,11 @@ export async function createPlayer() {
     },
     model,
     useListener,
+    // True while the pistol is in his hand. The finger pose is applied after
+    // the mixer, so the clip cannot open the grip.
+    holdPistol(on) {
+      pistolHeld = Boolean(on);
+    },
     // Wish is a unit direction. Gait is walk, jog, sprint, or idle. Boost is
     // the build-mode pace. Speed and facing ease. They do not snap.
     forcePose(name) {
@@ -507,7 +569,29 @@ export async function createPlayer() {
       }
       if (forced && actions[forced]) actions[forced].setEffectiveTimeScale(1);
       for (const name of Object.keys(upperActions)) upperActions[name].setEffectiveTimeScale(1);
+      const aimW = actions.pistolAim.getEffectiveWeight() + upperActions.pistolAim.getEffectiveWeight();
+      const shootW = actions.pistolShoot.getEffectiveWeight() + upperActions.pistolShoot.getEffectiveWeight();
+      setWeight(leftIdle, LEFT_ARM_IDLE * (aimW + shootW));
+      setWeight(leftAim, (1 - LEFT_ARM_IDLE) * aimW);
+      setWeight(leftShoot, (1 - LEFT_ARM_IDLE) * shootW);
+      const aimTime = actions.pistolAim.getEffectiveWeight() >= upperActions.pistolAim.getEffectiveWeight()
+        ? actions.pistolAim.time
+        : upperActions.pistolAim.time;
+      const shootTime = actions.pistolShoot.getEffectiveWeight() >= upperActions.pistolShoot.getEffectiveWeight()
+        ? actions.pistolShoot.time
+        : upperActions.pistolShoot.time;
+      leftIdle.time = actions.idle.time;
+      leftAim.time = aimTime;
+      leftShoot.time = shootTime;
+      leftIdle.setEffectiveTimeScale(0);
+      leftAim.setEffectiveTimeScale(0);
+      leftShoot.setEffectiveTimeScale(0);
       mixer.update(step);
+      if (pistolHeld) {
+        for (let i = 0; i < rightGrip.length; i += 1) {
+          rightGrip[i][0].quaternion.copy(rightGrip[i][1]);
+        }
+      }
       // The mesh is hidden in a car. A map jump is a huge step, not a footfall.
       // Clip time moves with the playback rate, so a faster gait steps sooner.
       // While aiming, the feet follow the gait even though the arms play the pistol.

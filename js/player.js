@@ -306,6 +306,11 @@ export async function createPlayer() {
   actions.swordAttack.clampWhenFinished = true;
   actions.swordIdle.play();
   actions.swordAttack.play();
+  actions.punchJab = mixer.clipAction(clipNamed(gltf.animations, "Punch_Jab"));
+  setWeight(actions.punchJab, 0);
+  actions.punchJab.setLoop(LoopOnce, 1);
+  actions.punchJab.clampWhenFinished = true;
+  actions.punchJab.play();
   const lowerActions = {};
   for (const name of ["idle", "walk", "jog", "sprint"]) {
     lowerActions[name] = mixer.clipAction(maskedClip(actions[name].getClip(), true));
@@ -313,7 +318,7 @@ export async function createPlayer() {
     lowerActions[name].play();
   }
   const upperActions = {};
-  for (const name of ["pistolAim", "pistolShoot", "pistolReload", "punchCross"]) {
+  for (const name of ["pistolAim", "pistolShoot", "pistolReload", "punchCross", "punchJab"]) {
     upperActions[name] = mixer.clipAction(maskedClip(actions[name].getClip(), false));
     setWeight(upperActions[name], 0);
     upperActions[name].play();
@@ -324,6 +329,8 @@ export async function createPlayer() {
   upperActions.pistolReload.clampWhenFinished = true;
   upperActions.punchCross.setLoop(LoopOnce, 1);
   upperActions.punchCross.clampWhenFinished = true;
+  upperActions.punchJab.setLoop(LoopOnce, 1);
+  upperActions.punchJab.clampWhenFinished = true;
   const rightGrip = [];
   for (const [name, value] of Object.entries(RIGHT_GRIP_POSE)) {
     const bone = model.getObjectByName(name);
@@ -539,7 +546,7 @@ export async function createPlayer() {
           layered = true;
           for (const key of Object.keys(actions)) glide(actions[key], 0, tau, 0.1);
           for (const key of Object.keys(lowerActions)) glide(lowerActions[key], key === gait ? 1 : 0, tau, 0.1);
-          const fast = forced === "pistolShoot" || forced === "punchCross";
+          const fast = forced === "pistolShoot" || forced === "punchCross" || forced === "punchJab";
           for (const key of Object.keys(upperActions)) {
             glide(upperActions[key], key === forced ? 1 : 0, tau, fast ? 0.04 : 0.1);
           }

@@ -100,6 +100,54 @@ export function carContains(x, y, z, car) {
   return Math.abs(lx) <= car.w / 2 && Math.abs(lz) <= car.h / 2;
 }
 
+// First face a unit ray meets on the carContains box. t is distance along
+// the ray. A ray that starts inside the box does not count.
+export function carRayHit(origin, direction, car) {
+  if (!car || !(car.w > 0) || !(car.h > 0)) return null;
+  const base = car.y == null ? 0.6 : car.y;
+  const c = Math.cos(car.angle || 0);
+  const s = Math.sin(car.angle || 0);
+  const ox = origin.x - car.x;
+  const oz = origin.z - car.z;
+  const o = {
+    x: ox * c - oz * s,
+    y: origin.y,
+    z: ox * s + oz * c,
+  };
+  const d = {
+    x: direction.x * c - direction.z * s,
+    y: direction.y,
+    z: direction.x * s + direction.z * c,
+  };
+  const min = { x: -car.w / 2, y: base - 2, z: -car.h / 2 };
+  const max = { x: car.w / 2, y: base + 46, z: car.h / 2 };
+  let t0 = 0;
+  let t1 = Infinity;
+  for (const axis of ["x", "y", "z"]) {
+    if (Math.abs(d[axis]) < 1e-8) {
+      if (o[axis] < min[axis] || o[axis] > max[axis]) return null;
+      continue;
+    }
+    let near = (min[axis] - o[axis]) / d[axis];
+    let far = (max[axis] - o[axis]) / d[axis];
+    if (near > far) {
+      const swap = near;
+      near = far;
+      far = swap;
+    }
+    if (near > t0) t0 = near;
+    if (far < t1) t1 = far;
+    if (t0 > t1) return null;
+  }
+  if (!(t0 > 1e-4)) return null;
+  return {
+    t: t0,
+    x: origin.x + direction.x * t0,
+    y: origin.y + direction.y * t0,
+    z: origin.z + direction.z * t0,
+  };
+}
+
 export function bottleSurface(info) {
   if (!info || info.bottleFx || info.underPlayer || info.transparent) return null;
   if (info.ped) return "pedestrian";

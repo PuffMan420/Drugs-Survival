@@ -30,6 +30,11 @@ test("a shot while aiming plays the shoot pose, then aim returns", () => {
   assert.equal(pistolPose({ ...aimed, weapon: "bat", aiming: true }), "swordIdle");
   assert.equal(pistolPose({ ...aimed, weapon: "bat", shooting: true }), "swordAttack");
   assert.equal(pistolPose({ ...aimed, weapon: "bat", shooting: true, reloading: true }), "swordAttack");
+  const bare = { armed: false, busy: false, reloading: false, shooting: false, aiming: false, weapon: "hands" };
+  assert.equal(pistolPose(bare), "");
+  assert.equal(pistolPose({ ...bare, shooting: true, punch: "punchJab" }), "punchJab");
+  assert.equal(pistolPose({ ...bare, shooting: true, punch: "punchCross" }), "punchCross");
+  assert.equal(pistolPose({ ...bare, busy: true, shooting: true, punch: "punchJab" }), "");
 });
 
 test("a left click fires while right-click is held, and once just after it drops", () => {
@@ -53,6 +58,8 @@ test("moving while aiming, shooting, or reloading keeps the gait on the legs", (
   assert.equal(legsWhileAiming("punchCross", false), true);
   assert.equal(legsWhileAiming("swordIdle", true), false);
   assert.equal(legsWhileAiming("swordAttack", true), false);
+  assert.equal(legsWhileAiming("punchJab", true), true);
+  assert.equal(legsWhileAiming("punchJab", false), true);
 });
 
 function glbTrackNames(path, clipName) {
@@ -65,7 +72,7 @@ function glbTrackNames(path, clipName) {
 }
 
 test("the gubbe walk and aim clips both have legs and arms to split", () => {
-  for (const clipName of ["Walk_Loop", "Jog_Fwd_Loop", "Sprint_Loop", "Pistol_Aim_Neutral", "Pistol_Shoot", "Punch_Cross"]) {
+  for (const clipName of ["Walk_Loop", "Jog_Fwd_Loop", "Sprint_Loop", "Pistol_Aim_Neutral", "Pistol_Shoot", "Punch_Cross", "Punch_Jab"]) {
     const names = glbTrackNames(new URL("../assets/player/gubbe.glb", import.meta.url), clipName);
     const split = splitTrackNames(names);
     assert.ok(split.lower.some((name) => name.startsWith("LeftUpLeg.")), clipName);

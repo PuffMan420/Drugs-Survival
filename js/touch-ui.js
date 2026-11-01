@@ -112,6 +112,7 @@ function keyButton(code, key, label, caption) {
 
 let gunRow = null;
 let aimButton = null;
+let shootButton = null;
 let pistolApi = null;
 
 export function bindPistolTouch(api) {
@@ -119,10 +120,19 @@ export function bindPistolTouch(api) {
 }
 
 // Touch only. The row is created by mountTouchUi, which desktop never calls.
+// Empty hands keep the row up so PUNCH is there. AIM stays with a weapon.
 export function syncGunButtons(armed) {
   if (!gunRow) return;
-  const hide = !armed;
+  const bare = Boolean(pistolApi && pistolApi.weapon === "hands");
+  const hide = !armed && !bare;
   if (gunRow.hidden !== hide) gunRow.hidden = hide;
+  if (aimButton) aimButton.hidden = !armed;
+  if (shootButton) {
+    const label = bare ? "PUNCH" : "SHOOT";
+    shootButton.hidden = false;
+    shootButton.textContent = label;
+    shootButton.setAttribute("aria-label", label);
+  }
   const on = Boolean(armed && pistolApi && pistolApi.aiming);
   if (aimButton) {
     aimButton.classList.toggle("is-on", on);
@@ -205,12 +215,10 @@ export function mountTouchUi(held, places = [], intent = null) {
     syncGunButtons(pistolApi.armed);
   });
   aimButton.setAttribute("aria-pressed", "false");
-  gunRow.append(
-    aimButton,
-    gunButton("SHOOT", () => {
-      if (pistolApi) pistolApi.shoot();
-    }),
-  );
+  shootButton = gunButton("SHOOT", () => {
+    if (pistolApi) pistolApi.shoot();
+  });
+  gunRow.append(aimButton, shootButton);
 
   pad.append(gunRow, build, placeRow, actions);
   root.append(stick, pad);

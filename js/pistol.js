@@ -23,6 +23,7 @@ import {
   BOTTLES,
 } from "./bottle.js";
 import { TILE } from "./constants.js";
+import { nextPunch, punchHits, punchTiming } from "./punch.js";
 import { aimChord, pistolPose } from "./pose-layers.js";
 import { aimAlongStick, isTouchScreen, syncGunButtons } from "./touch-ui.js";
 import {
@@ -321,6 +322,7 @@ export async function createPistol({
     swinging = false;
     swingAge = 0;
     didHit = false;
+    punching = false;
     pending = null;
     handHidden = false;
     if (weapon === "bottle") {
@@ -337,6 +339,12 @@ export async function createPistol({
   let ammo = MAG;
   let shootLeft = 0;
   let poseLeft = 0;
+  let punchName = "";
+  let punching = false;
+  let punchAge = 0;
+  let punchHitAt = 0;
+  let punchPose = 0;
+  let didPunch = false;
   let reloadLeft = 0;
   let leftWas = false;
   let rightAt = -1e9;
@@ -654,6 +662,30 @@ export async function createPistol({
     return killed;
   }
 
+  function beginPunch() {
+    if (busy() || weapon !== "hands" || punching) return;
+    punchName = nextPunch(punchName);
+    const timing = punchTiming(punchName);
+    punching = true;
+    punchAge = 0;
+    punchHitAt = timing.hit;
+    punchPose = timing.pose;
+    didPunch = false;
+    poseLeft = timing.pose;
+    player.kickPose(punchName);
+  }
+
+  function strikePunch() {
+    const from = player.mesh.position;
+    const dirX = player.dirX;
+    const dirZ = player.dirZ;
+    for (const ped of pedestrians.targets()) {
+      if (!punchHits(from.x, from.z, dirX, dirZ, ped.x, ped.z)) continue;
+      const hurt = pedestrians.hurt(ped, ped.x - from.x, ped.z - from.z);
+      if (hurt) bleed(hurt);
+    }
+  }
+
   function beginThrow() {
     if (poseLeft > 0 || pending) return;
     const picked = pickBottle();
@@ -780,7 +812,8 @@ export async function createPistol({
         rightAt = performance.now();
         event.preventDefault();
       } else if (event.button === 0) {
-        fire();
+        if (weapon === "hands") beginPunch();
+        else fire();
       }
       return;
     }
@@ -805,8 +838,11 @@ export async function createPistol({
       hold: AIM_CHORD,
     });
     if (!blocked) aiming = chord.aiming;
-    const batClick = !blocked && weapon === "bat" && left && !leftWas;
-    if (chord.fire || batClick) fire();
+    if (!blocked && weapon === "hands" && left && !leftWas) beginPunch();
+    else {
+      const batClick = !blocked && weapon === "bat" && left && !leftWas;
+      if (chord.fire || batClick) fire();
+    }
     leftWas = left;
     if (event.button === 2) event.preventDefault();
   }
@@ -856,8 +892,12 @@ export async function createPistol({
       aiming = !aiming;
       return aiming;
     },
-    // Same press as a left click. The bat swings immediately. The pistol and the bottle still need aim.
+    // Empty hands punch. The bat swings on this press. The pistol and the bottle still need aim.
     shoot() {
+      if (weapon === "hands") {
+        beginPunch();
+        return;
+      }
       fire();
     },
     pre() {
@@ -866,6 +906,10 @@ export async function createPistol({
       if (off) {
         aiming = false;
         pending = null;
+      }
+      if (busy() && weapon === "hands") {
+        punching = false;
+        poseLeft = 0;
       }
       if (isTouchScreen()) {
         syncGunButtons(holding());
@@ -893,6 +937,7 @@ export async function createPistol({
         aiming,
         speed: player.speed,
         weapon,
+        punch: punchName,
       }));
     },
     update(dt) {
@@ -914,6 +959,17 @@ export async function createPistol({
       wear = stepBatWear(wear, step, killed);
       batMix.value = wear.mix;
       if (wear.stage !== "clean" && batMaterial.map !== batBlood) batMaterial.map = batBlood;
+      if (punching && weapon === "hands") {
+        const prev = punchAge;
+        punchAge += step;
+        if (!didPunch && prev < punchHitAt && punchAge >= punchHitAt) {
+          didPunch = true;
+          strikePunch();
+        }
+        if (punchAge >= punchPose) punching = false;
+      } else if (punching) {
+        punching = false;
+      }
       if (pending) {
         pending.age += step;
         if (weapon !== "bottle" || busy()) pending = null;

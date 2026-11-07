@@ -73,7 +73,7 @@ function glbTrackNames(path, clipName) {
 
 test("the gubbe walk and aim clips both have legs and arms to split", () => {
   for (const clipName of ["Walk_Loop", "Jog_Fwd_Loop", "Sprint_Loop", "Pistol_Aim_Neutral", "Pistol_Shoot", "Punch_Cross", "Punch_Jab"]) {
-    const names = glbTrackNames(new URL("../assets/player/gubbe.glb", import.meta.url), clipName);
+    const names = glbTrackNames(new URL("../06 Player Character/gubbe.glb", import.meta.url), clipName);
     const split = splitTrackNames(names);
     assert.ok(split.lower.some((name) => name.startsWith("LeftUpLeg.")), clipName);
     assert.ok(split.upper.some((name) => name.startsWith("RightForeArm.")), clipName);

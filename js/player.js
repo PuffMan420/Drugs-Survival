@@ -165,7 +165,7 @@ function maskedClip(clip, lower) {
 
 export async function createPlayer() {
   const loader = new GLTFLoader();
-  const url = new URL("../assets/player/gubbe.glb", import.meta.url).href;
+  const url = new URL("../06 Player Character/gubbe.glb", import.meta.url).href;
   let gltf;
   try {
     gltf = await loader.loadAsync(url);

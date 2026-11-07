@@ -20,6 +20,7 @@ import { carContact, carVelocity } from "./car-strike.js";
 import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
 import { createRagdolls } from "./ped-ragdoll.js";
 import { GROUND_H, GROUND_W, PLAYER_SPEED, TILE } from "./constants.js";
+import { PED_LOOK_HEX, pedLookIndex } from "./ped-looks.js";
 import { walkableCells } from "./pedestrian-walk.js";
 
 // Same height fit as the player, including both extra 10% bumps and another 5%, so these figures stand with him.
@@ -62,48 +63,16 @@ const CLIP_NAMES = {
 const CROWD = 1200;
 const BLOCK = 6;
 
-// Muted clothing colors. Shirt, pants, and shoes are picked independently.
-const CLOTHES = [
-  0x8a8a8a, // grey
-  0xc4b49a, // beige
-  0x2c3e5a, // navy
-  0x6b4a32, // brown
-  0x6b6a3e, // olive
-  0x232323, // black
-  0x2f4a34, // dark green
-  0x6e2e3c, // wine red
-  0x8eafc4, // light blue
-  0xe6dcc8, // cream
-  0xb5a36a, // khaki
-  0x3e4246, // charcoal
-  0x8d4b32, // rust
-  0x3d5270, // denim blue
-  0xb89a45, // mustard
-  0xc5c5c2, // light grey
-  0x5c5c5c, // dark grey
-  0x3f2c22, // dark brown
-  0x6a2a2a, // dark red
-  0x4a6b5c, // teal grey
-  0x7a5c7a, // dusty purple
-  0x3a2e4a, // dark plum
-  0xa65f4a, // terracotta
-  0x5f7a4a, // moss green
-  0x9a8a5a, // sand
-  0x4a5a7a, // slate blue
-  0xb07a5a, // camel
-  0x7a3a4a, // burgundy
-  0x5a7a8a, // steel blue
-  0xd0b890, // tan
-  0x2a3a3a, // dark teal
-  0x8a6a8a, // mauve
-  0x6a7a5a, // sage
-  0xa04030, // brick red
-  0x305070, // petrol blue
-  0xc08040, // ochre
-  0x50405a, // aubergine
-  0x90a0a8, // pale steel
-  0x1e2a40, // midnight blue
-];
+// The camera sits close to straight down, so the crown and the outfit are
+// what separate a person from the player. These looks replace his hair bun,
+// his head texture, and his clothes.
+const PED_LOOKS = PED_LOOK_HEX.map((row) => ({
+  shirt: new Color(row.shirt),
+  pants: new Color(row.pants),
+  shoes: new Color(row.shoes),
+  hair: new Color(row.hair),
+  skin: new Color(row.skin),
+}));
 
 // One atlas, one material. These bones own the shirt, pants, and shoe islands.
 const SHIRT_BONES = new Set([
@@ -117,21 +86,31 @@ const PANTS_BONES = new Set([
 const SHOE_BONES = new Set([
   "LeftFoot", "RightFoot", "LeftToes", "RightToes",
 ]);
+const HAIR_BONES = new Set(["Head", "Head_end"]);
 
 const CLOTH_UNIFORMS = `
 uniform vec3 pedShirtColor;
 uniform vec3 pedPantsColor;
 uniform vec3 pedShoeColor;
+uniform vec3 pedHairColor;
+uniform vec3 pedSkinColor;
 uniform sampler2D pedClothMask;
 `;
 const CLOTH_TINT = `
 {
   vec3 pedMask = texture2D(pedClothMask, vMapUv).rgb;
-  float pedAmount = clamp(pedMask.r + pedMask.g + pedMask.b, 0.0, 1.0);
+  float pedHair = pedMask.r * pedMask.g * (1.0 - pedMask.b);
+  float pedShirt = pedMask.r * (1.0 - pedMask.g) * (1.0 - pedMask.b);
+  float pedPants = pedMask.g * (1.0 - pedMask.r) * (1.0 - pedMask.b);
+  float pedShoes = pedMask.b * (1.0 - pedMask.r) * (1.0 - pedMask.g);
   float pedLuma = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-  float pedShade = clamp(pedLuma / 0.45, 0.25, 1.35);
-  vec3 pedTint = pedShirtColor * pedMask.r + pedPantsColor * pedMask.g + pedShoeColor * pedMask.b;
-  diffuseColor.rgb = mix(diffuseColor.rgb, pedTint * pedShade, pedAmount);
+  float pedShade = clamp(pedLuma / 0.45, 0.35, 1.25);
+  vec3 pedTint = pedShirtColor * pedShirt + pedPantsColor * pedPants + pedShoeColor * pedShoes;
+  float pedCloth = clamp(pedShirt + pedPants + pedShoes, 0.0, 1.0);
+  float pedBare = clamp(1.0 - pedCloth - pedHair, 0.0, 1.0);
+  diffuseColor.rgb = mix(diffuseColor.rgb, pedTint * pedShade, pedCloth);
+  diffuseColor.rgb = mix(diffuseColor.rgb, pedHairColor * pedShade, pedHair);
+  diffuseColor.rgb = mix(diffuseColor.rgb, pedSkinColor * pedShade, pedBare);
 }
 `;
 
@@ -149,13 +128,8 @@ function unitHash(n) {
   return (h >>> 0) / 4294967296;
 }
 
-const CLOTH_COLORS = CLOTHES.map((hex) => new Color(hex));
-
-function clothColor(salt) {
-  return CLOTH_COLORS[Math.floor(unitHash(salt) * CLOTH_COLORS.length)];
-}
-
 function boneGroup(name) {
+  if (HAIR_BONES.has(name)) return 4;
   if (SHIRT_BONES.has(name)) return 0;
   if (PANTS_BONES.has(name)) return 1;
   if (SHOE_BONES.has(name)) return 2;
@@ -187,11 +161,11 @@ function clothMask(root) {
   canvas.height = image.height;
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const fills = ["rgb(255,0,0)", "rgb(0,255,0)", "rgb(0,0,255)"];
+  const fills = ["rgb(255,0,0)", "rgb(0,255,0)", "rgb(0,0,255)", null, "rgb(255,255,0)"];
   const width = canvas.width;
   const height = canvas.height;
   for (let triangle = 0; triangle < index.count; triangle += 3) {
-    const score = [0, 0, 0, 0];
+    const score = [0, 0, 0, 0, 0];
     const points = [];
     for (let corner = 0; corner < 3; corner += 1) {
       const vertex = index.getX(triangle + corner);
@@ -209,8 +183,8 @@ function clothMask(root) {
       ]);
     }
     let group = 0;
-    for (let i = 1; i < 4; i += 1) if (score[i] > score[group]) group = i;
-    if (group > 2) continue;
+    for (let i = 1; i < score.length; i += 1) if (score[i] > score[group]) group = i;
+    if (!fills[group] || score[group] <= 0) continue;
     ctx.fillStyle = fills[group];
     ctx.beginPath();
     ctx.moveTo(points[0][0], points[0][1]);
@@ -231,26 +205,44 @@ function clothMask(root) {
 
 const clothMaterials = new Map();
 
-function sharedClothMaterial(base, mask, shirt, pants, shoes) {
-  const key = `${base.uuid}:${shirt.getHexString()}:${pants.getHexString()}:${shoes.getHexString()}`;
+function sharedClothMaterial(base, mask, worn) {
+  const key = [
+    base.uuid,
+    worn.shirt.getHexString(),
+    worn.pants.getHexString(),
+    worn.shoes.getHexString(),
+    worn.hair.getHexString(),
+    worn.skin.getHexString(),
+  ].join(":");
   const cached = clothMaterials.get(key);
   if (cached) return cached;
   const material = base.clone();
-  material.userData = { cloth: { shirt, pants, shoes } };
-  material.onBeforeCompile = (shader) => {
+  material.userData = { cloth: worn };
+  material.onBeforeCompile = function onBeforeCompile(shader, renderer) {
+    MeshLambertMaterial.prototype.onBeforeCompile.call(this, shader, renderer);
     const cloth = material.userData.cloth;
     shader.uniforms.pedShirtColor = { value: cloth.shirt };
     shader.uniforms.pedPantsColor = { value: cloth.pants };
     shader.uniforms.pedShoeColor = { value: cloth.shoes };
+    shader.uniforms.pedHairColor = { value: cloth.hair };
+    shader.uniforms.pedSkinColor = { value: cloth.skin };
     shader.uniforms.pedClothMask = { value: mask };
     shader.fragmentShader = CLOTH_UNIFORMS + shader.fragmentShader.replace(
       "#include <map_fragment>",
       `#include <map_fragment>\n${CLOTH_TINT}`,
     );
   };
-  material.customProgramCacheKey = () => `ped-cloth-${key}`;
+  material.customProgramCacheKey = () => `ped-cloth-${key}|deeper-cast-shadow`;
   clothMaterials.set(key, material);
   return material;
+}
+
+function hideBuns(model) {
+  model.traverse((obj) => {
+    if (!obj.isSkinnedMesh || !obj.name.startsWith("Bun")) return;
+    obj.visible = false;
+    obj.castShadow = false;
+  });
 }
 
 function bindActions(mixer, clips) {
@@ -483,7 +475,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
   const { span } = graph;
   let gltf;
   try {
-    gltf = await loader.loadAsync(new URL("../assets/player/gubbe.glb", import.meta.url).href);
+    gltf = await loader.loadAsync(new URL("../06 Player Character/gubbe.glb", import.meta.url).href);
   } catch {
     throw new Error("The pedestrian rig failed to load.");
   }
@@ -498,6 +490,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
   const mask = clothMask(template);
   litMaterials(template);
   fitModel(template);
+  hideBuns(template);
   const prototypes = [{
     template,
     clips,
@@ -517,9 +510,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     const calm = unitHash(index + 19) < 0.3 ? "jog" : "walk";
     people.push({
       proto,
-      shirt: clothColor(index * 3 + 1),
-      pants: clothColor(index * 3 + 2),
-      shoes: clothColor(index * 3 + 3),
+      look: PED_LOOKS[pedLookIndex(index + 3)],
       vary: 0.85 + unitHash(index + 11) * 0.3,
       salt: index + 3,
       calm,
@@ -554,9 +545,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     mesh.material = sharedClothMaterial(
       prototype.material,
       prototype.mask,
-      ped.shirt,
-      ped.pants,
-      ped.shoes,
+      ped.look,
     );
     mesh.castShadow = true;
     mesh.receiveShadow = true;

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { PED_LOOK_HEX, pedLookIndex } from "../js/ped-looks.js";
 import { walkableCells } from "../js/pedestrian-walk.js";
 
 function blank(cols, rows, code = "l") {
@@ -89,4 +90,16 @@ test("the island crowd stays off the roads, the water, and on the land", () => {
   }
   assert.ok(beach > 0);
   assert.ok(park > 0);
+});
+
+test("pedestrian looks stay put and differ by hair or shirt", () => {
+  assert.ok(PED_LOOK_HEX.length >= 8);
+  const seen = new Set();
+  for (const look of PED_LOOK_HEX) {
+    const key = `${look.hair}:${look.shirt}`;
+    assert.equal(seen.has(key), false);
+    seen.add(key);
+  }
+  assert.equal(pedLookIndex(3), pedLookIndex(3));
+  assert.ok(pedLookIndex(3) >= 0 && pedLookIndex(3) < PED_LOOK_HEX.length);
 });

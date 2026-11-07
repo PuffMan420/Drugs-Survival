@@ -4,7 +4,7 @@ import test from "node:test";
 import { isLowerBone } from "../js/pose-layers.js";
 
 // Player and every pedestrian load this one rig. The bind pose is the T-pose.
-const GLB = new URL("../assets/player/gubbe.glb", import.meta.url);
+const GLB = new URL("../06 Player Character/gubbe.glb", import.meta.url);
 
 function parseGlb(path) {
   const data = readFileSync(path);

@@ -53,6 +53,15 @@ const RIGHT_GRIP_POSE = {
   RightHandPinky2: [-0.1146, 0.0531, 0.0061, 0.992],
   RightHandPinky3: [-0.1047, -0.0367, -0.0035, 0.9938],
 };
+// Same closed fist, with the index wrapped and the thumb laid over the handle.
+const BAT_GRIP_POSE = {
+  ...RIGHT_GRIP_POSE,
+  RightHandThumb1: [0.0242, -0.4414, -0.091, 0.8924],
+  RightHandThumb2: [-0.6816, 0, 0, 0.7317],
+  RightHandIndex1: [-0.6692, -0.06, -0.049, 0.739],
+  RightHandIndex2: [-0.2129, 0.0681, 0.0139, 0.9746],
+  RightHandIndex3: [-0.3474, -0.0294, -0.0109, 0.9372],
+};
 
 function isLeftArmBone(name) {
   return name.startsWith("LeftShoulder")
@@ -332,12 +341,16 @@ export async function createPlayer() {
   upperActions.punchJab.setLoop(LoopOnce, 1);
   upperActions.punchJab.clampWhenFinished = true;
   const rightGrip = [];
+  const batGrip = [];
   for (const [name, value] of Object.entries(RIGHT_GRIP_POSE)) {
     const bone = model.getObjectByName(name);
     if (!bone) continue;
     rightGrip.push([bone, new Quaternion(value[0], value[1], value[2], value[3])]);
+    const bat = BAT_GRIP_POSE[name];
+    batGrip.push([bone, new Quaternion(bat[0], bat[1], bat[2], bat[3])]);
   }
   let pistolHeld = false;
+  let batHeld = false;
   // Bones are still the bind T until the mixer writes. Do that before the
   // first paint, while idle is the only action with weight.
   mixer.update(0);
@@ -482,6 +495,9 @@ export async function createPlayer() {
     holdPistol(on) {
       pistolHeld = Boolean(on);
     },
+    holdBat(on) {
+      batHeld = Boolean(on);
+    },
     // Wish is a unit direction. Gait is walk, jog, sprint, or idle. Boost is
     // the build-mode pace. Speed and facing ease. They do not snap.
     forcePose(name) {
@@ -602,9 +618,10 @@ export async function createPlayer() {
       leftAim.setEffectiveTimeScale(0);
       leftShoot.setEffectiveTimeScale(0);
       mixer.update(step);
-      if (pistolHeld) {
-        for (let i = 0; i < rightGrip.length; i += 1) {
-          rightGrip[i][0].quaternion.copy(rightGrip[i][1]);
+      const grip = batHeld ? batGrip : pistolHeld ? rightGrip : null;
+      if (grip) {
+        for (let i = 0; i < grip.length; i += 1) {
+          grip[i][0].quaternion.copy(grip[i][1]);
         }
       }
       // The mesh is hidden in a car. A map jump is a huge step, not a footfall.

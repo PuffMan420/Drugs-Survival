@@ -4,6 +4,7 @@ import {
   BAT_HIT,
   BAT_SCALE,
   BAT_SWING,
+  batHoldPose,
   batHits,
   freshBatWear,
   meleePlaybackRate,
@@ -24,7 +25,8 @@ import {
   carRayHit,
   BOTTLES,
 } from "./bottle.js";
-import { TILE } from "./constants.js";
+import { PLAYER_SPEED, TILE } from "./constants.js";
+import { applyBatArm } from "./bat-arm.js";
 import { nextPunch, punchHits, punchTiming } from "./punch.js";
 import { aimChord, pistolPose } from "./pose-layers.js";
 import { aimAlongStick, isTouchScreen, syncGunButtons } from "./touch-ui.js";
@@ -658,7 +660,6 @@ export async function createPistol({
     swinging = true;
     swingAge = 0;
     didHit = false;
-    player.kickPose("swordAttack");
   }
 
   function playMeleeHit() {
@@ -964,7 +965,8 @@ export async function createPistol({
         if (aiming && spot) player.aimAt(spot.x, spot.z);
         else player.clearAim();
       }
-      player.holdPistol(weapon === "pistol" && holding() && !busy());
+      player.holdPistol(holding() && !busy() && weapon === "pistol");
+      player.holdBat(holding() && !busy() && weapon === "bat");
       player.forcePose(pistolPose({
         armed: holding(),
         busy: busy(),
@@ -1075,6 +1077,9 @@ export async function createPistol({
       for (const corpse of pedestrians.freshCorpses()) {
         const pool = splatAt(corpse.x, corpse.y, corpse.z, 4);
         pools.push({ mesh: pool, age: 0 });
+      }
+      if (weapon === "bat" && !swinging) {
+        applyBatArm(player.model, player.mesh, batHoldPose(-1, player.speed / PLAYER_SPEED));
       }
       for (const pool of pools) {
         pool.age += step;

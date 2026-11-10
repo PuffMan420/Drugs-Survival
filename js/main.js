@@ -42,6 +42,8 @@ import { createMinimap } from "./minimap.js";
 import { createPlayer } from "./player.js";
 import { createPistol } from "./pistol.js";
 import { createBuildMode, loadNamedMap } from "./build-mode.js";
+import { placeSampleBuildings } from "./sample-buildings.js";
+import { parseLookPreview, previewRadius, sunDirection, LOOK_CORNER } from "./look-preview.js";
 import { bindPistolTouch, displayFrame, isTouchScreen, mountTouchUi } from "./touch-ui.js";
 
 const NEAR = 10;
@@ -56,12 +58,10 @@ const SHADOW_FILL = 0.45;
 // Same northwest sun as the painted building shadows, so the real shadows
 // fall southeast, which is the lower right of this north-facing view.
 // A slightly lower sun lets that cast clear the footprint.
-const SUN_X = -0.4;
-const SUN_Y = 0.92;
-const SUN_Z = -0.58;
 const SUN_DISTANCE = 1800;
-const sunLength = Math.hypot(SUN_X, SUN_Y, SUN_Z);
-const SUN_DIR = [SUN_X / sunLength, SUN_Y / sunLength, SUN_Z / sunLength];
+// Daytime stays the high northwest sun. ?light=afternoon lowers and warms it.
+const lookPreview = parseLookPreview(window.location.search);
+const SUN_DIR = sunDirection(lookPreview?.afternoon === true);
 
 const canvas = document.getElementById("view");
 const fpsEl = document.getElementById("fps");
@@ -336,10 +336,12 @@ function installDeeperShadows(MaterialClass) {
 installDeeperShadows(MeshLambertMaterial);
 installDeeperShadows(MeshStandardMaterial);
 
-function createSun(scene) {
-  const hemi = new HemisphereLight(0xfff8f2, 0xe9eef3, LAMBERT * 1.02);
+function createSun(scene, afternoon) {
+  const hemi = afternoon
+    ? new HemisphereLight(0xffe0c4, 0xc4b8a8, LAMBERT * 0.58)
+    : new HemisphereLight(0xfff8f2, 0xe9eef3, LAMBERT * 1.02);
   scene.add(hemi);
-  const sun = new DirectionalLight(0xffe2b5, LAMBERT * 0.24);
+  const sun = new DirectionalLight(afternoon ? 0xffb15a : 0xffe2b5, LAMBERT * (afternoon ? 0.42 : 0.24));
   sun.castShadow = true;
   // 4096 across a slightly wider box: clearer texels, and casters just
   // outside the old frame still throw a shadow into the street.
@@ -348,9 +350,9 @@ function createSun(scene) {
   sun.shadow.normalBias = 0.8;
   sun.shadow.radius = 0.6;
   sun.shadow.intensity = 1;
-  const extent = 1500;
+  const extent = afternoon ? 3200 : 1500;
   sun.shadow.camera.near = 50;
-  sun.shadow.camera.far = 4200;
+  sun.shadow.camera.far = afternoon ? 6400 : 4200;
   sun.shadow.camera.left = -extent;
   sun.shadow.camera.right = extent;
   sun.shadow.camera.top = extent;
@@ -524,6 +526,7 @@ async function start() {
 
   const scene = new Scene();
   const city = await buildCity(scene, map);
+  const zoneRoot = await placeSampleBuildings(scene, map, renderer, savedLayout.pieces, savedLayout.zoneBuildings);
   city.playerMesh.removeFromParent();
   city.playerMesh.geometry.dispose();
   for (const material of city.playerMesh.material) material.dispose();
@@ -552,13 +555,15 @@ async function start() {
   );
   window.pedestrians = pedestrians;
   const glow = createGlow(scene);
-  const sun = createSun(scene);
+  const sun = createSun(scene, lookPreview?.afternoon === true);
   const minimap = createMinimap(map, ISLAND_JUMPS, savedLayout.pieces);
   const camera = new PerspectiveCamera(15, GROUND_W / GROUND_H, NEAR, FAR);
   // Screen up stays north. Spherical phi is measured from +Y, so this up is
   // perpendicular to a view aimed CAMERA_ANGLE off straight down.
-  const tiltUp = Math.sin(CAMERA_ANGLE);
-  const tiltNorth = Math.cos(CAMERA_ANGLE);
+  const lookPhi = lookPreview ? (lookPreview.degrees * Math.PI) / 180 : CAMERA_ANGLE;
+  const lookRadius = lookPreview ? previewRadius(lookPhi, CAMERA_RADIUS, CAMERA_ANGLE) : CAMERA_RADIUS;
+  const tiltUp = Math.sin(lookPhi);
+  const tiltNorth = Math.cos(lookPhi);
   camera.up.set(0, tiltUp, -tiltNorth);
   lockPixelProjection(camera, () => playView(camera));
   shownCamera = camera;
@@ -580,7 +585,7 @@ async function start() {
     stick,
   });
   bindPistolTouch(pistol);
-  const origin = tileCenter(map.spawn.x, map.spawn.z);
+  const origin = lookPreview ? lookStand(map) : tileCenter(map.spawn.x, map.spawn.z);
   const player = { x: origin.x, z: origin.z, y: 0.6 };
   const half = PLAYER_SIZE / 2;
 
@@ -592,9 +597,14 @@ async function start() {
     map,
     saved: savedLayout,
     signals: { junctions: traffic.junctions, time: () => traffic.signalTime() },
+    zoneRoot,
     onPiecesChanged: (pieces) => {
       physicsScene.setRoads(pieces);
       sidewalks.setPieces(pieces);
+    },
+    onZoneChanged: () => {
+      physicsScene.setBuildings(map.buildings);
+      minimap.refreshBuildings();
     },
   });
   await sidewalks.ready;
@@ -733,7 +743,7 @@ async function start() {
     camZ = frameCenter(snappedZ, halfH, city.mapH);
     glow.update(camX, camZ, traffic.lights(camX, camZ));
     driveFx.update(dt, drive.driving ? drive.sample() : null, traffic.cars(), camX, camZ);
-    camera.position.setFromSphericalCoords(CAMERA_RADIUS, CAMERA_ANGLE, cameraTheta);
+    camera.position.setFromSphericalCoords(lookRadius, lookPhi, cameraTheta);
     cameraTarget.set(camX, 0, camZ);
     camera.position.add(cameraTarget);
     camera.lookAt(cameraTarget);
@@ -756,6 +766,29 @@ async function start() {
 
 function activeJumps() {
   return ISLAND_JUMPS;
+}
+
+function lookStand(map) {
+  const corner = tileCenter(LOOK_CORNER.x, LOOK_CORNER.z);
+  let best = null;
+  let bestDist = Infinity;
+  for (const building of map.buildings || []) {
+    if (!(building.h > 8)) continue;
+    const cx = (building.x + building.w / 2) * TILE;
+    const cz = (building.z + building.d / 2) * TILE;
+    const dist = Math.hypot(cx - corner.x, cz - corner.z);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = building;
+    }
+  }
+  if (!best) return corner;
+  // South of the footprint. The camera sits south of the player and looks north,
+  // so the south wall is the one in the picture.
+  return {
+    x: (best.x + best.w / 2) * TILE,
+    z: (best.z + best.d) * TILE + TILE * 1.5,
+  };
 }
 
 function jumpTo(index) {

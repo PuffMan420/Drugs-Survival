@@ -60,6 +60,29 @@ function rgbHex(r, g, b) {
   return `#${(r | 0).toString(16).padStart(2, "0")}${(g | 0).toString(16).padStart(2, "0")}${(b | 0).toString(16).padStart(2, "0")}`;
 }
 
+function stampBuildings(cells, map, id) {
+  for (const building of map.buildings || []) {
+    const [r, g, b] = STYLES[building.style] ?? STYLES.house;
+    const shade = Math.max(70, 230 - building.h * 8);
+    const color = id(rgbHex((r * shade) / 220, (g * shade) / 220, (b * shade) / 220));
+    const x1 = Math.min(map.cols, building.x + building.w);
+    const z1 = Math.min(map.rows, building.z + building.d);
+    for (let z = Math.max(0, building.z); z < z1; z += 1) {
+      const row = z * map.cols;
+      for (let x = Math.max(0, building.x); x < x1; x += 1) cells[row + x] = color;
+    }
+  }
+}
+
+function paintBuildingRects(ctx, map) {
+  for (const building of map.buildings || []) {
+    const [r, g, b] = STYLES[building.style] ?? STYLES.house;
+    const shade = Math.max(70, 230 - building.h * 8);
+    ctx.fillStyle = `rgb(${(r * shade) / 220 | 0}, ${(g * shade) / 220 | 0}, ${(b * shade) / 220 | 0})`;
+    ctx.fillRect(building.x, building.z, building.w, building.d);
+  }
+}
+
 function cellColors(map, pieces) {
   const palette = [];
   const indexOf = new Map();
@@ -101,18 +124,9 @@ function cellColors(map, pieces) {
       }
     }
   }
-  for (const building of map.buildings) {
-    const [r, g, b] = STYLES[building.style] ?? STYLES.house;
-    const shade = Math.max(70, 230 - building.h * 8);
-    const color = id(rgbHex((r * shade) / 220, (g * shade) / 220, (b * shade) / 220));
-    const x1 = Math.min(map.cols, building.x + building.w);
-    const z1 = Math.min(map.rows, building.z + building.d);
-    for (let z = Math.max(0, building.z); z < z1; z += 1) {
-      const row = z * map.cols;
-      for (let x = Math.max(0, building.x); x < x1; x += 1) cells[row + x] = color;
-    }
-  }
-  return { palette, cells };
+  const base = cells.slice();
+  stampBuildings(cells, map, id);
+  return { palette, cells, base, id };
 }
 
 export function createMinimap(map, jumps = [], pieces = null) {
@@ -136,12 +150,8 @@ export function createMinimap(map, jumps = [], pieces = null) {
   }
   ctx.putImageData(image, 0, 0);
   if (map.island && pieces) paintRoadModules(ctx, pieces);
-  for (const building of map.buildings) {
-    const [r, g, b] = STYLES[building.style] ?? STYLES.house;
-    const shade = Math.max(70, 230 - building.h * 8);
-    ctx.fillStyle = `rgb(${(r * shade) / 220 | 0}, ${(g * shade) / 220 | 0}, ${(b * shade) / 220 | 0})`;
-    ctx.fillRect(building.x, building.z, building.w, building.d);
-  }
+  const baseImage = ctx.getImageData(0, 0, source.width, source.height);
+  paintBuildingRects(ctx, map);
 
   const mini = document.getElementById("minimap");
   const full = document.getElementById("map-full");
@@ -251,7 +261,19 @@ export function createMinimap(map, jumps = [], pieces = null) {
   let drawnViewW = Number.NaN;
   let drawnViewH = Number.NaN;
 
+  function refreshBuildings() {
+    ctx.putImageData(baseImage, 0, 0);
+    paintBuildingRects(ctx, map);
+    if (corner) {
+      corner.cells.set(corner.base);
+      stampBuildings(corner.cells, map, corner.id);
+    }
+    drawnOriginX = Number.NaN;
+    lastFull = "";
+  }
+
   return {
+    refreshBuildings,
     draw(camX, camZ, playerX, playerZ, tile, viewW, viewH) {
       if (corner) drawCorner(camX, camZ, playerX, playerZ, tile, viewW, viewH);
       else draw(miniCtx, camX, camZ, playerX, playerZ, tile, viewW, viewH);

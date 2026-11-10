@@ -94,32 +94,13 @@ function pngSize(url) {
   return [data.readUInt32BE(16), data.readUInt32BE(20)];
 }
 
-function quatRot(q, v) {
-  const [x, y, z, w] = q;
-  const ix = w * v[0] + y * v[2] - z * v[1];
-  const iy = w * v[1] + z * v[0] - x * v[2];
-  const iz = w * v[2] + x * v[1] - y * v[0];
-  const iw = -x * v[0] - y * v[1] - z * v[2];
-  return [
-    ix * w + iw * -x + iy * -z - iz * -y,
-    iy * w + iw * -y + iz * -x - ix * -z,
-    iz * w + iw * -z + ix * -y - iy * -x,
-  ];
-}
-
-test("the handle stays in the fist and the barrel points up, then through the swing", () => {
-  assert.deepEqual(BAT_HAND, [0, 0.16, -0.06]);
-  assert.equal(BAT_EULER.length, 3);
+test("the handle sits in the fist and the barrel leaves through the knuckles", () => {
+  assert.deepEqual(BAT_HAND, [0, 0.12, -0.05]);
+  assert.deepEqual(BAT_EULER, [0, 0, 0]);
   const axis = batBarrelAxis();
-  const len = Math.hypot(...axis);
-  assert.ok(Math.abs(len - 1) < 1e-6);
-  // Sword_Idle at 0.4 s, and Sword_Attack at the 0.5 s hit. RightHand world quats.
-  const idle = quatRot([0.91451, -0.24075, -0.22508, -0.23463], axis);
-  const hit = quatRot([0.23511, 0.28878, -0.91592, -0.14973], axis);
-  assert.ok(idle[1] > 0.9, `idle up ${idle}`);
-  assert.ok(idle[2] < -0.25, `idle back ${idle}`);
-  assert.ok(hit[2] > 0.95, `swing forward ${hit}`);
-  assert.ok(Math.abs(hit[1]) < 0.05, `swing level ${hit}`);
+  assert.ok(Math.abs(axis[0]) < 1e-6);
+  assert.ok(Math.abs(axis[1] - 1) < 1e-6);
+  assert.ok(Math.abs(axis[2]) < 1e-6);
 });
 
 test("a melee hit stays within five percent of normal pitch", () => {

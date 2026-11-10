@@ -166,9 +166,11 @@ function maskedClip(clip, lower) {
 export async function createPlayer() {
   const loader = new GLTFLoader();
   const url = new URL("../06 Player Character/gubbe.glb", import.meta.url).href;
+  const batUrl = new URL("../06 Player Character/gubbe-bat.glb", import.meta.url).href;
   let gltf;
+  let batClips;
   try {
-    gltf = await loader.loadAsync(url);
+    [gltf, batClips] = await Promise.all([loader.loadAsync(url), loader.loadAsync(batUrl)]);
   } catch {
     throw new Error("The player model failed to load.");
   }
@@ -306,6 +308,17 @@ export async function createPlayer() {
   actions.swordAttack.clampWhenFinished = true;
   actions.swordIdle.play();
   actions.swordAttack.play();
+  actions.batShoulder = mixer.clipAction(clipNamed(batClips.animations, "Bat_Shoulder"));
+  actions.batHang = mixer.clipAction(clipNamed(batClips.animations, "Bat_Hang"));
+  actions.batSwing = mixer.clipAction(clipNamed(batClips.animations, "Bat_Swing"));
+  setWeight(actions.batShoulder, 0);
+  setWeight(actions.batHang, 0);
+  setWeight(actions.batSwing, 0);
+  actions.batSwing.setLoop(LoopOnce, 1);
+  actions.batSwing.clampWhenFinished = true;
+  actions.batShoulder.play();
+  actions.batHang.play();
+  actions.batSwing.play();
   actions.punchJab = mixer.clipAction(clipNamed(gltf.animations, "Punch_Jab"));
   setWeight(actions.punchJab, 0);
   actions.punchJab.setLoop(LoopOnce, 1);
@@ -318,7 +331,7 @@ export async function createPlayer() {
     lowerActions[name].play();
   }
   const upperActions = {};
-  for (const name of ["pistolAim", "pistolShoot", "pistolReload", "punchCross", "punchJab"]) {
+  for (const name of ["pistolAim", "pistolShoot", "pistolReload", "punchCross", "punchJab", "batShoulder", "batHang", "batSwing"]) {
     upperActions[name] = mixer.clipAction(maskedClip(actions[name].getClip(), false));
     setWeight(upperActions[name], 0);
     upperActions[name].play();
@@ -331,6 +344,8 @@ export async function createPlayer() {
   upperActions.punchCross.clampWhenFinished = true;
   upperActions.punchJab.setLoop(LoopOnce, 1);
   upperActions.punchJab.clampWhenFinished = true;
+  upperActions.batSwing.setLoop(LoopOnce, 1);
+  upperActions.batSwing.clampWhenFinished = true;
   const rightGrip = [];
   for (const [name, value] of Object.entries(RIGHT_GRIP_POSE)) {
     const bone = model.getObjectByName(name);
@@ -412,13 +427,13 @@ export async function createPlayer() {
 
   function show(name) {
     if (name === playing) return;
-    if (name === "pistolShoot" || name === "swordAttack") {
+    if (name === "pistolShoot" || name === "swordAttack" || name === "batSwing") {
       for (const key of Object.keys(actions)) setWeight(actions[key], key === name ? 1 : 0);
       actions[name].reset().play();
       playing = name;
       return;
     }
-    const fade = playing === "pistolShoot" || playing === "swordAttack" ? 0.08 : FADE;
+    const fade = playing === "pistolShoot" || playing === "swordAttack" || playing === "batSwing" ? 0.08 : FADE;
     crossFade(actions[playing], actions[name], fade);
     playing = name;
     cycle = 0;
@@ -546,7 +561,7 @@ export async function createPlayer() {
           layered = true;
           for (const key of Object.keys(actions)) glide(actions[key], 0, tau, 0.1);
           for (const key of Object.keys(lowerActions)) glide(lowerActions[key], key === gait ? 1 : 0, tau, 0.1);
-          const fast = forced === "pistolShoot" || forced === "punchCross" || forced === "punchJab";
+          const fast = forced === "pistolShoot" || forced === "punchCross" || forced === "punchJab" || forced === "batSwing";
           for (const key of Object.keys(upperActions)) {
             glide(upperActions[key], key === forced ? 1 : 0, tau, fast ? 0.04 : 0.1);
           }

@@ -658,7 +658,7 @@ export async function createPistol({
     swinging = true;
     swingAge = 0;
     didHit = false;
-    player.kickPose("swordAttack");
+    player.kickPose("batSwing");
   }
 
   function playMeleeHit() {

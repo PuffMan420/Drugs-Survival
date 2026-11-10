@@ -14,10 +14,20 @@ function chunkKey(x, z) {
   return `${Math.floor(x / CHUNK)},${Math.floor(z / CHUNK)}`;
 }
 
+// A saved free angle is yaw in radians. Old pieces have no yaw, so they
+// keep the quarter turn they were saved with.
+export function pieceYaw(record) {
+  const yaw = Number(record?.yaw);
+  if (Number.isFinite(yaw)) return yaw;
+  const turn = Number(record?.turn);
+  if (!Number.isInteger(turn)) return 0;
+  return turn * Math.PI / 2;
+}
+
 function pieceMatrix(record, target) {
-  const size = UNIT * (record.scale ?? 1);
+  const size = (record.unit > 0 ? record.unit : UNIT) * (record.scale ?? 1);
   target.position.set((record.x + 0.5) * TILE, GROUND_Y, (record.z + 0.5) * TILE);
-  target.rotation.set(0, record.turn * Math.PI / 2, 0);
+  target.rotation.set(0, pieceYaw(record), 0);
   target.scale.set(record.mirror ? -size : size, size, size);
   target.updateMatrix();
   return target.matrix;

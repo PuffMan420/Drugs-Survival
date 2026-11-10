@@ -33,5 +33,6 @@ export function layoutFrom(data) {
   return {
     pieces: Array.isArray(data?.pieces) ? data.pieces : [],
     removedRoads: Array.isArray(data?.removedRoads) ? data.removedRoads : [],
+    zoneBuildings: Array.isArray(data?.zoneBuildings) ? data.zoneBuildings : [],
   };
 }

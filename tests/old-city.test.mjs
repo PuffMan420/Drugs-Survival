@@ -92,7 +92,10 @@ test("the saved island file keeps removedRoads, and a road record still round-tr
   });
   assert.deepEqual(kept.removedRoads, [{ piece: "corner", turn: 2, x: 8, z: 9 }]);
   assert.deepEqual(layoutFrom(layout).removedRoads, []);
-  assert.deepEqual(layoutFrom(null), { pieces: [], removedRoads: [] });
+  assert.deepEqual(layoutFrom(null), { pieces: [], removedRoads: [], zoneBuildings: [] });
+  assert.deepEqual(layoutFrom({
+    zoneBuildings: [{ id: "shop@1:2", x: 3 }],
+  }).zoneBuildings, [{ id: "shop@1:2", x: 3 }]);
 });
 
 test("an old downtown sidewalk cell is not walkable", () => {

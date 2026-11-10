@@ -1,13 +1,12 @@
 // Melee bat. Clean until a kill, then BloodAndGrime holds, then a slow
-// blend into Grime. Grime stays. The swing is Sword_Attack: the right hand
-// is furthest from its start at 0.5 s, and the clip lasts 1.5 s.
+// blend into Grime. Grime stays. The swing clip lasts 1.5 s and the hit is at 0.5 s.
 
 export const BAT_SCALE = 0.024;
 // Hand local: +Y runs wrist to knuckles, -Z is the palm. The mesh +Y is the barrel.
-// The fist sits on the handle. XYZ euler turns the barrel up and slightly back
-// over the shoulder in Sword_Idle, and forward at the Sword_Attack hit (0.5 s).
-export const BAT_HAND = [0, 0.16, -0.06];
-export const BAT_EULER = [2.10431, -0.400945, 0.230927];
+// The fist closes around the handle, the knob sits just back toward the wrist,
+// and the barrel leaves through the knuckles. The shoulder and hang poses aim that axis.
+export const BAT_HAND = [0, 0.12, -0.05];
+export const BAT_EULER = [0, 0, 0];
 export const BAT_HIT = 0.5;
 export const BAT_SWING = 1.5;
 // One tile forward, and a narrow gate so a ped beside him is not in front.

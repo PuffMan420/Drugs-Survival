@@ -6,13 +6,13 @@ export const FOOT_VIEW = 1.05;
 export const CAR_VIEW = 1.20;
 // Seconds to ease between the foot and car frames, both ways.
 export const VIEW_EASE = 2;
-// Polar angle from straight up. 20 degrees toward south, so south walls show a little.
-export const CAMERA_ANGLE = 20 * Math.PI / 180;
-// Distance from the player. The previous camera sat 2800*0.875 above the ground
-// at 15 degrees off straight down, so its range was that height / cos(15°).
-// The 840×472.5 frame is measured at this distance, which keeps the ground
-// around the player the same size. About 2.9% more ground shows at 20 degrees.
-export const CAMERA_RADIUS = (2800 * CAMERA_DISTANCE) / Math.cos(15 * Math.PI / 180);
+// Polar angle from straight up. 30 degrees toward south, so the south walls show.
+export const CAMERA_ANGLE = 30 * Math.PI / 180;
+// Distance from the player. The 20 degree camera sat (2800 * CAMERA_DISTANCE) / cos(15°)
+// away. This radius keeps that same height above the street at 30 degrees,
+// so the ground around the player stays the same size and the extra tilt goes into the walls.
+const CAMERA_RADIUS_20 = (2800 * CAMERA_DISTANCE) / Math.cos(15 * Math.PI / 180);
+export const CAMERA_RADIUS = CAMERA_RADIUS_20 * Math.cos(20 * Math.PI / 180) / Math.cos(CAMERA_ANGLE);
 // The camera still frames the original 960×540 view at this distance: 840×472.5.
 const WORLD_W = 960;
 const WORLD_H = 540;

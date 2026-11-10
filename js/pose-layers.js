@@ -1,3 +1,5 @@
+import { PLAYER_SPEED } from "./constants.js";
+
 // Pistol clips are full-body stands. While he walks, the legs stay on the
 // gait and the pistol owns the spine, head, and arms. Hips stay with the
 // legs so the stride still reaches the spine.
@@ -39,14 +41,18 @@ export function splitTrackNames(names) {
 
 // Shoot wins over the held aim so the recoil plays, and the aim pose returns
 // when the shot window ends. Reload wins over both.
-export function pistolPose({ armed, busy, reloading, shooting, aiming, weapon = "pistol", punch = "" }) {
+export function pistolPose({ armed, busy, reloading, shooting, aiming, weapon = "pistol", punch = "", speed = 0 }) {
   if (busy) return "";
   // Empty hands. The jab and the cross take the arms; the gait keeps the legs.
   if (weapon === "hands") return shooting ? punch : "";
   if (!armed) return "";
   if (weapon === "bottle") return shooting ? "punchCross" : "";
-  // The sword clips are the whole body. Aim and reload belong to the pistol.
-  if (weapon === "bat") return shooting ? "swordAttack" : "swordIdle";
+  // One hand on the shoulder, or hanging, until the two-hand swing.
+  // Sprint is 1.4 times the jog. The hang starts past the middle of that gap.
+  if (weapon === "bat") {
+    if (shooting) return "batSwing";
+    return speed / PLAYER_SPEED >= 1.2 ? "batHang" : "batShoulder";
+  }
   if (reloading) return "pistolReload";
   if (shooting) return "pistolShoot";
   if (aiming) return "pistolAim";
@@ -57,6 +63,7 @@ export function pistolPose({ armed, busy, reloading, shooting, aiming, weapon = 
 export function legsWhileAiming(pose, moving) {
   // The cross is the throw. Its legs never play; the gait does, including a stand.
   if (pose === "punchCross" || pose === "punchJab") return true;
+  if (pose === "batShoulder" || pose === "batHang" || pose === "batSwing") return true;
   return moving && LEG_POSES.has(pose);
 }
 

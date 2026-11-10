@@ -280,17 +280,21 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
   const free = [...pool];
 
   const blockCells = new Map();
-  for (const building of map.buildings || []) {
-    const cx = (building.x + building.w / 2) * TILE;
-    const cz = (building.z + building.d / 2) * TILE;
-    const key = `${Math.floor(cx / BLOCK_CELL)},${Math.floor(cz / BLOCK_CELL)}`;
-    let list = blockCells.get(key);
-    if (!list) {
-      list = [];
-      blockCells.set(key, list);
+  function indexBuildings(list) {
+    blockCells.clear();
+    for (const building of list || []) {
+      const cx = (building.x + building.w / 2) * TILE;
+      const cz = (building.z + building.d / 2) * TILE;
+      const key = `${Math.floor(cx / BLOCK_CELL)},${Math.floor(cz / BLOCK_CELL)}`;
+      let bucket = blockCells.get(key);
+      if (!bucket) {
+        bucket = [];
+        blockCells.set(key, bucket);
+      }
+      bucket.push(building);
     }
-    list.push(building);
   }
+  indexBuildings(map.buildings);
   let blockAnchor = null;
   let blockColliders = [];
 
@@ -492,8 +496,18 @@ export function createPhysicsScene(physics, map, pieces, { cars = () => [] } = {
     },
   });
 
+  function setBuildings(list) {
+    indexBuildings(list);
+    for (const collider of blockColliders) world.removeCollider(collider, false);
+    blockColliders = [];
+    blockAnchor = null;
+    const at = focus || watch;
+    if (at) streamBlocks(at.x, at.z);
+  }
+
   return {
     setRoads,
+    setBuildings,
     follow(target) {
       if ((target || null) !== focus) releaseAll();
       focus = target || null;

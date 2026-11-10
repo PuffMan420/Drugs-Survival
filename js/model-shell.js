@@ -14,7 +14,7 @@ const SIN = [0, 1, 0, -1];
 const boundsByFile = new Map();
 
 export function isBuildingFile(file) {
-  return typeof file === "string" && file.includes("building");
+  return typeof file === "string" && (file.includes("building") || file.includes("single-mesh"));
 }
 
 export function setModelBounds(kit, file, box) {

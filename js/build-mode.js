@@ -17,7 +17,7 @@ import { AO_SKIP_LAYER, TILE } from "./constants.js";
 import { KITS } from "./kenney-city-catalog.js";
 import { isBuildingFile, setModelBounds } from "./model-shell.js";
 import { layoutFrom, roadKey, roadRecord } from "./kenney-roads.js";
-import { createRoadBatches } from "./road-batch.js";
+import { createRoadBatches, pieceYaw } from "./road-batch.js";
 import { outerCurbSamples, sideRoadUV } from "./road-side-skin.js";
 import {
   assignSignalMaterials,
@@ -37,6 +37,7 @@ import { linkSignal, pedPhase, phaseAt } from "./signals.js";
 // The suburban kit asks for nearest filtering; draw it with linear filtering
 // and leave the file alone.
 const UNIT = 4 * TILE;
+const BUILD_KITS = [...KITS];
 const GROUND_Y = 0.2;
 // The pole foot's top is the same height as the curb top, so the two fight.
 // This drops the foot just under that surface. It is not a shadow bias.
@@ -51,8 +52,22 @@ const VIEW_MIN = 0.5;
 const VIEW_MAX = 3;
 
 const catalog = new Map();
-for (const kit of KITS) {
+for (const kit of BUILD_KITS) {
   for (const item of kit.files) catalog.set(`${kit.id}/${item.file}`, item);
+}
+
+function unitFor(kit, file) {
+  const unit = Number(catalog.get(`${kit}/${file}`)?.unit);
+  return unit > 0 ? unit : UNIT;
+}
+
+// Road tiles and traffic lights stay on the grid so cars and signals still line up.
+// Buildings, signs, and loose props can leave the grid.
+function canFree(file) {
+  if (typeof file !== "string" || isSignalFile(file)) return false;
+  if (file === "bridge-water.glb") return false;
+  if (file.startsWith("road-") && !file.startsWith("road-sign")) return false;
+  return true;
 }
 
 // Registered while this module loads, before main.js binds walking keys.
@@ -62,7 +77,7 @@ for (const kit of KITS) {
 function brushScale(event) {
   if (event.ctrlKey || event.metaKey || event.altKey) return 0;
   if (event.key === "+" || event.code === "NumpadAdd") return 1;
-  if (event.key === "0") return -1;
+  if (event.key === "0" || event.code === "Digit0" || event.code === "Numpad0") return -1;
   return 0;
 }
 
@@ -77,10 +92,13 @@ const keys = {
 };
 let searchInput = null;
 let leftShift = false;
+let freeHeld = false;
 window.addEventListener("keydown", (event) => {
   if (event.code === "ShiftLeft") leftShift = true;
   // Keys typed into the piece search must not walk, save, rotate, resize, or mirror.
-  if (searchInput && event.target === searchInput) return;
+  const typing = searchInput && event.target === searchInput;
+  if (event.code === "KeyG" && !typing) freeHeld = true;
+  if (typing) return;
   if (event.repeat) return;
   if (event.code === "KeyB") {
     event.preventDefault();
@@ -101,9 +119,11 @@ window.addEventListener("keydown", (event) => {
 }, true);
 window.addEventListener("keyup", (event) => {
   if (event.code === "ShiftLeft") leftShift = false;
+  if (event.code === "KeyG") freeHeld = false;
 }, true);
 window.addEventListener("blur", () => {
   leftShift = false;
+  freeHeld = false;
 });
 
 function modelUrl(path) {
@@ -793,7 +813,7 @@ export async function loadNamedMap(url, storageKey) {
 
 // onPiecesChanged(pieces) runs after every edit that moves, adds, removes or
 // reshapes a placed piece, so physics can match what is on screen.
-export async function createBuildMode({ scene, camera, canvas, renderer, map, saved = null, onPiecesChanged = null, signals = null }) {
+export async function createBuildMode({ scene, camera, canvas, renderer, map, saved = null, onPiecesChanged = null, onZoneChanged = null, zoneRoot = null, signals = null }) {
   const group = new Group();
   group.name = "build";
   scene.add(group);
@@ -808,12 +828,14 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   const junctions = signals?.junctions || [];
   const signalTime = typeof signals?.time === "function" ? signals.time : () => 0;
   const raycaster = new Raycaster();
+  raycaster.layers.enable(AO_SKIP_LAYER);
   const pointer = new Vector2();
   const ground = new Plane(new Vector3(0, 1, 0), 0);
   const hit = new Vector3();
 
   let enabled = false;
   let turn = 0;
+  let yaw = null;
   let scale = 1;
   let mirror = false;
   let selection = null;
@@ -822,6 +844,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   let selectToken = 0;
   let hover = null;
   let pointerAt = null;
+  const removedZones = zoneRoot?.userData.removedZones || [];
 
   function changed() {
     if (onPiecesChanged) onPiecesChanged(pieces);
@@ -832,7 +855,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   panel.hidden = true;
   const info = document.createElement("p");
   info.id = "build-info";
-  info.textContent = "BUILD MODE\nClick = place\nShift + click = place many\nClick placed piece = move\nX = remove\nR = rotate\n+ / 0 = bigger / smaller\nF = mirror\nP = save\nWASD = walk\nSearch = type to find pieces\nMouse wheel = zoom";
+  info.textContent = "BUILD MODE\nClick = place\nShift + click = place many\nClick a building or placed piece = move\nX = remove\nR = rotate\nHold G = free move, wheel turns\n+ / 0 = bigger / smaller\nF = mirror\nP = save\nWASD = walk\nSearch = type to find pieces\nMouse wheel = zoom";
   const search = document.createElement("input");
   search.id = "build-search";
   search.type = "search";
@@ -859,7 +882,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     }
   }, { root: list, rootMargin: "240px" });
 
-  for (const kit of KITS) {
+  for (const kit of BUILD_KITS) {
     const heading = document.createElement("h2");
     heading.textContent = kit.label;
     list.append(heading);
@@ -1019,8 +1042,8 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     });
   }
 
-  function applyScale(root, pieceScale, flipped) {
-    const size = UNIT * pieceScale;
+  function applyScale(root, pieceScale, flipped, unit = UNIT) {
+    const size = unit * pieceScale;
     root.scale.set(flipped ? -size : size, size, size);
   }
 
@@ -1031,9 +1054,11 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   function wrapper(template, spec) {
     const root = new Group();
     root.add(template.clone(true));
-    applyScale(root, spec.scale ?? 1, spec.mirror === true);
+    const unit = spec.unit ?? unitFor(spec.kit, spec.file);
+    root.userData.unit = unit;
+    applyScale(root, spec.scale ?? 1, spec.mirror === true, unit);
     root.position.set((spec.x + 0.5) * TILE, pieceY(spec.file), (spec.z + 0.5) * TILE);
-    root.rotation.y = spec.turn * Math.PI / 2;
+    root.rotation.y = pieceYaw(spec);
     return root;
   }
 
@@ -1048,6 +1073,9 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       scale: spec.scale ?? 1,
       mirror: spec.mirror === true,
     };
+    const unit = unitFor(record.kit, record.file);
+    if (unit !== UNIT) record.unit = unit;
+    if (Number.isFinite(spec.yaw) && canFree(record.file)) record.yaw = round3(spec.yaw);
     if (spec.oneWay === true || spec.oneWay === "x" || spec.oneWay === "z" || spec.oneWay === "back") {
       record.oneWay = spec.oneWay;
     }
@@ -1065,7 +1093,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     const lamps = attachSignalLenses(inner, record.file);
     applyScale(root, record.scale ?? 1, record.mirror === true);
     root.position.set((record.x + 0.5) * TILE, pieceY(record.file), (record.z + 0.5) * TILE);
-    root.rotation.y = record.turn * Math.PI / 2;
+    root.rotation.y = pieceYaw(record);
     root.userData.piece = record;
     group.add(root);
     signalLamps.set(record, { root, mats, lamps, role: signalRole(record.file) });
@@ -1088,7 +1116,8 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     if (!Number.isFinite(raw.x) || !Number.isFinite(raw.z) || !Number.isInteger(raw.turn)) return null;
     const x = Math.round(Number(raw.x) * 1000) / 1000;
     const z = Math.round(Number(raw.z) * 1000) / 1000;
-    if (x < 0 || z < 0 || x >= map.cols || z >= map.rows) return null;
+    // A free piece can sit half a tile past the first cell. Old whole tiles still fit.
+    if (x < -0.5 || z < -0.5 || x >= map.cols || z >= map.rows) return null;
     const turnValue = ((raw.turn % 4) + 4) % 4;
     const scaleValue = raw.scale == null ? 1 : Number(raw.scale);
     if (!Number.isFinite(scaleValue) || scaleValue <= 0) return null;
@@ -1103,6 +1132,11 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     };
     if (raw.oneWay === true || raw.oneWay === "x" || raw.oneWay === "z" || raw.oneWay === "back") {
       record.oneWay = raw.oneWay;
+    }
+    if (raw.yaw != null && canFree(record.file)) {
+      const yawValue = Number(raw.yaw);
+      if (!Number.isFinite(yawValue)) return null;
+      record.yaw = Math.round(yawValue * 1000) / 1000;
     }
     return record;
   }
@@ -1147,27 +1181,163 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     dropPreview();
   }
 
+  function round3(value) {
+    return Math.round(Number(value) * 1000) / 1000;
+  }
+
+  function zonePayload() {
+    const out = [];
+    if (zoneRoot) {
+      for (const child of zoneRoot.children) {
+        const zone = child.userData.zone;
+        if (!zone || zone.removed) continue;
+        out.push({
+          id: zone.id,
+          x: round3(child.position.x),
+          y: round3(child.position.y),
+          z: round3(child.position.z),
+          ry: round3(child.rotation.y),
+          sx: round3(child.scale.x),
+          sy: round3(child.scale.y),
+          sz: round3(child.scale.z),
+        });
+      }
+    }
+    for (const zone of removedZones) out.push({ id: zone.id, removed: true });
+    return out;
+  }
+
+  function syncZone(root) {
+    const zone = root?.userData.zone;
+    const building = zone?.building;
+    if (building) {
+      root.updateMatrixWorld(true);
+      const box = new Box3().setFromObject(root);
+      if (!box.isEmpty()) {
+        building.x = box.min.x / TILE;
+        building.z = box.min.z / TILE;
+        building.w = Math.max(0.01, (box.max.x - box.min.x) / TILE);
+        building.d = Math.max(0.01, (box.max.z - box.min.z) / TILE);
+        building.h = Math.max(0.01, (box.max.y - box.min.y) / TILE);
+      }
+    }
+    if (onZoneChanged) onZoneChanged();
+  }
+
+  function snappedTurn(record) {
+    const quarters = pieceYaw(record) / (Math.PI / 2);
+    return ((Math.round(quarters) % 4) + 4) % 4;
+  }
+
+  function clampTile(value, limit) {
+    return Math.min(limit - 0.001, Math.max(-0.5, round3(value)));
+  }
+
+  function poseRoot(root, record) {
+    root.position.set((record.x + 0.5) * TILE, pieceY(record.file), (record.z + 0.5) * TILE);
+    root.rotation.y = pieceYaw(record);
+  }
+
+  function movingFree(file) {
+    return freeHeld && canFree(file);
+  }
+
   function moveCarried(cell) {
     if (!carrying || !cell) return;
-    const moved = carrying.record.x !== cell.x || carrying.record.z !== cell.z;
-    carrying.record.x = cell.x;
-    carrying.record.z = cell.z;
-    carrying.root.position.set((cell.x + 0.5) * TILE, pieceY(carrying.record.file), (cell.z + 0.5) * TILE);
+    if (carrying.zone) {
+      if (cell.wx == null) return;
+      carrying.root.position.x = cell.wx + carrying.grabX;
+      carrying.root.position.z = cell.wz + carrying.grabZ;
+      return;
+    }
+    const record = carrying.record;
+    if (movingFree(record.file) && cell.wx != null) {
+      const x = clampTile((cell.wx + (carrying.grabX || 0)) / TILE - 0.5, map.cols);
+      const z = clampTile((cell.wz + (carrying.grabZ || 0)) / TILE - 0.5, map.rows);
+      const moved = record.x !== x || record.z !== z;
+      record.x = x;
+      record.z = z;
+      poseRoot(carrying.root, record);
+      if (moved) changed();
+      return;
+    }
+    const nextTurn = Number.isFinite(record.yaw) ? snappedTurn(record) : record.turn;
+    const moved = record.x !== cell.x || record.z !== cell.z || record.turn !== nextTurn || record.yaw != null;
+    record.x = cell.x;
+    record.z = cell.z;
+    record.turn = nextTurn;
+    delete record.yaw;
+    poseRoot(carrying.root, record);
     if (moved) changed();
   }
 
   function dropCarried(cell) {
     if (!carrying) return;
+    if (carrying.zone) {
+      moveCarried(cell);
+      const root = carrying.root;
+      carrying = null;
+      syncZone(root);
+      return;
+    }
     if (carrying.signal) {
       moveCarried(cell);
       carrying = null;
       return;
     }
-    moveCarried(cell);
+    // Releasing G leaves a free pose where it is. The next drag without G snaps.
+    const record = carrying.record;
+    const leftFree = record && canFree(record.file)
+      && (Number.isFinite(record.yaw) || !Number.isInteger(record.x) || !Number.isInteger(record.z));
+    if (freeHeld || !leftFree) moveCarried(cell);
     carrying.root.removeFromParent();
     batches.include(carrying.record);
     carrying = null;
     batches.commit(pieces);
+  }
+
+  function zoneHit() {
+    if (!zoneRoot) return null;
+    const hits = raycaster.intersectObjects(zoneRoot.children, true);
+    for (const item of hits) {
+      let node = item.object;
+      while (node && node !== zoneRoot) {
+        if (node.userData.zone && !node.userData.zone.removed) {
+          return { zone: true, root: node, distance: item.distance };
+        }
+        node = node.parent;
+      }
+    }
+    return null;
+  }
+
+  function pickUpZone(root, cell) {
+    if (!cell || cell.wx == null) return false;
+    carrying = {
+      zone: true,
+      root,
+      record: root.userData.zone,
+      grabX: root.position.x - cell.wx,
+      grabZ: root.position.z - cell.wz,
+    };
+    if (preview) preview.visible = false;
+    return true;
+  }
+
+  function removeZone(root) {
+    const zone = root?.userData.zone;
+    if (!zone || zone.removed) return;
+    zone.removed = true;
+    root.removeFromParent();
+    if (zone.building) {
+      const index = map.buildings.indexOf(zone.building);
+      if (index >= 0) map.buildings.splice(index, 1);
+      zone.building = null;
+    }
+    removedZones.push(zone);
+    if (carrying?.root === root) carrying = null;
+    syncZone(root);
+    status("Removed.");
   }
 
   function pickUp(record, cell) {
@@ -1190,7 +1360,12 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       obj.receiveShadow = true;
     });
     group.add(root);
-    carrying = { record, root };
+    carrying = {
+      record,
+      root,
+      grabX: cell?.wx != null ? root.position.x - cell.wx : 0,
+      grabZ: cell?.wz != null ? root.position.z - cell.wz : 0,
+    };
     if (preview) preview.visible = false;
     moveCarried(cell);
   }
@@ -1205,7 +1380,15 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     if (token !== selectToken || !enabled || !selection) return;
     dropPreview();
     const spec = hover || { x: 0, z: 0, turn };
-    preview = wrapper(template, { ...spec, file: selection.file, turn, scale, mirror });
+    preview = wrapper(template, {
+      ...spec,
+      kit: selection.kit,
+      file: selection.file,
+      turn,
+      yaw: movingFree(selection.file) ? yaw : null,
+      scale,
+      mirror,
+    });
     ghost(preview);
     preview.visible = hover !== null;
     scene.add(preview);
@@ -1236,7 +1419,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     const x = Math.floor(hit.x / TILE);
     const z = Math.floor(hit.z / TILE);
     if (x < 0 || z < 0 || x >= map.cols || z >= map.rows) return null;
-    return { x, z };
+    return { x, z, wx: hit.x, wz: hit.z };
   }
 
   function movePreview(cell) {
@@ -1248,16 +1431,36 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       return;
     }
     preview.visible = true;
-    preview.position.set((cell.x + 0.5) * TILE, pieceY(selection?.file), (cell.z + 0.5) * TILE);
+    const file = selection?.file;
+    if (movingFree(file) && cell.wx != null) {
+      const x = clampTile(cell.wx / TILE - 0.5, map.cols);
+      const z = clampTile(cell.wz / TILE - 0.5, map.rows);
+      preview.position.set((x + 0.5) * TILE, pieceY(file), (z + 0.5) * TILE);
+      preview.rotation.y = pieceYaw({ turn, yaw });
+      return;
+    }
+    if (Number.isFinite(yaw)) {
+      turn = snappedTurn({ turn, yaw });
+      yaw = null;
+    }
+    preview.position.set((cell.x + 0.5) * TILE, pieceY(file), (cell.z + 0.5) * TILE);
     preview.rotation.y = turn * Math.PI / 2;
   }
 
   async function place(cell, keep) {
     if (!enabled || !selection || !cell) return;
     const chosen = selection;
+    const freeing = movingFree(chosen.file) && cell.wx != null;
+    if (!freeing && Number.isFinite(yaw)) {
+      turn = snappedTurn({ turn, yaw });
+      yaw = null;
+    }
     const placedTurn = turn;
     const placedScale = scale;
     const placedMirror = mirror;
+    const placedX = freeing ? clampTile(cell.wx / TILE - 0.5, map.cols) : cell.x;
+    const placedZ = freeing ? clampTile(cell.wz / TILE - 0.5, map.rows) : cell.z;
+    const placedYaw = freeing && Number.isFinite(yaw) ? round3(yaw) : null;
     const token = selectToken;
     if (!keep) clearSelection();
     let template = null;
@@ -1271,7 +1474,15 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     if (keep) {
       if (selectToken !== token || selection !== chosen) return;
     } else if (selectToken !== token + 1) return;
-    addPiece({ ...chosen, x: cell.x, z: cell.z, turn: placedTurn, scale: placedScale, mirror: placedMirror }, template);
+    addPiece({
+      ...chosen,
+      x: placedX,
+      z: placedZ,
+      turn: placedTurn,
+      yaw: placedYaw,
+      scale: placedScale,
+      mirror: placedMirror,
+    }, template);
     batches.commit(pieces);
     changed();
     status("Placed.");
@@ -1328,7 +1539,12 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
+    const zone = zoneHit();
     const piece = pieceHit();
+    if (zone && (!piece || zone.distance <= piece.distance)) {
+      removeZone(zone.root);
+      return;
+    }
     if (piece) {
       removeRecord(piece.record);
       return;
@@ -1344,7 +1560,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   }
 
   function download() {
-    const body = `${JSON.stringify({ pieces, removedRoads }, null, 2)}\n`;
+    const body = `${JSON.stringify({ pieces, removedRoads, zoneBuildings: zonePayload() }, null, 2)}\n`;
     try {
       localStorage.setItem(storageKey, body);
     } catch {
@@ -1397,12 +1613,24 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   }
 
   function stepScale(direction) {
+    if (carrying?.zone) {
+      const zone = carrying.record;
+      const next = nextScale(zone.nudge ?? 1, direction);
+      if (next === (zone.nudge ?? 1)) return;
+      zone.nudge = next;
+      const sign = carrying.root.scale.x < 0 ? -1 : 1;
+      const size = zone.baseScale * next;
+      carrying.root.scale.set(sign * size, size, size);
+      syncZone(carrying.root);
+      status(direction > 0 ? "Bigger." : "Smaller.");
+      return;
+    }
     if (carrying) {
       const record = carrying.record;
       const next = nextScale(record.scale ?? 1, direction);
       if (next === record.scale) return;
       record.scale = next;
-      applyScale(carrying.root, record.scale, record.mirror === true);
+      applyScale(carrying.root, record.scale, record.mirror === true, record.unit ?? UNIT);
       changed();
       status(direction > 0 ? "Bigger." : "Smaller.");
       return;
@@ -1410,38 +1638,90 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     const next = nextScale(scale, direction);
     if (next === scale) return;
     scale = next;
-    if (preview) applyScale(preview, scale, mirror);
+    if (preview) applyScale(preview, scale, mirror, preview.userData.unit ?? UNIT);
     status(direction > 0 ? "Bigger." : "Smaller.");
   }
 
   keys.enabled = () => enabled;
   keys.onB = () => setEnabled(!enabled);
+  function spinBy(delta) {
+    if (!Number.isFinite(delta) || delta === 0) return;
+    if (carrying?.zone) {
+      carrying.root.rotation.y += delta;
+      syncZone(carrying.root);
+      status("Rotated.");
+      return;
+    }
+    if (carrying && canFree(carrying.record.file)) {
+      const record = carrying.record;
+      const next = round3(pieceYaw(record) + delta);
+      if (next === record.yaw) return;
+      record.yaw = next;
+      carrying.root.rotation.y = next;
+      changed();
+      status("Rotated.");
+      return;
+    }
+    if (selection && canFree(selection.file)) {
+      const next = round3(pieceYaw({ turn, yaw }) + delta);
+      if (next === yaw) return;
+      yaw = next;
+      if (preview) preview.rotation.y = yaw;
+      status("Rotated.");
+    }
+  }
+
   keys.onR = () => {
+    if (freeHeld && (carrying?.zone || (carrying && canFree(carrying.record.file)) || (!carrying && selection && canFree(selection.file)))) {
+      spinBy(Math.PI / 2);
+      return;
+    }
+    if (carrying?.zone) {
+      carrying.root.rotation.y += Math.PI / 2;
+      syncZone(carrying.root);
+      status("Rotated.");
+      return;
+    }
     if (carrying) {
       const record = carrying.record;
-      record.turn = (record.turn + 1) % 4;
+      record.turn = (snappedTurn(record) + 1) % 4;
+      delete record.yaw;
       carrying.root.rotation.y = record.turn * Math.PI / 2;
       changed();
       status("Rotated.");
       return;
     }
-    turn = (turn + 1) % 4;
+    turn = (snappedTurn({ turn, yaw }) + 1) % 4;
+    yaw = null;
     if (preview) preview.rotation.y = turn * Math.PI / 2;
     status("Rotated.");
   };
   keys.onF = () => {
+    if (carrying?.zone) {
+      carrying.root.scale.x = -carrying.root.scale.x;
+      syncZone(carrying.root);
+      return;
+    }
     if (carrying) {
       const record = carrying.record;
       record.mirror = record.mirror !== true;
-      applyScale(carrying.root, record.scale ?? 1, record.mirror);
+      applyScale(carrying.root, record.scale ?? 1, record.mirror, record.unit ?? UNIT);
       changed();
       return;
     }
     mirror = !mirror;
-    if (preview) applyScale(preview, scale, mirror);
+    if (preview) applyScale(preview, scale, mirror, preview.userData.unit ?? UNIT);
   };
   keys.onP = () => download();
   keys.onX = () => {
+    if (carrying?.zone) {
+      removeZone(carrying.root);
+      return;
+    }
+    if (carrying) {
+      removeRecord(carrying.record);
+      return;
+    }
     if (!pointerAt) return;
     removeAt(pointerAt);
   };
@@ -1486,14 +1766,21 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       dropCarried(cell);
       return;
     }
-    if (!selection) {
+    const placeMany = Boolean(selection) && event.shiftKey && leftShift;
+    if (!placeMany) {
+      const zone = zoneHit();
       const piece = pieceHit();
-      if (piece) {
+      const zoneCloser = zone && (!piece || zone.distance <= piece.distance);
+      if (zoneCloser) {
+        clearSelection();
+        if (pickUpZone(zone.root, cell)) return;
+      } else if (piece) {
+        clearSelection();
         pickUp(piece.record, cell);
         return;
       }
     }
-    place(cell, event.shiftKey && leftShift);
+    place(cell, placeMany);
   }
 
   canvas.addEventListener("pointermove", (event) => {
@@ -1553,9 +1840,20 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     if (touches.size < 2) pinchSpan = 0;
   });
 
+  function wheelTurnsFree() {
+    if (!freeHeld) return false;
+    if (carrying?.zone) return true;
+    if (carrying) return canFree(carrying.record.file);
+    return Boolean(selection && canFree(selection.file));
+  }
+
   canvas.addEventListener("wheel", (event) => {
     if (!enabled) return;
     event.preventDefault();
+    if (wheelTurnsFree()) {
+      spinBy(-wheelPixels(event) * 0.002);
+      return;
+    }
     const current = camera.userData.viewScale > 0 ? camera.userData.viewScale : 1;
     setViewScale(current * Math.exp(wheelPixels(event) * 0.0015));
   }, { passive: false });

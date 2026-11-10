@@ -1,1 +1,43 @@
 /node_modules/
+
+# Downloaded asset packs and reference material. They stay on this PC only.
+# Only the files the game uses are copied into assets/ and saved in Git.
+/01 Roads/
+/03 Quays/
+/04 Bridges/
+/05 Vehicles/
+/08 Textures/
+/09 Reference/
+/Archive/
+/City/
+/Props/
+/Sounds/
+/UI/
+/Wepons/
+/naturepack/
+/three.sj docs/
+/träd,gräs, graund things/
+/vapen n shit med ljud/
+/Textures/kenney_generic-items/
+/Textures/kenney_retro-textures-fantasy/
+/Textures/kenney_smoke-particles/
+/Textures/kenney_splat-pack/
+/assets/new stuff/
+
+# Screenshots and local saves
+/Screenshots/
+/shots/
+/island map saves/
+
+# Character downloads and tryouts (gubbe.glb and gubbe-bat.glb are kept)
+/06 Player Character/UAL_Standard/
+/06 Player Character/UAL_Standard.zip
+/06 Player Character/kenney_animated-characters-protagonists/
+/06 Player Character/kenney_animated-characters-retro/
+/06 Player Character/kenney_animated-characters-survivors/
+/06 Player Character/new guy tryouts/
+/06 Player Character/new try out horor/
+/06 Player Character/pedestrians_v14/
+/06 Player Character/pedestrians_v14.zip
+/06 Player Character/*.png
+/06 Player Character/*.jpg

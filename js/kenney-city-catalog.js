@@ -2299,5 +2299,424 @@ export const KITS = [
         "url": "assets/kenney-city/kenney_retro-urban-kit/Models/GLB format/window-wide-type-d.glb"
       }
     ]
+  },
+  {
+    "id": "textured-test",
+    "label": "Textured Models (test)",
+    "files": [
+      {
+        "file": "1Story_GableRoof.glb",
+        "url": "assets/buildings/textured-test/1Story_GableRoof.glb",
+        "unit": 41.86
+      }
+    ]
+  },
+  {
+    "id": "textured-low",
+    "label": "Textured Low",
+    "files": [
+      {
+        "file": "1Story.glb",
+        "url": "assets/buildings/textured/low/1Story.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "1Story_GableRoof.glb",
+        "url": "assets/buildings/textured/low/1Story_GableRoof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "1Story_RoundRoof.glb",
+        "url": "assets/buildings/textured/low/1Story_RoundRoof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "1Story_Sign.glb",
+        "url": "assets/buildings/textured/low/1Story_Sign.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story.glb",
+        "url": "assets/buildings/textured/low/2Story.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_2.glb",
+        "url": "assets/buildings/textured/low/2Story_2.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Balcony.glb",
+        "url": "assets/buildings/textured/low/2Story_Balcony.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Center.glb",
+        "url": "assets/buildings/textured/low/2Story_Center.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Columns.glb",
+        "url": "assets/buildings/textured/low/2Story_Columns.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Double.glb",
+        "url": "assets/buildings/textured/low/2Story_Double.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_GableRoof.glb",
+        "url": "assets/buildings/textured/low/2Story_GableRoof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_RoundRoof.glb",
+        "url": "assets/buildings/textured/low/2Story_RoundRoof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Sidehouse.glb",
+        "url": "assets/buildings/textured/low/2Story_Sidehouse.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Sign.glb",
+        "url": "assets/buildings/textured/low/2Story_Sign.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Slim.glb",
+        "url": "assets/buildings/textured/low/2Story_Slim.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Stairs.glb",
+        "url": "assets/buildings/textured/low/2Story_Stairs.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Wide.glb",
+        "url": "assets/buildings/textured/low/2Story_Wide.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Wide_2Doors.glb",
+        "url": "assets/buildings/textured/low/2Story_Wide_2Doors.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "3Story_Balcony.glb",
+        "url": "assets/buildings/textured/low/3Story_Balcony.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "3Story_Slim.glb",
+        "url": "assets/buildings/textured/low/3Story_Slim.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "3Story_Small.glb",
+        "url": "assets/buildings/textured/low/3Story_Small.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "4Story.glb",
+        "url": "assets/buildings/textured/low/4Story.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "4Story_Center.glb",
+        "url": "assets/buildings/textured/low/4Story_Center.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "4Story_Wide_2Doors.glb",
+        "url": "assets/buildings/textured/low/4Story_Wide_2Doors.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "4Story_Wide_2Doors_Roof.glb",
+        "url": "assets/buildings/textured/low/4Story_Wide_2Doors_Roof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "6Story_Stack.glb",
+        "url": "assets/buildings/textured/low/6Story_Stack.glb",
+        "unit": 41.86
+      }
+    ]
+  },
+  {
+    "id": "textured-medium",
+    "label": "Textured Medium",
+    "files": [
+      {
+        "file": "1Story.glb",
+        "url": "assets/buildings/textured/medium/1Story.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "1Story_GableRoof.glb",
+        "url": "assets/buildings/textured/medium/1Story_GableRoof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "1Story_RoundRoof.glb",
+        "url": "assets/buildings/textured/medium/1Story_RoundRoof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "1Story_Sign.glb",
+        "url": "assets/buildings/textured/medium/1Story_Sign.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story.glb",
+        "url": "assets/buildings/textured/medium/2Story.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_2.glb",
+        "url": "assets/buildings/textured/medium/2Story_2.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Balcony.glb",
+        "url": "assets/buildings/textured/medium/2Story_Balcony.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Center.glb",
+        "url": "assets/buildings/textured/medium/2Story_Center.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Columns.glb",
+        "url": "assets/buildings/textured/medium/2Story_Columns.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Double.glb",
+        "url": "assets/buildings/textured/medium/2Story_Double.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_GableRoof.glb",
+        "url": "assets/buildings/textured/medium/2Story_GableRoof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_RoundRoof.glb",
+        "url": "assets/buildings/textured/medium/2Story_RoundRoof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Sidehouse.glb",
+        "url": "assets/buildings/textured/medium/2Story_Sidehouse.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Sign.glb",
+        "url": "assets/buildings/textured/medium/2Story_Sign.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Slim.glb",
+        "url": "assets/buildings/textured/medium/2Story_Slim.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Stairs.glb",
+        "url": "assets/buildings/textured/medium/2Story_Stairs.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Wide.glb",
+        "url": "assets/buildings/textured/medium/2Story_Wide.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Wide_2Doors.glb",
+        "url": "assets/buildings/textured/medium/2Story_Wide_2Doors.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "3Story_Balcony.glb",
+        "url": "assets/buildings/textured/medium/3Story_Balcony.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "3Story_Slim.glb",
+        "url": "assets/buildings/textured/medium/3Story_Slim.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "3Story_Small.glb",
+        "url": "assets/buildings/textured/medium/3Story_Small.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "4Story.glb",
+        "url": "assets/buildings/textured/medium/4Story.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "4Story_Center.glb",
+        "url": "assets/buildings/textured/medium/4Story_Center.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "4Story_Wide_2Doors.glb",
+        "url": "assets/buildings/textured/medium/4Story_Wide_2Doors.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "4Story_Wide_2Doors_Roof.glb",
+        "url": "assets/buildings/textured/medium/4Story_Wide_2Doors_Roof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "6Story_Stack.glb",
+        "url": "assets/buildings/textured/medium/6Story_Stack.glb",
+        "unit": 41.86
+      }
+    ]
+  },
+  {
+    "id": "textured-high",
+    "label": "Textured High",
+    "files": [
+      {
+        "file": "1Story.glb",
+        "url": "assets/buildings/textured/high/1Story.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "1Story_GableRoof.glb",
+        "url": "assets/buildings/textured/high/1Story_GableRoof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "1Story_RoundRoof.glb",
+        "url": "assets/buildings/textured/high/1Story_RoundRoof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "1Story_Sign.glb",
+        "url": "assets/buildings/textured/high/1Story_Sign.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story.glb",
+        "url": "assets/buildings/textured/high/2Story.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_2.glb",
+        "url": "assets/buildings/textured/high/2Story_2.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Balcony.glb",
+        "url": "assets/buildings/textured/high/2Story_Balcony.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Center.glb",
+        "url": "assets/buildings/textured/high/2Story_Center.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Columns.glb",
+        "url": "assets/buildings/textured/high/2Story_Columns.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Double.glb",
+        "url": "assets/buildings/textured/high/2Story_Double.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_GableRoof.glb",
+        "url": "assets/buildings/textured/high/2Story_GableRoof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_RoundRoof.glb",
+        "url": "assets/buildings/textured/high/2Story_RoundRoof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Sidehouse.glb",
+        "url": "assets/buildings/textured/high/2Story_Sidehouse.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Sign.glb",
+        "url": "assets/buildings/textured/high/2Story_Sign.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Slim.glb",
+        "url": "assets/buildings/textured/high/2Story_Slim.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Stairs.glb",
+        "url": "assets/buildings/textured/high/2Story_Stairs.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Wide.glb",
+        "url": "assets/buildings/textured/high/2Story_Wide.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "2Story_Wide_2Doors.glb",
+        "url": "assets/buildings/textured/high/2Story_Wide_2Doors.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "3Story_Balcony.glb",
+        "url": "assets/buildings/textured/high/3Story_Balcony.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "3Story_Slim.glb",
+        "url": "assets/buildings/textured/high/3Story_Slim.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "3Story_Small.glb",
+        "url": "assets/buildings/textured/high/3Story_Small.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "4Story.glb",
+        "url": "assets/buildings/textured/high/4Story.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "4Story_Center.glb",
+        "url": "assets/buildings/textured/high/4Story_Center.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "4Story_Wide_2Doors.glb",
+        "url": "assets/buildings/textured/high/4Story_Wide_2Doors.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "4Story_Wide_2Doors_Roof.glb",
+        "url": "assets/buildings/textured/high/4Story_Wide_2Doors_Roof.glb",
+        "unit": 41.86
+      },
+      {
+        "file": "6Story_Stack.glb",
+        "url": "assets/buildings/textured/high/6Story_Stack.glb",
+        "unit": 41.86
+      }
+    ]
   }
 ];

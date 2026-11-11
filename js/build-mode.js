@@ -31,6 +31,7 @@ import {
   signalRole,
 } from "./signal-lamps.js";
 import { linkSignal, pedPhase, phaseAt } from "./signals.js";
+import { menuIsOpen } from "./start-menu.js";
 
 // One Kenney unit is the same 4-tile module as the road pieces.
 // Scale is uniform so a building keeps the height in the file.
@@ -94,6 +95,7 @@ let searchInput = null;
 let leftShift = false;
 let freeHeld = false;
 window.addEventListener("keydown", (event) => {
+  if (menuIsOpen()) return;
   if (event.code === "ShiftLeft") leftShift = true;
   // Keys typed into the piece search must not walk, save, rotate, resize, or mirror.
   const typing = searchInput && event.target === searchInput;

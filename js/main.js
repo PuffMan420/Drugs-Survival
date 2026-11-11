@@ -43,7 +43,9 @@ import { createPlayer } from "./player.js";
 import { createPistol } from "./pistol.js";
 import { createBuildMode, loadNamedMap } from "./build-mode.js";
 import { placeSampleBuildings } from "./sample-buildings.js";
+import { placeTexturedTest } from "./textured-test.js";
 import { parseLookPreview, previewRadius, sunDirection, LOOK_CORNER } from "./look-preview.js";
+import { markMenuFailed, markMenuReady, menuIsOpen } from "./start-menu.js";
 import { bindPistolTouch, displayFrame, isTouchScreen, mountTouchUi } from "./touch-ui.js";
 
 const NEAR = 10;
@@ -107,6 +109,7 @@ function showError(message) {
   errorEl.hidden = false;
   errorEl.textContent = message;
   fpsEl.hidden = true;
+  markMenuFailed(message);
 }
 
 function clamp(value, min, max) {
@@ -527,6 +530,7 @@ async function start() {
   const scene = new Scene();
   const city = await buildCity(scene, map);
   const zoneRoot = await placeSampleBuildings(scene, map, renderer, savedLayout.pieces, savedLayout.zoneBuildings);
+  await placeTexturedTest(scene);
   city.playerMesh.removeFromParent();
   city.playerMesh.geometry.dispose();
   for (const material of city.playerMesh.material) material.dispose();
@@ -616,8 +620,11 @@ async function start() {
 
   session.ready = true;
   canvas.tabIndex = 0;
-  window.focus();
-  canvas.focus({ preventScroll: true });
+  markMenuReady();
+  if (!menuIsOpen()) {
+    window.focus();
+    canvas.focus({ preventScroll: true });
+  }
   session.map = map;
   session.player = player;
   session.minimap = minimap;
@@ -653,6 +660,12 @@ async function start() {
   };
 
   function frame(now) {
+    // The intro and the menu share this pause. The city waits until Play.
+    if (menuIsOpen()) {
+      last = now;
+      requestAnimationFrame(frame);
+      return;
+    }
     const frameDt = (now - last) / 1000;
     const dt = Math.min(frameDt, 0.05);
     last = now;
@@ -824,6 +837,7 @@ function footBlocked(map, x, z, limit) {
 }
 
 window.addEventListener("keydown", (event) => {
+  if (menuIsOpen()) return;
   const audio = session.audio;
   if (audio && audio.state === "suspended") audio.resume().catch(() => {});
   if (event.code === "KeyE" && !event.repeat) {
@@ -869,6 +883,11 @@ window.addEventListener("keyup", (event) => {
 window.addEventListener("blur", () => held.clear());
 
 mountTouchUi(held, ISLAND_JUMPS, stick);
+
+document.getElementById("menu-play").addEventListener("click", () => {
+  const audio = session.audio;
+  if (audio && audio.state === "suspended") audio.resume().catch(() => {});
+});
 
 start().catch((error) => {
   showError(error instanceof Error ? error.message : "The game failed to start.");

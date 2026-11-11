@@ -211,11 +211,202 @@ canvas {
   color: #000;
 }
 
+#intro,
+#start-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: #000;
+  cursor: auto;
+}
+
+#start-menu {
+  z-index: 21;
+  display: grid;
+  place-items: center;
+}
+
+#intro[hidden],
+#start-menu[hidden] {
+  display: none;
+}
+
+#intro-view {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #000;
+}
+
+#intro-skip {
+  min-width: 0;
+  margin: 0;
+  padding: 14px 28px;
+  border: 2px solid #fff;
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+  font: 700 22px/1 ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+#start-menu button {
+  min-width: 220px;
+  margin: 0;
+  padding: 14px 28px;
+  border: 3px solid #111;
+  background: #f3efe4;
+  color: #111;
+  box-shadow: 4px 4px 0 #000;
+  cursor: pointer;
+  font: 700 20px/1 ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+#intro-skip {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 4;
+  min-width: 0;
+  padding: 12px 22px;
+}
+
+#intro-status,
+#intro-error {
+  position: absolute;
+  z-index: 3;
+  margin: 0;
+  color: #fff;
+  background: #000;
+  font: 700 18px/1.4 ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+}
+
+#intro-status {
+  left: 16px;
+  bottom: 16px;
+  padding: 4px 8px;
+}
+
+#intro-error {
+  left: 50%;
+  top: 16%;
+  transform: translateX(-50%);
+  max-width: min(36rem, 90vw);
+  padding: 12px 16px;
+  border: 2px solid #fff;
+  text-align: center;
+  white-space: pre-line;
+}
+
+#intro-status[hidden],
+#intro-error[hidden],
+#intro-flash[hidden] {
+  display: none;
+}
+
+#intro-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: rgba(255, 248, 236, 0.9);
+  pointer-events: none;
+}
+
+#menu-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+#menu-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 90vw;
+  text-align: center;
+}
+
+#menu-card h1 {
+  margin: 0 0 8px;
+  color: #fff;
+  font: 800 clamp(64px, 12vw, 120px)/0.85 ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+  letter-spacing: 0.14em;
+  text-shadow: 0 4px 0 #000, 0 0 18px #000;
+}
+
+#menu-note {
+  margin: 0 0 8px;
+  min-height: 0;
+  color: #fff;
+  font: 16px/1.3 ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+  text-shadow: 0 2px 0 #000;
+}
+
+#menu-note:empty {
+  display: none;
+}
+
+#menu-home,
+#menu-settings-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+#menu-settings-page[hidden],
+#menu-home[hidden] {
+  display: none;
+}
+
+#menu-settings-page p {
+  margin: 0 0 8px;
+  max-width: 24rem;
+  color: #fff;
+  font: 700 22px/1.3 ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+  text-shadow: 0 2px 0 #000;
+}
+
+#intro-skip:hover,
+#intro-skip:focus-visible,
+#start-menu button:hover,
+#start-menu button:focus-visible {
+  background: #ffe14a;
+  color: #000;
+  outline: none;
+}
+
+#start-menu button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+body.is-menu #fps,
+body.is-menu #place,
+body.is-menu #minimap,
+body.is-menu #hint,
+body.is-menu #touch-ui,
+body.is-menu #crosshair,
+body.is-menu #map-overlay,
+body.is-menu #build-panel {
+  display: none;
+}
+
 #boot-error {
   position: fixed;
   left: 50%;
   top: 50%;
-  z-index: 5;
+  z-index: 30;
   transform: translate(-50%, -50%);
   margin: 0;
   max-width: 36rem;

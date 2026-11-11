@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Drugs Survival</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23ffe14a'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/style.css?v=2" />
   <script type="importmap">
   {
     "imports": {
@@ -16,7 +16,30 @@
   }
   </script>
 </head>
-<body>
+<body class="is-menu">
+  <div id="intro">
+    <canvas id="intro-view" aria-hidden="true"></canvas>
+    <p id="intro-status">Loading the intro…</p>
+    <p id="intro-error" hidden></p>
+    <button id="intro-skip" type="button">Skip</button>
+    <div id="intro-flash" hidden></div>
+  </div>
+  <div id="start-menu" hidden>
+    <img id="menu-bg" src="./menu%20background.jpg" alt="" />
+    <div id="menu-card">
+      <div id="menu-home">
+        <h1>DSA</h1>
+        <p id="menu-note">The city is still loading.</p>
+        <button id="menu-play" type="button" disabled>Play</button>
+        <button id="menu-settings" type="button">Settings</button>
+      </div>
+      <div id="menu-settings-page" hidden>
+        <h1>Settings</h1>
+        <p>The choices come later.</p>
+        <button id="menu-back" type="button">Back</button>
+      </div>
+    </div>
+  </div>
   <canvas id="view" width="1920" height="1080"></canvas>
   <p id="fps">FPS</p>
   <p id="place">Southwest</p>
@@ -28,10 +51,24 @@
   </div>
   <p id="boot-error" hidden></p>
   <script type="module">
-    import("./js/main.js").catch((error) => {
+    import { markMenuFailed } from "./js/start-menu.js";
+
+    function showBoot(error) {
+      const message = "The game failed to load. " + (error && error.message ? error.message : "");
       const el = document.getElementById("boot-error");
       el.hidden = false;
-      el.textContent = "The game failed to load. " + (error && error.message ? error.message : "");
+      el.textContent = message;
+      markMenuFailed(message);
+    }
+
+    import("./js/intro.js").catch((error) => {
+      const el = document.getElementById("intro-error");
+      if (!el) return;
+      el.hidden = false;
+      el.textContent = "The intro failed to load. " + (error && error.message ? error.message : "");
+    });
+    import("./js/main.js").catch((error) => {
+      showBoot(error);
     });
   </script>
 </body>

@@ -27,6 +27,7 @@ import {
 import { TILE } from "./constants.js";
 import { nextPunch, punchHits, punchTiming } from "./punch.js";
 import { aimChord, pistolPose } from "./pose-layers.js";
+import { menuIsOpen } from "./start-menu.js";
 import { aimAlongStick, isTouchScreen, syncGunButtons } from "./touch-ui.js";
 import {
   Audio,
@@ -305,6 +306,7 @@ export async function createPistol({
   // a game event and not a click that only wakes the page.
   canvas.tabIndex = 0;
   const focusGame = () => {
+    if (menuIsOpen()) return;
     const tag = document.activeElement && document.activeElement.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") return;
     if (document.activeElement !== canvas) canvas.focus({ preventScroll: true });
@@ -835,6 +837,7 @@ export async function createPistol({
   // Window capture, not the canvas alone. The letterbox around the view is the
   // page, and a wheel or click there never reached the canvas listeners.
   function noteButtons(event) {
+    if (menuIsOpen()) return;
     // A finger is the AIM and SHOOT buttons, not a mouse click. Those buttons
     // call toggleAim and shoot. A mouse still holds right-click and left-clicks.
     if (event.pointerType === "touch") return;
@@ -886,7 +889,7 @@ export async function createPistol({
   window.addEventListener("pointermove", noteButtons, true);
   window.addEventListener("pointerdown", noteButtons, true);
   window.addEventListener("wheel", (event) => {
-    if (busy()) return;
+    if (menuIsOpen() || busy()) return;
     if (Math.abs(event.deltaY) < 1 && Math.abs(event.deltaX) < 1) return;
     event.preventDefault();
     const now = performance.now();
@@ -897,6 +900,7 @@ export async function createPistol({
   window.addEventListener("pointerup", noteButtons, true);
   window.addEventListener("contextmenu", (event) => event.preventDefault(), true);
   window.addEventListener("keydown", (event) => {
+    if (menuIsOpen()) return;
     if (event.repeat || event.code !== "KeyR") return;
     const tag = event.target && event.target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") return;

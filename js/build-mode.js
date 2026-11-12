@@ -1019,6 +1019,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       linearize(scene);
       if (isSignalFile(file)) prepareSignal(scene);
       if (file.includes("building")) sharpenBuilding(scene);
+      if (kit.startsWith("kaykit-")) seatOnGround(scene);
       if (isBuildingFile(file)) rememberBounds(kit, file, scene);
       templates.set(key, scene);
       return scene;
@@ -1028,6 +1029,16 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     });
     templates.set(key, pending);
     return pending;
+  }
+
+  // KayKit cars are authored with the wheels a little below the origin.
+  // Lift that loaded copy so the bottom sits on the ground. The file stays put.
+  function seatOnGround(root) {
+    root.updateMatrixWorld(true);
+    const box = new Box3().setFromObject(root);
+    if (box.isEmpty() || !(box.min.y < -0.001)) return;
+    root.position.y -= box.min.y;
+    root.updateMatrixWorld(true);
   }
 
   function rememberBounds(kit, file, root) {

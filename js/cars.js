@@ -5,6 +5,7 @@ import {
   InstancedBufferAttribute,
   InstancedMesh,
   LoadingManager,
+  Mesh,
   MeshStandardMaterial,
   Object3D,
   SRGBColorSpace,
@@ -44,6 +45,12 @@ const CARS = [
   { name: "swat_van", file: "suv", w: 40, h: 77 },
   { name: "taco_truck", file: "delivery", w: 44, h: 70 },
   { name: "taxi", file: "taxi", w: 36, h: 69 },
+  // KayKit props. Same footprints as the Kenney car they match. One model, no wear bakes.
+  { name: "kaykit_hatch", file: "kaykit-hatch", w: 35, h: 65, url: "assets/buildings/kaykit/props/car_hatchback.glb" },
+  { name: "kaykit_sedan", file: "kaykit-sedan", w: 37, h: 71, url: "assets/buildings/kaykit/props/car_sedan.glb" },
+  { name: "kaykit_wagon", file: "kaykit-wagon", w: 37, h: 71, url: "assets/buildings/kaykit/props/car_stationwagon.glb" },
+  { name: "kaykit_taxi", file: "kaykit-taxi", w: 36, h: 69, url: "assets/buildings/kaykit/props/car_taxi.glb" },
+  { name: "kaykit_police", file: "kaykit-police", w: 35, h: 69, url: "assets/buildings/kaykit/props/car_police.glb" },
 ];
 
 const RARE = new Set(["police", "ambulance", "fire_truck"]);
@@ -61,8 +68,10 @@ const SERVICE = new Set([
   "taco_truck",
   "taxi",
 ]);
-// Sports bodies only have an L2 bake. Every other file has L2 and L3.
+// Sports bodies only have an L2 bake. Every other Kenney file has L2 and L3.
 const SPORTS = new Set(["hatchback-sports", "sedan-sports"]);
+// KayKit cars are one baked model. They are not rare and they are not police jobs.
+const PLAIN = new Set(["kaykit-hatch", "kaykit-sedan", "kaykit-wagon", "kaykit-taxi", "kaykit-police"]);
 const BUCKET = 96;
 // Tires sit just above the road.
 const GROUND_Y = 0.6;
@@ -127,12 +136,13 @@ function colourIndex(salt) {
 }
 
 function wearLevel(file, salt) {
-  if (SPORTS.has(file)) return 2;
+  if (PLAIN.has(file) || SPORTS.has(file)) return 2;
   return ((salt | 0) & 1) === 0 ? 2 : 3;
 }
 
 function levelsFor(file) {
-  return SPORTS.has(file) ? [2] : [2, 3];
+  if (PLAIN.has(file) || SPORTS.has(file)) return [2];
+  return [2, 3];
 }
 
 function srgbToLinear(byte) {
@@ -430,7 +440,7 @@ function bakeLevel(scene, catalog) {
     if (!obj.isMesh) return;
     const geometry = worldGeometry(obj);
     const wheel = isWheel(obj);
-    const paintable = !wheel && applyPaintMask(geometry, catalog.get(obj.name), obj.name);
+    const paintable = Boolean(catalog) && !wheel && applyPaintMask(geometry, catalog.get(obj.name), obj.name);
     const material = Array.isArray(obj.material) ? obj.material[0] : obj.material;
     if (material) material.toneMapped = false;
     if (obj.name === "trash") shadeBedRocks(geometry, material);
@@ -571,6 +581,40 @@ function releaseGeometries(scene) {
   });
 }
 
+function sliceGroup(geometry, start, count) {
+  const slice = geometry.clone();
+  const index = slice.getIndex();
+  if (!index) return slice;
+  slice.setIndex(Array.from(index.array.slice(start, start + count)));
+  slice.clearGroups();
+  return slice;
+}
+
+// A KayKit body is one mesh with a paint material and a glass material.
+// The traffic bake keeps the first material only, so split them first.
+function splitMaterials(root) {
+  const meshes = [];
+  root.traverse((obj) => {
+    if (!obj.isMesh || !Array.isArray(obj.material) || !(obj.geometry.groups?.length > 1)) return;
+    meshes.push(obj);
+  });
+  for (const mesh of meshes) {
+    if (mesh.matrixAutoUpdate) mesh.updateMatrix();
+    for (const group of mesh.geometry.groups) {
+      const child = new Mesh(
+        sliceGroup(mesh.geometry, group.start, group.count),
+        mesh.material[group.materialIndex] || mesh.material[0],
+      );
+      child.name = mesh.name;
+      child.matrix.copy(mesh.matrix);
+      child.matrixAutoUpdate = false;
+      mesh.parent.add(child);
+    }
+    mesh.geometry.dispose();
+    mesh.removeFromParent();
+  }
+}
+
 async function loadScene(loader, url, label) {
   try {
     const gltf = await loader.loadAsync(url);
@@ -588,8 +632,27 @@ export async function createTraffic(scene, map, pieces = []) {
   const maskLoader = new GLTFLoader(maskManager);
   const loader = new GLTFLoader();
   const files = [...new Set(CARS.map((car) => car.file))];
+  const plainUrl = new Map(CARS.filter((car) => car.url).map((car) => [car.file, car.url]));
   const baked = new Map();
   await Promise.all(files.map(async (file) => {
+    if (plainUrl.has(file)) {
+      const model = await loadScene(
+        loader,
+        new URL(`../${plainUrl.get(file)}`, import.meta.url).href,
+        plainUrl.get(file),
+      );
+      splitMaterials(model);
+      const built = bakeLevel(model, null);
+      releaseGeometries(model);
+      baked.set(file, {
+        width: built.width,
+        length: built.length,
+        height: built.height,
+        lift: built.lift,
+        levels: { 2: built.parts },
+      });
+      return;
+    }
     const maskScene = await loadScene(
       maskLoader,
       new URL(`../assets/cars3d/${file}.glb`, import.meta.url).href,

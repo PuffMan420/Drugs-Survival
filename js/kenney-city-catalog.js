@@ -2718,5 +2718,329 @@ export const KITS = [
         "unit": 41.86
       }
     ]
+  },
+  {
+    "id": "kaykit-low",
+    "label": "KayKit Low",
+    "files": [
+      {
+        "file": "building_A.glb",
+        "url": "assets/buildings/kaykit/low/building_A.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_B.glb",
+        "url": "assets/buildings/kaykit/low/building_B.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_C.glb",
+        "url": "assets/buildings/kaykit/low/building_C.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_D.glb",
+        "url": "assets/buildings/kaykit/low/building_D.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_D_6f.glb",
+        "url": "assets/buildings/kaykit/low/building_D_6f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_D_8f.glb",
+        "url": "assets/buildings/kaykit/low/building_D_8f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_E.glb",
+        "url": "assets/buildings/kaykit/low/building_E.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_E_6f.glb",
+        "url": "assets/buildings/kaykit/low/building_E_6f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_E_8f.glb",
+        "url": "assets/buildings/kaykit/low/building_E_8f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_F.glb",
+        "url": "assets/buildings/kaykit/low/building_F.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_G.glb",
+        "url": "assets/buildings/kaykit/low/building_G.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_G_6f.glb",
+        "url": "assets/buildings/kaykit/low/building_G_6f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_G_8f.glb",
+        "url": "assets/buildings/kaykit/low/building_G_8f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_H.glb",
+        "url": "assets/buildings/kaykit/low/building_H.glb",
+        "unit": 96
+      }
+    ]
+  },
+  {
+    "id": "kaykit-medium",
+    "label": "KayKit Medium",
+    "files": [
+      {
+        "file": "building_A.glb",
+        "url": "assets/buildings/kaykit/medium/building_A.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_B.glb",
+        "url": "assets/buildings/kaykit/medium/building_B.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_C.glb",
+        "url": "assets/buildings/kaykit/medium/building_C.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_D.glb",
+        "url": "assets/buildings/kaykit/medium/building_D.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_D_6f.glb",
+        "url": "assets/buildings/kaykit/medium/building_D_6f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_D_8f.glb",
+        "url": "assets/buildings/kaykit/medium/building_D_8f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_E.glb",
+        "url": "assets/buildings/kaykit/medium/building_E.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_E_6f.glb",
+        "url": "assets/buildings/kaykit/medium/building_E_6f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_E_8f.glb",
+        "url": "assets/buildings/kaykit/medium/building_E_8f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_F.glb",
+        "url": "assets/buildings/kaykit/medium/building_F.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_G.glb",
+        "url": "assets/buildings/kaykit/medium/building_G.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_G_6f.glb",
+        "url": "assets/buildings/kaykit/medium/building_G_6f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_G_8f.glb",
+        "url": "assets/buildings/kaykit/medium/building_G_8f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_H.glb",
+        "url": "assets/buildings/kaykit/medium/building_H.glb",
+        "unit": 96
+      }
+    ]
+  },
+  {
+    "id": "kaykit-high",
+    "label": "KayKit High",
+    "files": [
+      {
+        "file": "building_A.glb",
+        "url": "assets/buildings/kaykit/high/building_A.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_B.glb",
+        "url": "assets/buildings/kaykit/high/building_B.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_C.glb",
+        "url": "assets/buildings/kaykit/high/building_C.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_D.glb",
+        "url": "assets/buildings/kaykit/high/building_D.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_D_6f.glb",
+        "url": "assets/buildings/kaykit/high/building_D_6f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_D_8f.glb",
+        "url": "assets/buildings/kaykit/high/building_D_8f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_E.glb",
+        "url": "assets/buildings/kaykit/high/building_E.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_E_6f.glb",
+        "url": "assets/buildings/kaykit/high/building_E_6f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_E_8f.glb",
+        "url": "assets/buildings/kaykit/high/building_E_8f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_F.glb",
+        "url": "assets/buildings/kaykit/high/building_F.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_G.glb",
+        "url": "assets/buildings/kaykit/high/building_G.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_G_6f.glb",
+        "url": "assets/buildings/kaykit/high/building_G_6f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_G_8f.glb",
+        "url": "assets/buildings/kaykit/high/building_G_8f.glb",
+        "unit": 96
+      },
+      {
+        "file": "building_H.glb",
+        "url": "assets/buildings/kaykit/high/building_H.glb",
+        "unit": 96
+      }
+    ]
+  },
+  {
+    "id": "kaykit-props",
+    "label": "KayKit Props",
+    "files": [
+      {
+        "file": "car_hatchback.glb",
+        "url": "assets/buildings/kaykit/props/car_hatchback.glb",
+        "unit": 96
+      },
+      {
+        "file": "car_police.glb",
+        "url": "assets/buildings/kaykit/props/car_police.glb",
+        "unit": 96
+      },
+      {
+        "file": "car_sedan.glb",
+        "url": "assets/buildings/kaykit/props/car_sedan.glb",
+        "unit": 96
+      },
+      {
+        "file": "car_stationwagon.glb",
+        "url": "assets/buildings/kaykit/props/car_stationwagon.glb",
+        "unit": 96
+      },
+      {
+        "file": "car_taxi.glb",
+        "url": "assets/buildings/kaykit/props/car_taxi.glb",
+        "unit": 96
+      },
+      {
+        "file": "bench.glb",
+        "url": "assets/buildings/kaykit/props/bench.glb",
+        "unit": 96
+      },
+      {
+        "file": "box_A.glb",
+        "url": "assets/buildings/kaykit/props/box_A.glb",
+        "unit": 96
+      },
+      {
+        "file": "box_B.glb",
+        "url": "assets/buildings/kaykit/props/box_B.glb",
+        "unit": 96
+      },
+      {
+        "file": "bush.glb",
+        "url": "assets/buildings/kaykit/props/bush.glb",
+        "unit": 96
+      },
+      {
+        "file": "dumpster.glb",
+        "url": "assets/buildings/kaykit/props/dumpster.glb",
+        "unit": 96
+      },
+      {
+        "file": "firehydrant.glb",
+        "url": "assets/buildings/kaykit/props/firehydrant.glb",
+        "unit": 96
+      },
+      {
+        "file": "streetlight.glb",
+        "url": "assets/buildings/kaykit/props/streetlight.glb",
+        "unit": 96
+      },
+      {
+        "file": "trafficlight_A.glb",
+        "url": "assets/buildings/kaykit/props/trafficlight_A.glb",
+        "unit": 96
+      },
+      {
+        "file": "trafficlight_B.glb",
+        "url": "assets/buildings/kaykit/props/trafficlight_B.glb",
+        "unit": 96
+      },
+      {
+        "file": "trafficlight_C.glb",
+        "url": "assets/buildings/kaykit/props/trafficlight_C.glb",
+        "unit": 96
+      },
+      {
+        "file": "trash_A.glb",
+        "url": "assets/buildings/kaykit/props/trash_A.glb",
+        "unit": 96
+      },
+      {
+        "file": "trash_B.glb",
+        "url": "assets/buildings/kaykit/props/trash_B.glb",
+        "unit": 96
+      },
+      {
+        "file": "watertower.glb",
+        "url": "assets/buildings/kaykit/props/watertower.glb",
+        "unit": 96
+      }
+    ]
   }
 ];

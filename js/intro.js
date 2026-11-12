@@ -27,6 +27,7 @@ import {
   WebGLRenderer,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { installMaxAnisotropy } from "./anisotropy.js";
 import { menuRevealed, openMenu } from "./start-menu.js";
 
 const HOLD = 8;
@@ -758,6 +759,7 @@ function buildRoom() {
   if (!renderer.getContext()) {
     throw new Error("WebGL is not available for the intro.");
   }
+  installMaxAnisotropy(renderer);
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = NoToneMapping;
   renderer.setClearColor(0x000000, 1);
@@ -766,7 +768,6 @@ function buildRoom() {
   onResize();
 
   const wallMap = skylineTexture();
-  wallMap.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
   const wall = new Mesh(
     new PlaneGeometry(12, 4.8),
     new MeshBasicMaterial({ map: wallMap, toneMapped: false }),

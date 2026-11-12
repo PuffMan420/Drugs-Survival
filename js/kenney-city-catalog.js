@@ -2305,8 +2305,8 @@ export const KITS = [
     "label": "Textured Models (test)",
     "files": [
       {
-        "file": "1Story_GableRoof.glb",
-        "url": "assets/buildings/textured-test/1Story_GableRoof.glb",
+        "file": "building_1Story_GableRoof.glb",
+        "url": "assets/buildings/textured-test/building_1Story_GableRoof.glb",
         "unit": 41.86
       }
     ]
@@ -2316,133 +2316,133 @@ export const KITS = [
     "label": "Textured Low",
     "files": [
       {
-        "file": "1Story.glb",
-        "url": "assets/buildings/textured/low/1Story.glb",
+        "file": "building_1Story.glb",
+        "url": "assets/buildings/textured/low/building_1Story.glb",
         "unit": 41.86
       },
       {
-        "file": "1Story_GableRoof.glb",
-        "url": "assets/buildings/textured/low/1Story_GableRoof.glb",
+        "file": "building_1Story_GableRoof.glb",
+        "url": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
         "unit": 41.86
       },
       {
-        "file": "1Story_RoundRoof.glb",
-        "url": "assets/buildings/textured/low/1Story_RoundRoof.glb",
+        "file": "building_1Story_RoundRoof.glb",
+        "url": "assets/buildings/textured/low/building_1Story_RoundRoof.glb",
         "unit": 41.86
       },
       {
-        "file": "1Story_Sign.glb",
-        "url": "assets/buildings/textured/low/1Story_Sign.glb",
+        "file": "building_1Story_Sign.glb",
+        "url": "assets/buildings/textured/low/building_1Story_Sign.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story.glb",
-        "url": "assets/buildings/textured/low/2Story.glb",
+        "file": "building_2Story.glb",
+        "url": "assets/buildings/textured/low/building_2Story.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_2.glb",
-        "url": "assets/buildings/textured/low/2Story_2.glb",
+        "file": "building_2Story_2.glb",
+        "url": "assets/buildings/textured/low/building_2Story_2.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Balcony.glb",
-        "url": "assets/buildings/textured/low/2Story_Balcony.glb",
+        "file": "building_2Story_Balcony.glb",
+        "url": "assets/buildings/textured/low/building_2Story_Balcony.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Center.glb",
-        "url": "assets/buildings/textured/low/2Story_Center.glb",
+        "file": "building_2Story_Center.glb",
+        "url": "assets/buildings/textured/low/building_2Story_Center.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Columns.glb",
-        "url": "assets/buildings/textured/low/2Story_Columns.glb",
+        "file": "building_2Story_Columns.glb",
+        "url": "assets/buildings/textured/low/building_2Story_Columns.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Double.glb",
-        "url": "assets/buildings/textured/low/2Story_Double.glb",
+        "file": "building_2Story_Double.glb",
+        "url": "assets/buildings/textured/low/building_2Story_Double.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_GableRoof.glb",
-        "url": "assets/buildings/textured/low/2Story_GableRoof.glb",
+        "file": "building_2Story_GableRoof.glb",
+        "url": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_RoundRoof.glb",
-        "url": "assets/buildings/textured/low/2Story_RoundRoof.glb",
+        "file": "building_2Story_RoundRoof.glb",
+        "url": "assets/buildings/textured/low/building_2Story_RoundRoof.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Sidehouse.glb",
-        "url": "assets/buildings/textured/low/2Story_Sidehouse.glb",
+        "file": "building_2Story_Sidehouse.glb",
+        "url": "assets/buildings/textured/low/building_2Story_Sidehouse.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Sign.glb",
-        "url": "assets/buildings/textured/low/2Story_Sign.glb",
+        "file": "building_2Story_Sign.glb",
+        "url": "assets/buildings/textured/low/building_2Story_Sign.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Slim.glb",
-        "url": "assets/buildings/textured/low/2Story_Slim.glb",
+        "file": "building_2Story_Slim.glb",
+        "url": "assets/buildings/textured/low/building_2Story_Slim.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Stairs.glb",
-        "url": "assets/buildings/textured/low/2Story_Stairs.glb",
+        "file": "building_2Story_Stairs.glb",
+        "url": "assets/buildings/textured/low/building_2Story_Stairs.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Wide.glb",
-        "url": "assets/buildings/textured/low/2Story_Wide.glb",
+        "file": "building_2Story_Wide.glb",
+        "url": "assets/buildings/textured/low/building_2Story_Wide.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Wide_2Doors.glb",
-        "url": "assets/buildings/textured/low/2Story_Wide_2Doors.glb",
+        "file": "building_2Story_Wide_2Doors.glb",
+        "url": "assets/buildings/textured/low/building_2Story_Wide_2Doors.glb",
         "unit": 41.86
       },
       {
-        "file": "3Story_Balcony.glb",
-        "url": "assets/buildings/textured/low/3Story_Balcony.glb",
+        "file": "building_3Story_Balcony.glb",
+        "url": "assets/buildings/textured/low/building_3Story_Balcony.glb",
         "unit": 41.86
       },
       {
-        "file": "3Story_Slim.glb",
-        "url": "assets/buildings/textured/low/3Story_Slim.glb",
+        "file": "building_3Story_Slim.glb",
+        "url": "assets/buildings/textured/low/building_3Story_Slim.glb",
         "unit": 41.86
       },
       {
-        "file": "3Story_Small.glb",
-        "url": "assets/buildings/textured/low/3Story_Small.glb",
+        "file": "building_3Story_Small.glb",
+        "url": "assets/buildings/textured/low/building_3Story_Small.glb",
         "unit": 41.86
       },
       {
-        "file": "4Story.glb",
-        "url": "assets/buildings/textured/low/4Story.glb",
+        "file": "building_4Story.glb",
+        "url": "assets/buildings/textured/low/building_4Story.glb",
         "unit": 41.86
       },
       {
-        "file": "4Story_Center.glb",
-        "url": "assets/buildings/textured/low/4Story_Center.glb",
+        "file": "building_4Story_Center.glb",
+        "url": "assets/buildings/textured/low/building_4Story_Center.glb",
         "unit": 41.86
       },
       {
-        "file": "4Story_Wide_2Doors.glb",
-        "url": "assets/buildings/textured/low/4Story_Wide_2Doors.glb",
+        "file": "building_4Story_Wide_2Doors.glb",
+        "url": "assets/buildings/textured/low/building_4Story_Wide_2Doors.glb",
         "unit": 41.86
       },
       {
-        "file": "4Story_Wide_2Doors_Roof.glb",
-        "url": "assets/buildings/textured/low/4Story_Wide_2Doors_Roof.glb",
+        "file": "building_4Story_Wide_2Doors_Roof.glb",
+        "url": "assets/buildings/textured/low/building_4Story_Wide_2Doors_Roof.glb",
         "unit": 41.86
       },
       {
-        "file": "6Story_Stack.glb",
-        "url": "assets/buildings/textured/low/6Story_Stack.glb",
+        "file": "building_6Story_Stack.glb",
+        "url": "assets/buildings/textured/low/building_6Story_Stack.glb",
         "unit": 41.86
       }
     ]
@@ -2452,133 +2452,133 @@ export const KITS = [
     "label": "Textured Medium",
     "files": [
       {
-        "file": "1Story.glb",
-        "url": "assets/buildings/textured/medium/1Story.glb",
+        "file": "building_1Story.glb",
+        "url": "assets/buildings/textured/medium/building_1Story.glb",
         "unit": 41.86
       },
       {
-        "file": "1Story_GableRoof.glb",
-        "url": "assets/buildings/textured/medium/1Story_GableRoof.glb",
+        "file": "building_1Story_GableRoof.glb",
+        "url": "assets/buildings/textured/medium/building_1Story_GableRoof.glb",
         "unit": 41.86
       },
       {
-        "file": "1Story_RoundRoof.glb",
-        "url": "assets/buildings/textured/medium/1Story_RoundRoof.glb",
+        "file": "building_1Story_RoundRoof.glb",
+        "url": "assets/buildings/textured/medium/building_1Story_RoundRoof.glb",
         "unit": 41.86
       },
       {
-        "file": "1Story_Sign.glb",
-        "url": "assets/buildings/textured/medium/1Story_Sign.glb",
+        "file": "building_1Story_Sign.glb",
+        "url": "assets/buildings/textured/medium/building_1Story_Sign.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story.glb",
-        "url": "assets/buildings/textured/medium/2Story.glb",
+        "file": "building_2Story.glb",
+        "url": "assets/buildings/textured/medium/building_2Story.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_2.glb",
-        "url": "assets/buildings/textured/medium/2Story_2.glb",
+        "file": "building_2Story_2.glb",
+        "url": "assets/buildings/textured/medium/building_2Story_2.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Balcony.glb",
-        "url": "assets/buildings/textured/medium/2Story_Balcony.glb",
+        "file": "building_2Story_Balcony.glb",
+        "url": "assets/buildings/textured/medium/building_2Story_Balcony.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Center.glb",
-        "url": "assets/buildings/textured/medium/2Story_Center.glb",
+        "file": "building_2Story_Center.glb",
+        "url": "assets/buildings/textured/medium/building_2Story_Center.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Columns.glb",
-        "url": "assets/buildings/textured/medium/2Story_Columns.glb",
+        "file": "building_2Story_Columns.glb",
+        "url": "assets/buildings/textured/medium/building_2Story_Columns.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Double.glb",
-        "url": "assets/buildings/textured/medium/2Story_Double.glb",
+        "file": "building_2Story_Double.glb",
+        "url": "assets/buildings/textured/medium/building_2Story_Double.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_GableRoof.glb",
-        "url": "assets/buildings/textured/medium/2Story_GableRoof.glb",
+        "file": "building_2Story_GableRoof.glb",
+        "url": "assets/buildings/textured/medium/building_2Story_GableRoof.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_RoundRoof.glb",
-        "url": "assets/buildings/textured/medium/2Story_RoundRoof.glb",
+        "file": "building_2Story_RoundRoof.glb",
+        "url": "assets/buildings/textured/medium/building_2Story_RoundRoof.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Sidehouse.glb",
-        "url": "assets/buildings/textured/medium/2Story_Sidehouse.glb",
+        "file": "building_2Story_Sidehouse.glb",
+        "url": "assets/buildings/textured/medium/building_2Story_Sidehouse.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Sign.glb",
-        "url": "assets/buildings/textured/medium/2Story_Sign.glb",
+        "file": "building_2Story_Sign.glb",
+        "url": "assets/buildings/textured/medium/building_2Story_Sign.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Slim.glb",
-        "url": "assets/buildings/textured/medium/2Story_Slim.glb",
+        "file": "building_2Story_Slim.glb",
+        "url": "assets/buildings/textured/medium/building_2Story_Slim.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Stairs.glb",
-        "url": "assets/buildings/textured/medium/2Story_Stairs.glb",
+        "file": "building_2Story_Stairs.glb",
+        "url": "assets/buildings/textured/medium/building_2Story_Stairs.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Wide.glb",
-        "url": "assets/buildings/textured/medium/2Story_Wide.glb",
+        "file": "building_2Story_Wide.glb",
+        "url": "assets/buildings/textured/medium/building_2Story_Wide.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Wide_2Doors.glb",
-        "url": "assets/buildings/textured/medium/2Story_Wide_2Doors.glb",
+        "file": "building_2Story_Wide_2Doors.glb",
+        "url": "assets/buildings/textured/medium/building_2Story_Wide_2Doors.glb",
         "unit": 41.86
       },
       {
-        "file": "3Story_Balcony.glb",
-        "url": "assets/buildings/textured/medium/3Story_Balcony.glb",
+        "file": "building_3Story_Balcony.glb",
+        "url": "assets/buildings/textured/medium/building_3Story_Balcony.glb",
         "unit": 41.86
       },
       {
-        "file": "3Story_Slim.glb",
-        "url": "assets/buildings/textured/medium/3Story_Slim.glb",
+        "file": "building_3Story_Slim.glb",
+        "url": "assets/buildings/textured/medium/building_3Story_Slim.glb",
         "unit": 41.86
       },
       {
-        "file": "3Story_Small.glb",
-        "url": "assets/buildings/textured/medium/3Story_Small.glb",
+        "file": "building_3Story_Small.glb",
+        "url": "assets/buildings/textured/medium/building_3Story_Small.glb",
         "unit": 41.86
       },
       {
-        "file": "4Story.glb",
-        "url": "assets/buildings/textured/medium/4Story.glb",
+        "file": "building_4Story.glb",
+        "url": "assets/buildings/textured/medium/building_4Story.glb",
         "unit": 41.86
       },
       {
-        "file": "4Story_Center.glb",
-        "url": "assets/buildings/textured/medium/4Story_Center.glb",
+        "file": "building_4Story_Center.glb",
+        "url": "assets/buildings/textured/medium/building_4Story_Center.glb",
         "unit": 41.86
       },
       {
-        "file": "4Story_Wide_2Doors.glb",
-        "url": "assets/buildings/textured/medium/4Story_Wide_2Doors.glb",
+        "file": "building_4Story_Wide_2Doors.glb",
+        "url": "assets/buildings/textured/medium/building_4Story_Wide_2Doors.glb",
         "unit": 41.86
       },
       {
-        "file": "4Story_Wide_2Doors_Roof.glb",
-        "url": "assets/buildings/textured/medium/4Story_Wide_2Doors_Roof.glb",
+        "file": "building_4Story_Wide_2Doors_Roof.glb",
+        "url": "assets/buildings/textured/medium/building_4Story_Wide_2Doors_Roof.glb",
         "unit": 41.86
       },
       {
-        "file": "6Story_Stack.glb",
-        "url": "assets/buildings/textured/medium/6Story_Stack.glb",
+        "file": "building_6Story_Stack.glb",
+        "url": "assets/buildings/textured/medium/building_6Story_Stack.glb",
         "unit": 41.86
       }
     ]
@@ -2588,133 +2588,133 @@ export const KITS = [
     "label": "Textured High",
     "files": [
       {
-        "file": "1Story.glb",
-        "url": "assets/buildings/textured/high/1Story.glb",
+        "file": "building_1Story.glb",
+        "url": "assets/buildings/textured/high/building_1Story.glb",
         "unit": 41.86
       },
       {
-        "file": "1Story_GableRoof.glb",
-        "url": "assets/buildings/textured/high/1Story_GableRoof.glb",
+        "file": "building_1Story_GableRoof.glb",
+        "url": "assets/buildings/textured/high/building_1Story_GableRoof.glb",
         "unit": 41.86
       },
       {
-        "file": "1Story_RoundRoof.glb",
-        "url": "assets/buildings/textured/high/1Story_RoundRoof.glb",
+        "file": "building_1Story_RoundRoof.glb",
+        "url": "assets/buildings/textured/high/building_1Story_RoundRoof.glb",
         "unit": 41.86
       },
       {
-        "file": "1Story_Sign.glb",
-        "url": "assets/buildings/textured/high/1Story_Sign.glb",
+        "file": "building_1Story_Sign.glb",
+        "url": "assets/buildings/textured/high/building_1Story_Sign.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story.glb",
-        "url": "assets/buildings/textured/high/2Story.glb",
+        "file": "building_2Story.glb",
+        "url": "assets/buildings/textured/high/building_2Story.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_2.glb",
-        "url": "assets/buildings/textured/high/2Story_2.glb",
+        "file": "building_2Story_2.glb",
+        "url": "assets/buildings/textured/high/building_2Story_2.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Balcony.glb",
-        "url": "assets/buildings/textured/high/2Story_Balcony.glb",
+        "file": "building_2Story_Balcony.glb",
+        "url": "assets/buildings/textured/high/building_2Story_Balcony.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Center.glb",
-        "url": "assets/buildings/textured/high/2Story_Center.glb",
+        "file": "building_2Story_Center.glb",
+        "url": "assets/buildings/textured/high/building_2Story_Center.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Columns.glb",
-        "url": "assets/buildings/textured/high/2Story_Columns.glb",
+        "file": "building_2Story_Columns.glb",
+        "url": "assets/buildings/textured/high/building_2Story_Columns.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Double.glb",
-        "url": "assets/buildings/textured/high/2Story_Double.glb",
+        "file": "building_2Story_Double.glb",
+        "url": "assets/buildings/textured/high/building_2Story_Double.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_GableRoof.glb",
-        "url": "assets/buildings/textured/high/2Story_GableRoof.glb",
+        "file": "building_2Story_GableRoof.glb",
+        "url": "assets/buildings/textured/high/building_2Story_GableRoof.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_RoundRoof.glb",
-        "url": "assets/buildings/textured/high/2Story_RoundRoof.glb",
+        "file": "building_2Story_RoundRoof.glb",
+        "url": "assets/buildings/textured/high/building_2Story_RoundRoof.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Sidehouse.glb",
-        "url": "assets/buildings/textured/high/2Story_Sidehouse.glb",
+        "file": "building_2Story_Sidehouse.glb",
+        "url": "assets/buildings/textured/high/building_2Story_Sidehouse.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Sign.glb",
-        "url": "assets/buildings/textured/high/2Story_Sign.glb",
+        "file": "building_2Story_Sign.glb",
+        "url": "assets/buildings/textured/high/building_2Story_Sign.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Slim.glb",
-        "url": "assets/buildings/textured/high/2Story_Slim.glb",
+        "file": "building_2Story_Slim.glb",
+        "url": "assets/buildings/textured/high/building_2Story_Slim.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Stairs.glb",
-        "url": "assets/buildings/textured/high/2Story_Stairs.glb",
+        "file": "building_2Story_Stairs.glb",
+        "url": "assets/buildings/textured/high/building_2Story_Stairs.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Wide.glb",
-        "url": "assets/buildings/textured/high/2Story_Wide.glb",
+        "file": "building_2Story_Wide.glb",
+        "url": "assets/buildings/textured/high/building_2Story_Wide.glb",
         "unit": 41.86
       },
       {
-        "file": "2Story_Wide_2Doors.glb",
-        "url": "assets/buildings/textured/high/2Story_Wide_2Doors.glb",
+        "file": "building_2Story_Wide_2Doors.glb",
+        "url": "assets/buildings/textured/high/building_2Story_Wide_2Doors.glb",
         "unit": 41.86
       },
       {
-        "file": "3Story_Balcony.glb",
-        "url": "assets/buildings/textured/high/3Story_Balcony.glb",
+        "file": "building_3Story_Balcony.glb",
+        "url": "assets/buildings/textured/high/building_3Story_Balcony.glb",
         "unit": 41.86
       },
       {
-        "file": "3Story_Slim.glb",
-        "url": "assets/buildings/textured/high/3Story_Slim.glb",
+        "file": "building_3Story_Slim.glb",
+        "url": "assets/buildings/textured/high/building_3Story_Slim.glb",
         "unit": 41.86
       },
       {
-        "file": "3Story_Small.glb",
-        "url": "assets/buildings/textured/high/3Story_Small.glb",
+        "file": "building_3Story_Small.glb",
+        "url": "assets/buildings/textured/high/building_3Story_Small.glb",
         "unit": 41.86
       },
       {
-        "file": "4Story.glb",
-        "url": "assets/buildings/textured/high/4Story.glb",
+        "file": "building_4Story.glb",
+        "url": "assets/buildings/textured/high/building_4Story.glb",
         "unit": 41.86
       },
       {
-        "file": "4Story_Center.glb",
-        "url": "assets/buildings/textured/high/4Story_Center.glb",
+        "file": "building_4Story_Center.glb",
+        "url": "assets/buildings/textured/high/building_4Story_Center.glb",
         "unit": 41.86
       },
       {
-        "file": "4Story_Wide_2Doors.glb",
-        "url": "assets/buildings/textured/high/4Story_Wide_2Doors.glb",
+        "file": "building_4Story_Wide_2Doors.glb",
+        "url": "assets/buildings/textured/high/building_4Story_Wide_2Doors.glb",
         "unit": 41.86
       },
       {
-        "file": "4Story_Wide_2Doors_Roof.glb",
-        "url": "assets/buildings/textured/high/4Story_Wide_2Doors_Roof.glb",
+        "file": "building_4Story_Wide_2Doors_Roof.glb",
+        "url": "assets/buildings/textured/high/building_4Story_Wide_2Doors_Roof.glb",
         "unit": 41.86
       },
       {
-        "file": "6Story_Stack.glb",
-        "url": "assets/buildings/textured/high/6Story_Stack.glb",
+        "file": "building_6Story_Stack.glb",
+        "url": "assets/buildings/textured/high/building_6Story_Stack.glb",
         "unit": 41.86
       }
     ]

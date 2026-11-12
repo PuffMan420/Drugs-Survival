@@ -17,6 +17,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { SSAOPass } from "three/addons/postprocessing/SSAOPass.js";
+import { installMaxAnisotropy } from "./anisotropy.js";
 import {
   AO_SKIP_LAYER,
   CAMERA_ANGLE,
@@ -504,6 +505,7 @@ async function start() {
     return;
   }
 
+  installMaxAnisotropy(renderer);
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = NoToneMapping;
   renderer.shadowMap.enabled = true;
@@ -530,7 +532,7 @@ async function start() {
   const scene = new Scene();
   const city = await buildCity(scene, map);
   const zoneRoot = await placeSampleBuildings(scene, map, renderer, savedLayout.pieces, savedLayout.zoneBuildings);
-  await placeTexturedTest(scene);
+  await placeTexturedTest(scene, renderer);
   city.playerMesh.removeFromParent();
   city.playerMesh.geometry.dispose();
   for (const material of city.playerMesh.material) material.dispose();

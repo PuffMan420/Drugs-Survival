@@ -20,6 +20,13 @@
 - Do not rebase or rewrite Git history without explicit permission. There is no blanket requirement to rebase before reporting.
 - Do not use NearestFilter or render at low resolution and upscale.
 
+## Graphics
+
+- Nothing enters the game below the GPU's max anisotropy. The shared helper is `installMaxAnisotropy` in `js/anisotropy.js`. It runs on every texture created after the renderer exists.
+- Do not cap anisotropy.
+- Do not turn mipmaps off, and do not use NearestFilter, to get around this.
+- Skip only textures where anisotropy has no effect: no mipmaps, NearestFilter, render targets, and shadow maps. Leave their filters unchanged.
+
 ## Creative direction
 
 - Browser-based JavaScript and Three.js game with a dynamic, rotating top-down 3D perspective inspired by GTA: Chinatown Wars, but with a unique identity, more detailed graphics, and a cohesive visual style.

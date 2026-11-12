@@ -788,12 +788,36 @@ function disposeGhost(root) {
   root.removeFromParent();
 }
 
+// Textured houses used to be saved as 1Story.glb and the other Story names.
+// The files are building_1Story.glb now. Old saves keep those houses.
+function renamedHouseFile(file) {
+  if (typeof file !== "string" || file.startsWith("building_")) return file;
+  if (/^[1-6]Story.*\.glb$/.test(file)) return `building_${file}`;
+  return file;
+}
+
+function migrateStoredHouseNames(data) {
+  if (!data || !Array.isArray(data.pieces)) return false;
+  let changed = false;
+  for (const piece of data.pieces) {
+    if (!piece || typeof piece.file !== "string") continue;
+    const next = renamedHouseFile(piece.file);
+    if (next === piece.file) continue;
+    piece.file = next;
+    changed = true;
+  }
+  return changed;
+}
+
 function readStoredLayout(key = STORAGE_KEY) {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
     const data = JSON.parse(raw);
     if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+    if (migrateStoredHouseNames(data)) {
+      localStorage.setItem(key, `${JSON.stringify(data, null, 2)}\n`);
+    }
     return layoutFrom(data);
   } catch {
     return null;
@@ -960,25 +984,6 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
 
   function status() {}
 
-  // The camera looks steeply down, so building walls are glancing angles.
-  // Anisotropic samples keep the brick and graffiti maps sharp there.
-  function sharpenBuilding(root) {
-    const anisotropy = renderer.capabilities.getMaxAnisotropy();
-    root.traverse((obj) => {
-      if (!obj.isMesh) return;
-      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-      for (const mat of mats) {
-        if (!mat) continue;
-        for (const key of ["map", "normalMap", "roughnessMap"]) {
-          const tex = mat[key];
-          if (!tex) continue;
-          tex.anisotropy = anisotropy;
-          tex.needsUpdate = true;
-        }
-      }
-    });
-  }
-
   function loadTemplate(kit, file) {
     const key = `${kit}/${file}`;
     const item = catalog.get(key);
@@ -1018,7 +1023,6 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       }
       linearize(scene);
       if (isSignalFile(file)) prepareSignal(scene);
-      if (file.includes("building")) sharpenBuilding(scene);
       if (kit.startsWith("kaykit-")) seatOnGround(scene);
       if (isBuildingFile(file)) rememberBounds(kit, file, scene);
       templates.set(key, scene);
@@ -1125,7 +1129,8 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
 
   function normalize(raw) {
     if (!raw || typeof raw.kit !== "string" || typeof raw.file !== "string") return null;
-    if (!catalog.has(`${raw.kit}/${raw.file}`)) return null;
+    const file = renamedHouseFile(raw.file);
+    if (!catalog.has(`${raw.kit}/${file}`)) return null;
     if (!Number.isFinite(raw.x) || !Number.isFinite(raw.z) || !Number.isInteger(raw.turn)) return null;
     const x = Math.round(Number(raw.x) * 1000) / 1000;
     const z = Math.round(Number(raw.z) * 1000) / 1000;
@@ -1136,7 +1141,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     if (!Number.isFinite(scaleValue) || scaleValue <= 0) return null;
     const record = {
       kit: raw.kit,
-      file: raw.file,
+      file,
       x,
       z,
       turn: turnValue,

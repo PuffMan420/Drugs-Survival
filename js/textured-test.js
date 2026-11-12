@@ -1,11 +1,11 @@
 // TEST ONLY: one Textured Models house next to the spawn so Ted can look at it.
 // Remove this file and its two lines in main.js to undo.
 
-import { Box3, LinearFilter, SRGBColorSpace } from "three";
+import { Box3, LinearFilter, LinearMipmapLinearFilter, SRGBColorSpace } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { TILE } from "./constants.js";
 
-const HOUSE_URL = "./assets/buildings/textured-test/1Story_GableRoof.glb";
+const HOUSE_URL = "./assets/buildings/textured-test/building_1Story_GableRoof.glb";
 // Player height from js/player.js. The door should be about 1.15 times that.
 const PERSON = (71 / 3) * 1.15 * 1.1 * 1.1 * 1.05;
 // The door in the file is about 0.95 tall (frame included).
@@ -18,7 +18,8 @@ const SIDEWALK = 34;
 const WEST_EDGE = 100 * TILE + SIDEWALK;
 const SOUTH_EDGE = 200 * TILE - SIDEWALK;
 
-export async function placeTexturedTest(scene) {
+export async function placeTexturedTest(scene, renderer) {
+  const anisotropy = renderer.capabilities.getMaxAnisotropy();
   try {
     const gltf = await new GLTFLoader().loadAsync(HOUSE_URL);
     const root = gltf.scene;
@@ -27,15 +28,20 @@ export async function placeTexturedTest(scene) {
       if (!obj.isMesh) return;
       obj.castShadow = true;
       obj.receiveShadow = true;
-      const mat = obj.material;
-      mat.toneMapped = false;
-      if (mat.map) {
-        // The texture is a small colour palette. Linear without mipmaps keeps the colours clean.
-        mat.map.colorSpace = SRGBColorSpace;
-        mat.map.magFilter = LinearFilter;
-        mat.map.minFilter = LinearFilter;
-        mat.map.generateMipmaps = false;
-        mat.map.needsUpdate = true;
+      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+      for (const mat of mats) {
+        if (!mat) continue;
+        mat.toneMapped = false;
+        for (const key of ["map", "normalMap", "roughnessMap"]) {
+          const tex = mat[key];
+          if (!tex) continue;
+          if (key === "map") tex.colorSpace = SRGBColorSpace;
+          tex.magFilter = LinearFilter;
+          tex.minFilter = LinearMipmapLinearFilter;
+          tex.generateMipmaps = true;
+          tex.anisotropy = anisotropy;
+          tex.needsUpdate = true;
+        }
       }
     });
     root.scale.setScalar(SCALE);

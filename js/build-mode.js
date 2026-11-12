@@ -44,8 +44,6 @@ const GROUND_Y = 0.2;
 // This drops the foot just under that surface. It is not a shadow bias.
 const SIGNAL_SINK = 0.4;
 const MAP_URL = "./island-map.json";
-const STORAGE_KEY = "island-map";
-const DOWNLOAD_NAME = "island-map.json";
 const SCALE_STEP = 0.25;
 const SCALE_MIN = 0.25;
 const SCALE_MAX = 4;
@@ -86,7 +84,6 @@ const keys = {
   enabled: () => false,
   onB: () => {},
   onR: () => {},
-  onP: () => {},
   onX: () => {},
   onF: () => {},
   onScale: () => {},
@@ -97,7 +94,7 @@ let freeHeld = false;
 window.addEventListener("keydown", (event) => {
   if (menuIsOpen()) return;
   if (event.code === "ShiftLeft") leftShift = true;
-  // Keys typed into the piece search must not walk, save, rotate, resize, or mirror.
+  // Keys typed into the piece search must not walk, rotate, resize, or mirror.
   const typing = searchInput && event.target === searchInput;
   if (event.code === "KeyG" && !typing) freeHeld = true;
   if (typing) return;
@@ -110,11 +107,10 @@ window.addEventListener("keydown", (event) => {
   }
   if (!keys.enabled()) return;
   const direction = brushScale(event);
-  if (event.code !== "KeyR" && event.code !== "KeyP" && event.code !== "KeyX" && event.code !== "KeyF" && direction === 0) return;
+  if (event.code !== "KeyR" && event.code !== "KeyX" && event.code !== "KeyF" && direction === 0) return;
   event.preventDefault();
   event.stopImmediatePropagation();
   if (event.code === "KeyR") keys.onR();
-  else if (event.code === "KeyP") keys.onP();
   else if (event.code === "KeyX") keys.onX();
   else if (event.code === "KeyF") keys.onF();
   else keys.onScale(direction);
@@ -796,37 +792,7 @@ function renamedHouseFile(file) {
   return file;
 }
 
-function migrateStoredHouseNames(data) {
-  if (!data || !Array.isArray(data.pieces)) return false;
-  let changed = false;
-  for (const piece of data.pieces) {
-    if (!piece || typeof piece.file !== "string") continue;
-    const next = renamedHouseFile(piece.file);
-    if (next === piece.file) continue;
-    piece.file = next;
-    changed = true;
-  }
-  return changed;
-}
-
-function readStoredLayout(key = STORAGE_KEY) {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    if (!data || typeof data !== "object" || Array.isArray(data)) return null;
-    if (migrateStoredHouseNames(data)) {
-      localStorage.setItem(key, `${JSON.stringify(data, null, 2)}\n`);
-    }
-    return layoutFrom(data);
-  } catch {
-    return null;
-  }
-}
-
-export async function loadNamedMap(url, storageKey) {
-  const stored = readStoredLayout(storageKey);
-  if (stored) return stored;
+export async function loadNamedMap(url) {
   let data = null;
   try {
     const response = await fetch(url);
@@ -844,8 +810,6 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   group.name = "build";
   scene.add(group);
   const batches = createRoadBatches(group);
-  const storageKey = STORAGE_KEY;
-  const downloadName = DOWNLOAD_NAME;
 
   const loader = new GLTFLoader();
   const templates = new Map();
@@ -881,7 +845,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   panel.hidden = true;
   const info = document.createElement("p");
   info.id = "build-info";
-  info.textContent = "BUILD MODE\nClick = place\nShift + click = place many\nClick a building or placed piece = move\nX = remove\nR = rotate\nHold G = free move, wheel turns\n+ / 0 = bigger / smaller\nF = mirror\nP = save\nWASD = walk\nSearch = type to find pieces\nMouse wheel = zoom";
+  info.textContent = "BUILD MODE\nClick = place\nShift + click = place many\nClick a building or placed piece = move\nX = remove\nR = rotate\nHold G = free move, wheel turns\n+ / 0 = bigger / smaller\nF = mirror\nWASD = walk\nSearch = type to find pieces\nMouse wheel = zoom";
   const search = document.createElement("input");
   search.id = "build-search";
   search.type = "search";
@@ -1159,7 +1123,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     return record;
   }
 
-  const layout = saved || await loadNamedMap(MAP_URL, STORAGE_KEY);
+  const layout = saved || await loadNamedMap(MAP_URL);
   const removedRoads = [];
   const removedKeys = new Set();
   for (const raw of layout.removedRoads) {
@@ -1201,28 +1165,6 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
 
   function round3(value) {
     return Math.round(Number(value) * 1000) / 1000;
-  }
-
-  function zonePayload() {
-    const out = [];
-    if (zoneRoot) {
-      for (const child of zoneRoot.children) {
-        const zone = child.userData.zone;
-        if (!zone || zone.removed) continue;
-        out.push({
-          id: zone.id,
-          x: round3(child.position.x),
-          y: round3(child.position.y),
-          z: round3(child.position.z),
-          ry: round3(child.rotation.y),
-          sx: round3(child.scale.x),
-          sy: round3(child.scale.y),
-          sz: round3(child.scale.z),
-        });
-      }
-    }
-    for (const zone of removedZones) out.push({ id: zone.id, removed: true });
-    return out;
   }
 
   function syncZone(root) {
@@ -1577,23 +1519,6 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     }
   }
 
-  function download() {
-    const body = `${JSON.stringify({ pieces, removedRoads, zoneBuildings: zonePayload() }, null, 2)}\n`;
-    try {
-      localStorage.setItem(storageKey, body);
-    } catch {
-      // The file download below still runs when storage is blocked.
-    }
-    const blob = new Blob([body], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = downloadName;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
-    status(`Downloaded ${downloadName}.`);
-  }
-
   function setViewScale(next) {
     const current = Number.isFinite(next) && next > 0 ? next : 1;
     camera.userData.viewScale = Math.min(VIEW_MAX, Math.max(VIEW_MIN, current));
@@ -1730,7 +1655,6 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     mirror = !mirror;
     if (preview) applyScale(preview, scale, mirror, preview.userData.unit ?? UNIT);
   };
-  keys.onP = () => download();
   keys.onX = () => {
     if (carrying?.zone) {
       removeZone(carrying.root);
@@ -1887,7 +1811,6 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   changed();
   status(enabled ? "Build mode." : "Press B for build mode.");
   return {
-    download,
     pieceCount: () => pieces.length,
     isOpen: () => enabled,
     updateRoads: (camX, camZ, viewScale, spanW, spanH) => {

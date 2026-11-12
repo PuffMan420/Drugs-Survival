@@ -179,7 +179,6 @@ export function mountTouchUi(held, places = [], intent = null) {
     keyButton("KeyF", "f", "F", "Flip"),
     keyButton("NumpadAdd", "+", "+", "Big"),
     keyButton("Digit0", "0", "0", "Small"),
-    keyButton("KeyP", "p", "P", "Save"),
   );
 
   const placeRow = document.createElement("div");

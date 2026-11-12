@@ -525,7 +525,7 @@ async function start() {
   });
   map.island = true;
   fpsEl.textContent = "Loading saved layout…";
-  const savedLayout = await loadNamedMap("./island-map.json", "island-map");
+  const savedLayout = await loadNamedMap("./island-map.json");
   fpsEl.textContent = "Building city…";
   await new Promise((resolve) => requestAnimationFrame(resolve));
 

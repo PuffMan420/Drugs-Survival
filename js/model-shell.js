@@ -49,7 +49,8 @@ export function buildingShell(piece) {
   const maxZ = box.maxZ;
   if (![minX, minY, minZ, maxX, maxY, maxZ].every(Number.isFinite)) return null;
   const pieceScale = piece.scale > 0 ? piece.scale : 1;
-  const scale = PIECE_UNIT * pieceScale;
+  const pieceUnit = piece.unit > 0 ? piece.unit : PIECE_UNIT;
+  const scale = pieceUnit * pieceScale;
   const sx = piece.mirror ? -scale : scale;
   const lx = ((minX + maxX) / 2) * sx;
   const ly = ((minY + maxY) / 2) * scale;

@@ -19867,91 +19867,19 @@
     },
     {
       "kit": "ground",
-      "file": "tiny-grass-07.glb",
-      "x": 79,
-      "z": 246,
-      "turn": 2,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
       "file": "tiny-grass-04.glb",
-      "x": 77,
-      "z": 245,
+      "x": 76,
+      "z": 244,
       "turn": 0,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-01.glb",
-      "x": 75,
-      "z": 245,
-      "turn": 3,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-11.glb",
-      "x": 74,
-      "z": 245,
-      "turn": 3,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 73,
-      "z": 245,
-      "turn": 3,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-13.glb",
-      "x": 72,
-      "z": 245,
-      "turn": 2,
       "scale": 1,
       "mirror": false
     },
     {
       "kit": "ground",
       "file": "tiny-grass-19.glb",
-      "x": 71,
-      "z": 246,
+      "x": 76,
+      "z": 242,
       "turn": 1,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-22.glb",
-      "x": 71,
-      "z": 245,
-      "turn": 2,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-13.glb",
-      "x": 71,
-      "z": 244,
-      "turn": 0,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-11.glb",
-      "x": 72,
-      "z": 244,
-      "turn": 0,
       "scale": 1,
       "mirror": false
     },
@@ -19959,15 +19887,6 @@
       "kit": "ground",
       "file": "tiny-grass-04.glb",
       "x": 72,
-      "z": 246,
-      "turn": 1,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-01.glb",
-      "x": 70,
       "z": 245,
       "turn": 1,
       "scale": 1,
@@ -19998,6 +19917,1176 @@
       "z": 274,
       "turn": 0,
       "scale": 2.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_2Story_GableRoof.glb",
+      "x": 78,
+      "z": 244,
+      "turn": 0,
+      "scale": 1.5,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_2Story_GableRoof__dusty-pink.glb",
+      "x": 74,
+      "z": 244,
+      "turn": 0,
+      "scale": 1.5,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof.glb",
+      "x": 70,
+      "z": 228,
+      "turn": 0,
+      "scale": 1.5,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__tagged-beige.glb",
+      "x": 74,
+      "z": 228,
+      "turn": 0,
+      "scale": 1.5,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__tagged-pink.glb",
+      "x": 78,
+      "z": 228,
+      "turn": 0,
+      "scale": 1.5,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_2Story_Sidehouse.glb",
+      "x": 62,
+      "z": 232,
+      "turn": 1,
+      "scale": 1.5,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "streetlight.glb",
+      "x": 68,
+      "z": 248,
+      "turn": 1,
+      "scale": 1.25,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "streetlight.glb",
+      "x": 80,
+      "z": 248,
+      "turn": 1,
+      "scale": 1.25,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "streetlight.glb",
+      "x": 72,
+      "z": 247,
+      "turn": 1,
+      "scale": 1.25,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "streetlight.glb",
+      "x": 76,
+      "z": 247,
+      "turn": 1,
+      "scale": 1.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_2Story_GableRoof__stained-cream.glb",
+      "x": 70,
+      "z": 244,
+      "turn": 0,
+      "scale": 1.5,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 69,
+      "z": 244,
+      "turn": 1,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 64,
+      "z": 246,
+      "turn": 2,
+      "scale": 0.75,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 245,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-patched.glb",
+      "x": 68,
+      "z": 248,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 246,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 69,
+      "z": 246,
+      "turn": 2,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 69,
+      "z": 247,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 247,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 69,
+      "z": 245,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 69,
+      "z": 243,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 244,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 243,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 70,
+      "z": 245,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 72,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 71,
+      "z": 246,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-patched.glb",
+      "x": 80,
+      "z": 245,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 70,
+      "z": 246,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 70,
+      "z": 247,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 71,
+      "z": 247,
+      "turn": 0,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 73,
+      "z": 247,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 72,
+      "z": 247,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 73,
+      "z": 246,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 74,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 74,
+      "z": 245,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 74,
+      "z": 247,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 75,
+      "z": 247,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 77,
+      "z": 246,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 78,
+      "z": 245,
+      "turn": 2,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 77,
+      "z": 247,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 78,
+      "z": 247,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 79,
+      "z": 247,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 79,
+      "z": 246,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 78,
+      "z": 246,
+      "turn": 0,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 247,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 80,
+      "z": 248,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 76,
+      "z": 247,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 246,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 75,
+      "z": 246,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 76,
+      "z": 246,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 244,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 242,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 240,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 239,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 238,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 80,
+      "z": 237,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 236,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 235,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 234,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 241,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 243,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 79,
+      "z": 245,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 76,
+      "z": 245,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 76,
+      "z": 243,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 72,
+      "z": 242,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 72,
+      "z": 243,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-19.glb",
+      "x": 74,
+      "z": 241,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-20.glb",
+      "x": 77,
+      "z": 240,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-19.glb",
+      "x": 74,
+      "z": 239,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 71,
+      "z": 245,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 73,
+      "z": 245,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 75,
+      "z": 245,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 77,
+      "z": 245,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 71,
+      "z": 244,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 71,
+      "z": 243,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 77,
+      "z": 244,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 77,
+      "z": 243,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 77,
+      "z": 242,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 73,
+      "z": 244,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 72,
+      "z": 244,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 73,
+      "z": 243,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 73,
+      "z": 242,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 75,
+      "z": 242,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 75,
+      "z": 243,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 75,
+      "z": 244,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 71,
+      "z": 242,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 74,
+      "z": 238,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-19.glb",
+      "x": 76,
+      "z": 238,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 71,
+      "z": 240,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 77,
+      "z": 236,
+      "turn": 0,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-19.glb",
+      "x": 71,
+      "z": 237,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-19.glb",
+      "x": 70,
+      "z": 237,
+      "turn": 0,
+      "scale": 0.75,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 72,
+      "z": 236,
+      "turn": 1,
+      "scale": 1.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-19.glb",
+      "x": 72,
+      "z": 237,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 72,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-19.glb",
+      "x": 70,
+      "z": 238,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 71,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 70,
+      "z": 237,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 77,
+      "z": 238,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 78,
+      "z": 238,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 71,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 70,
+      "z": 236,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 70,
+      "z": 235,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 71,
+      "z": 235,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 73,
+      "z": 235,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 74,
+      "z": 235,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 74,
+      "z": 236,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 73,
+      "z": 236,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 75,
+      "z": 235,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 75,
+      "z": 236,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 72,
+      "z": 235,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 242,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 69,
+      "z": 242,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 79,
+      "z": 242,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 79,
+      "z": 243,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 79,
+      "z": 244,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 69,
+      "z": 241,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 69,
+      "z": 240,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 69,
+      "z": 238,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 69,
+      "z": 237,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 69,
+      "z": 236,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 69,
+      "z": 235,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 79,
+      "z": 241,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 79,
+      "z": 240,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 79,
+      "z": 238,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 79,
+      "z": 237,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 79,
+      "z": 235,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 79,
+      "z": 236,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 79,
+      "z": 239,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-07.glb",
+      "x": 69,
+      "z": 239,
+      "turn": 0,
+      "scale": 1,
       "mirror": false
     }
   ],

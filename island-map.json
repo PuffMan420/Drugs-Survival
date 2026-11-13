@@ -19864,6 +19864,141 @@
       "turn": 1,
       "scale": 1,
       "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-07.glb",
+      "x": 79,
+      "z": 246,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 77,
+      "z": 245,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-01.glb",
+      "x": 75,
+      "z": 245,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-11.glb",
+      "x": 74,
+      "z": 245,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 73,
+      "z": 245,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-13.glb",
+      "x": 72,
+      "z": 245,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-19.glb",
+      "x": 71,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-22.glb",
+      "x": 71,
+      "z": 245,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-13.glb",
+      "x": 71,
+      "z": 244,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-11.glb",
+      "x": 72,
+      "z": 244,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 72,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-01.glb",
+      "x": 70,
+      "z": 245,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 77,
+      "z": 248,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "bare-dirt.glb",
+      "x": 74,
+      "z": 275,
+      "turn": 3,
+      "scale": 1.75,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "dry-grass.glb",
+      "x": 73,
+      "z": 274,
+      "turn": 0,
+      "scale": 2.25,
+      "mirror": false
     }
   ],
   "removedRoads": []

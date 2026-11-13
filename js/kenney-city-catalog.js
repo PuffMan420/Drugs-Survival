@@ -2326,6 +2326,90 @@ export const KITS = [
         "unit": 41.86
       },
       {
+        "file": "building_1Story_GableRoof__dusty-beige.glb",
+        "url": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "1-story gable, dusty beige",
+        "houseAlbedo": "assets/buildings/textured/low/skins/1story-dusty-beige.jpg"
+      },
+      {
+        "file": "building_1Story_GableRoof__weathered-cream.glb",
+        "url": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "1-story gable, weathered cream",
+        "houseAlbedo": "assets/buildings/textured/low/skins/1story-weathered-cream.jpg"
+      },
+      {
+        "file": "building_1Story_GableRoof__dusty-pink.glb",
+        "url": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "1-story gable, dusty pink",
+        "houseAlbedo": "assets/buildings/textured/low/skins/1story-dusty-pink.jpg"
+      },
+      {
+        "file": "building_1Story_GableRoof__faded-white.glb",
+        "url": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "1-story gable, faded white",
+        "houseAlbedo": "assets/buildings/textured/low/skins/1story-faded-white.jpg"
+      },
+      {
+        "file": "building_1Story_GableRoof__pale-green-gray.glb",
+        "url": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "1-story gable, pale green-gray",
+        "houseAlbedo": "assets/buildings/textured/low/skins/1story-pale-green-gray.jpg"
+      },
+      {
+        "file": "building_1Story_GableRoof__dirty-mustard.glb",
+        "url": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "1-story gable, dirty mustard",
+        "houseAlbedo": "assets/buildings/textured/low/skins/1story-dirty-mustard.jpg"
+      },
+      {
+        "file": "building_1Story_GableRoof__busted-beige.glb",
+        "url": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "1-story gable, busted beige",
+        "houseAlbedo": "assets/buildings/textured/low/skins/1story-busted-beige.jpg"
+      },
+      {
+        "file": "building_1Story_GableRoof__stained-cream.glb",
+        "url": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "1-story gable, stained cream",
+        "houseAlbedo": "assets/buildings/textured/low/skins/1story-stained-cream.jpg"
+      },
+      {
+        "file": "building_1Story_GableRoof__wrecked-pink.glb",
+        "url": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "1-story gable, wrecked pink",
+        "houseAlbedo": "assets/buildings/textured/low/skins/1story-wrecked-pink.jpg"
+      },
+      {
+        "file": "building_1Story_GableRoof__tagged-beige.glb",
+        "url": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "1-story gable, tagged beige",
+        "houseAlbedo": "assets/buildings/textured/low/skins/1story-tagged-beige.jpg"
+      },
+      {
+        "file": "building_1Story_GableRoof__tagged-cream.glb",
+        "url": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "1-story gable, tagged cream",
+        "houseAlbedo": "assets/buildings/textured/low/skins/1story-tagged-cream.jpg"
+      },
+      {
+        "file": "building_1Story_GableRoof__tagged-pink.glb",
+        "url": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "1-story gable, tagged pink",
+        "houseAlbedo": "assets/buildings/textured/low/skins/1story-tagged-pink.jpg"
+      },
+      {
         "file": "building_1Story_RoundRoof.glb",
         "url": "assets/buildings/textured/low/building_1Story_RoundRoof.glb",
         "unit": 41.86
@@ -2369,6 +2453,90 @@ export const KITS = [
         "file": "building_2Story_GableRoof.glb",
         "url": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
         "unit": 41.86
+      },
+      {
+        "file": "building_2Story_GableRoof__dusty-beige.glb",
+        "url": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "2-story gable, dusty beige",
+        "houseAlbedo": "assets/buildings/textured/low/skins/2story-dusty-beige.jpg"
+      },
+      {
+        "file": "building_2Story_GableRoof__weathered-cream.glb",
+        "url": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "2-story gable, weathered cream",
+        "houseAlbedo": "assets/buildings/textured/low/skins/2story-weathered-cream.jpg"
+      },
+      {
+        "file": "building_2Story_GableRoof__dusty-pink.glb",
+        "url": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "2-story gable, dusty pink",
+        "houseAlbedo": "assets/buildings/textured/low/skins/2story-dusty-pink.jpg"
+      },
+      {
+        "file": "building_2Story_GableRoof__faded-white.glb",
+        "url": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "2-story gable, faded white",
+        "houseAlbedo": "assets/buildings/textured/low/skins/2story-faded-white.jpg"
+      },
+      {
+        "file": "building_2Story_GableRoof__pale-green-gray.glb",
+        "url": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "2-story gable, pale green-gray",
+        "houseAlbedo": "assets/buildings/textured/low/skins/2story-pale-green-gray.jpg"
+      },
+      {
+        "file": "building_2Story_GableRoof__dirty-mustard.glb",
+        "url": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "2-story gable, dirty mustard",
+        "houseAlbedo": "assets/buildings/textured/low/skins/2story-dirty-mustard.jpg"
+      },
+      {
+        "file": "building_2Story_GableRoof__busted-beige.glb",
+        "url": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "2-story gable, busted beige",
+        "houseAlbedo": "assets/buildings/textured/low/skins/2story-busted-beige.jpg"
+      },
+      {
+        "file": "building_2Story_GableRoof__stained-cream.glb",
+        "url": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "2-story gable, stained cream",
+        "houseAlbedo": "assets/buildings/textured/low/skins/2story-stained-cream.jpg"
+      },
+      {
+        "file": "building_2Story_GableRoof__wrecked-pink.glb",
+        "url": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "2-story gable, wrecked pink",
+        "houseAlbedo": "assets/buildings/textured/low/skins/2story-wrecked-pink.jpg"
+      },
+      {
+        "file": "building_2Story_GableRoof__tagged-beige.glb",
+        "url": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "2-story gable, tagged beige",
+        "houseAlbedo": "assets/buildings/textured/low/skins/2story-tagged-beige.jpg"
+      },
+      {
+        "file": "building_2Story_GableRoof__tagged-cream.glb",
+        "url": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "2-story gable, tagged cream",
+        "houseAlbedo": "assets/buildings/textured/low/skins/2story-tagged-cream.jpg"
+      },
+      {
+        "file": "building_2Story_GableRoof__tagged-pink.glb",
+        "url": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
+        "unit": 41.86,
+        "label": "2-story gable, tagged pink",
+        "houseAlbedo": "assets/buildings/textured/low/skins/2story-tagged-pink.jpg"
       },
       {
         "file": "building_2Story_RoundRoof.glb",

@@ -15,6 +15,8 @@ import {
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { AO_SKIP_LAYER, TILE } from "./constants.js";
 import { KITS } from "./kenney-city-catalog.js";
+import { FENCE_KIT } from "./fence-pieces.js";
+import { createGroundTemplate, GROUND_KIT, groundQuarter, isGroundFile } from "./ground-pieces.js";
 import { isBuildingFile, setModelBounds } from "./model-shell.js";
 import { layoutFrom, roadKey, roadRecord } from "./kenney-roads.js";
 import { createRoadBatches, pieceYaw } from "./road-batch.js";
@@ -38,12 +40,17 @@ import { menuIsOpen } from "./start-menu.js";
 // The suburban kit asks for nearest filtering; draw it with linear filtering
 // and leave the file alone.
 const UNIT = 4 * TILE;
-const BUILD_KITS = [...KITS];
+const BUILD_KITS = [GROUND_KIT, FENCE_KIT, ...KITS];
 const GROUND_Y = 0.2;
 // The pole foot's top is the same height as the curb top, so the two fight.
 // This drops the foot just under that surface. It is not a shadow bias.
 const SIGNAL_SINK = 0.4;
 const MAP_URL = "./island-map.json";
+// The live site only reads island-map.json. Saves are sent to the local dev server.
+function canSaveMapLocally() {
+  const host = typeof location === "undefined" ? "" : location.hostname;
+  return host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";
+}
 const SCALE_STEP = 0.25;
 const SCALE_MIN = 0.25;
 const SCALE_MAX = 4;
@@ -63,7 +70,7 @@ function unitFor(kit, file) {
 // Road tiles and traffic lights stay on the grid so cars and signals still line up.
 // Buildings, signs, and loose props can leave the grid.
 function canFree(file) {
-  if (typeof file !== "string" || isSignalFile(file)) return false;
+  if (typeof file !== "string" || isSignalFile(file) || isGroundFile(file)) return false;
   if (file === "bridge-water.glb") return false;
   if (file.startsWith("road-") && !file.startsWith("road-sign")) return false;
   return true;
@@ -131,14 +138,14 @@ function modelUrl(path) {
 const textureLoader = new TextureLoader();
 const skinTextures = new Map();
 
-function loadSkinTexture(url, wrap = ClampToEdgeWrapping) {
+function loadSkinTexture(url, wrap = ClampToEdgeWrapping, flipY = true) {
   if (!url) return Promise.resolve(null);
-  const key = `${wrap}:${url}`;
+  const key = `${flipY ? "y" : "n"}:${wrap}:${url}`;
   const cached = skinTextures.get(key);
   if (cached) return Promise.resolve(cached);
   const pending = textureLoader.loadAsync(modelUrl(url)).then((texture) => {
     texture.colorSpace = SRGBColorSpace;
-    texture.flipY = true;
+    texture.flipY = flipY;
     texture.wrapS = wrap;
     texture.wrapT = wrap;
     texture.magFilter = LinearFilter;
@@ -172,6 +179,26 @@ function skinMeshGuarded(obj, texture) {
   const list = Array.isArray(source) ? source : [source];
   const next = list.map((mat) => (mat && mat.clone ? cloneWithMap(mat, texture) : mat));
   obj.material = Array.isArray(source) ? next : next[0];
+}
+
+// Only the gable-house variants set houseAlbedo. The same picture replaces
+// the wall material and the window glass, so a boarded pane stays on the glass.
+function paintHouseAlbedo(root, texture) {
+  if (!root || !texture) return;
+  root.traverse((obj) => {
+    if (!obj.isMesh || !obj.material) return;
+    const source = obj.material;
+    const list = Array.isArray(source) ? source : [source];
+    let hit = false;
+    const next = list.map((mat) => {
+      if (!mat || typeof mat.clone !== "function") return mat;
+      const name = mat.name || "";
+      if (!name.startsWith("House_") && !name.startsWith("Glass_")) return mat;
+      hit = true;
+      return cloneWithMap(mat, texture);
+    });
+    if (hit) obj.material = Array.isArray(source) ? next : next[0];
+  });
 }
 
 // Triangles are regrouped so each material slot is one draw range. Ramp and
@@ -835,9 +862,15 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   let hover = null;
   let pointerAt = null;
   const removedZones = zoneRoot?.userData.removedZones || [];
+  let mapReady = false;
+  let mapSaveBlocked = false;
+  let mapSaveTimer = 0;
+  let mapSaveWriting = false;
+  let mapSaveDirty = false;
 
   function changed() {
     if (onPiecesChanged) onPiecesChanged(pieces);
+    queueMapSave();
   }
 
   const panel = document.createElement("aside");
@@ -878,6 +911,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     list.append(heading);
     for (const item of kit.files) {
       const name = item.file.replace(/\.glb$/, "");
+      const caption = item.label || name;
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.kit = kit.id;
@@ -892,7 +926,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
         ? `./${thumbUrl}`
         : `./assets/previews/${kit.id}/${name}.png`;
       thumb.addEventListener("error", () => thumb.remove());
-      button.append(thumb, document.createTextNode(name));
+      button.append(thumb, document.createTextNode(caption));
       button.addEventListener("click", () => {
         select(kit.id, item.file);
       });
@@ -955,6 +989,18 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     const cached = templates.get(key);
     if (cached?.isObject3D) return Promise.resolve(cached);
     if (cached) return cached;
+    if (item.ground) {
+      const pending = loadSkinTexture(item.texture, RepeatWrapping).then((texture) => {
+        const scene = createGroundTemplate(texture);
+        templates.set(key, scene);
+        return scene;
+      }).catch((error) => {
+        if (templates.get(key) === pending) templates.delete(key);
+        throw error;
+      });
+      templates.set(key, pending);
+      return pending;
+    }
     const pending = loader.loadAsync(modelUrl(item.url)).then(async (gltf) => {
       const scene = gltf.scene;
       if (item.skin === "bridge") {
@@ -976,6 +1022,9 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
           sideTextureB,
           barrierTexture,
         });
+      } else if (item.houseAlbedo) {
+        const albedo = await loadSkinTexture(item.houseAlbedo, ClampToEdgeWrapping, false);
+        paintHouseAlbedo(scene, albedo);
       } else if (item.texture) {
         const texture = await loadSkinTexture(item.texture);
         const mesh = item.url.slice(item.url.lastIndexOf("/") + 1);
@@ -988,6 +1037,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       linearize(scene);
       if (isSignalFile(file)) prepareSignal(scene);
       if (kit.startsWith("kaykit-")) seatOnGround(scene);
+      if (kit === "fences") seatFence(scene);
       if (isBuildingFile(file)) rememberBounds(kit, file, scene);
       templates.set(key, scene);
       return scene;
@@ -1006,6 +1056,18 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     const box = new Box3().setFromObject(root);
     if (box.isEmpty() || !(box.min.y < -0.001)) return;
     root.position.y -= box.min.y;
+    root.updateMatrixWorld(true);
+  }
+
+  // Fence files use mixed origins. One handle is parked 11 m off to the side.
+  // Center the loaded copy on the cell and sit its bottom on the ground.
+  function seatFence(root) {
+    root.updateMatrixWorld(true);
+    const box = new Box3().setFromObject(root);
+    if (box.isEmpty()) return;
+    root.position.x -= (box.min.x + box.max.x) / 2;
+    root.position.y -= box.min.y;
+    root.position.z -= (box.min.z + box.max.z) / 2;
     root.updateMatrixWorld(true);
   }
 
@@ -1136,17 +1198,27 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   }
 
   async function loadSaved() {
+    const skipped = [];
     for (const raw of layout.pieces) {
       const spec = normalize(raw);
-      if (!spec) continue;
+      const label = `${raw?.kit || "?"}/${raw?.file || "?"}`;
+      if (!spec) {
+        skipped.push(label);
+        continue;
+      }
       let template = null;
       try {
         template = await loadTemplate(spec.kit, spec.file);
       } catch (error) {
         console.warn(`Road piece failed to load: ${spec.kit}/${spec.file}`, error);
+        skipped.push(label);
         continue;
       }
       addPiece(spec, template);
+    }
+    if (skipped.length > 0) {
+      mapSaveBlocked = true;
+      console.warn("Build mode is not saving. These pieces did not load:", skipped.join(", "));
     }
   }
 
@@ -1167,6 +1239,87 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     return Math.round(Number(value) * 1000) / 1000;
   }
 
+  // A drag sends many moves. Wait until the pointer settles, then write once.
+  function queueMapSave() {
+    if (!mapReady || mapSaveBlocked || !canSaveMapLocally()) return;
+    mapSaveDirty = true;
+    if (mapSaveWriting) return;
+    window.clearTimeout(mapSaveTimer);
+    mapSaveTimer = window.setTimeout(() => {
+      mapSaveTimer = 0;
+      flushMapSave();
+    }, 100);
+  }
+
+  async function flushMapSave() {
+    if (!mapSaveDirty || mapSaveWriting || !canSaveMapLocally()) return;
+    mapSaveDirty = false;
+    mapSaveWriting = true;
+    const body = `${JSON.stringify(mapDocument(), null, 2).replace(/\n/g, "\r\n")}\r\n`;
+    try {
+      const response = await fetch(MAP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+      if (!response.ok) console.warn("Build mode could not save island-map.json.");
+    } catch (error) {
+      console.warn("Build mode could not save island-map.json.", error);
+    } finally {
+      mapSaveWriting = false;
+    }
+    if (mapSaveDirty) queueMapSave();
+  }
+
+  function pieceRecord(record) {
+    const out = {
+      kit: record.kit,
+      file: record.file,
+      x: round3(record.x),
+      z: round3(record.z),
+      turn: record.turn,
+      scale: round3(record.scale ?? 1),
+      mirror: record.mirror === true,
+    };
+    if (record.oneWay === true || record.oneWay === "x" || record.oneWay === "z" || record.oneWay === "back") {
+      out.oneWay = record.oneWay;
+    }
+    if (Number.isFinite(record.yaw) && canFree(record.file)) out.yaw = round3(record.yaw);
+    return out;
+  }
+
+  function zonePayload() {
+    const out = [];
+    if (zoneRoot) {
+      for (const child of zoneRoot.children) {
+        const zone = child.userData.zone;
+        if (!zone || zone.removed) continue;
+        out.push({
+          id: zone.id,
+          x: round3(child.position.x),
+          y: round3(child.position.y),
+          z: round3(child.position.z),
+          ry: round3(child.rotation.y),
+          sx: round3(child.scale.x),
+          sy: round3(child.scale.y),
+          sz: round3(child.scale.z),
+        });
+      }
+    }
+    for (const zone of removedZones) out.push({ id: zone.id, removed: true });
+    return out;
+  }
+
+  function mapDocument() {
+    const mapFile = {
+      pieces: pieces.map(pieceRecord),
+      removedRoads,
+    };
+    const zones = zonePayload();
+    if (zones.length > 0) mapFile.zoneBuildings = zones;
+    return mapFile;
+  }
+
   function syncZone(root) {
     const zone = root?.userData.zone;
     const building = zone?.building;
@@ -1182,6 +1335,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       }
     }
     if (onZoneChanged) onZoneChanged();
+    queueMapSave();
   }
 
   function snappedTurn(record) {
@@ -1404,7 +1558,12 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       yaw = null;
     }
     preview.position.set((cell.x + 0.5) * TILE, pieceY(file), (cell.z + 0.5) * TILE);
-    preview.rotation.y = turn * Math.PI / 2;
+    preview.rotation.y = shownTurn(file, cell.x, cell.z, turn) * Math.PI / 2;
+  }
+
+  function shownTurn(file, x, z, base) {
+    if (!isGroundFile(file)) return base;
+    return (base + groundQuarter(file, x, z)) % 4;
   }
 
   async function place(cell, keep) {
@@ -1415,11 +1574,11 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       turn = snappedTurn({ turn, yaw });
       yaw = null;
     }
-    const placedTurn = turn;
     const placedScale = scale;
     const placedMirror = mirror;
     const placedX = freeing ? clampTile(cell.wx / TILE - 0.5, map.cols) : cell.x;
     const placedZ = freeing ? clampTile(cell.wz / TILE - 0.5, map.rows) : cell.z;
+    const placedTurn = shownTurn(chosen.file, placedX, placedZ, turn);
     const placedYaw = freeing && Number.isFinite(yaw) ? round3(yaw) : null;
     const token = selectToken;
     if (!keep) clearSelection();
@@ -1636,7 +1795,9 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     }
     turn = (snappedTurn({ turn, yaw }) + 1) % 4;
     yaw = null;
-    if (preview) preview.rotation.y = turn * Math.PI / 2;
+    if (preview && hover && selection && isGroundFile(selection.file)) {
+      preview.rotation.y = shownTurn(selection.file, hover.x, hover.z, turn) * Math.PI / 2;
+    } else if (preview) preview.rotation.y = turn * Math.PI / 2;
     status("Rotated.");
   };
   keys.onF = () => {
@@ -1809,6 +1970,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   await loadSaved();
   batches.commit(pieces);
   changed();
+  mapReady = true;
   status(enabled ? "Build mode." : "Press B for build mode.");
   return {
     pieceCount: () => pieces.length,

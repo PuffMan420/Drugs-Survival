@@ -3,7 +3,8 @@
 // sphere is the chunk, so frustum culling drops whole blocks, and the frame
 // hides blocks outside the camera the same way updateChunks hides ground.
 
-import { InstancedMesh, Matrix4, Object3D } from "three";
+import { Color, InstancedMesh, Matrix4, Object3D } from "three";
+import { groundTint } from "./ground-pieces.js";
 import { CHUNK, GROUND_H, GROUND_W, TILE } from "./constants.js";
 
 const UNIT = 4 * TILE;
@@ -117,6 +118,7 @@ export function createRoadBatches(parent) {
   const chunks = new Map();
   const dummy = new Object3D();
   const composed = new Matrix4();
+  const tintColor = new Color();
   let records = [];
 
   function partsFor(template, mirrored) {
@@ -212,9 +214,10 @@ export function createRoadBatches(parent) {
             }
           }
           batch = { count: group.length, parts, meshes: [], records: group };
+          const yard = group[0].kit === "ground";
           for (const part of parts) {
             const mesh = new InstancedMesh(part.geometry, part.material, group.length);
-            mesh.castShadow = true;
+            mesh.castShadow = !yard;
             mesh.receiveShadow = true;
             mesh.frustumCulled = true;
             mesh.matrixAutoUpdate = false;
@@ -234,13 +237,20 @@ export function createRoadBatches(parent) {
           maxX = Math.max(maxX, dummy.position.x + UNIT);
           minZ = Math.min(minZ, dummy.position.z - UNIT);
           maxZ = Math.max(maxZ, dummy.position.z + UNIT);
+          const yard = record.kit === "ground";
+          if (yard) {
+            const tint = groundTint(record.x, record.z);
+            tintColor.setRGB(tint.r, tint.g, tint.b);
+          }
           for (let p = 0; p < parts.length; p += 1) {
             composed.multiplyMatrices(dummy.matrix, parts[p].local);
             batch.meshes[p].setMatrixAt(i, composed);
+            if (yard) batch.meshes[p].setColorAt(i, tintColor);
           }
         }
         for (const mesh of batch.meshes) {
           mesh.instanceMatrix.needsUpdate = true;
+          if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
           mesh.computeBoundingSphere();
         }
       }

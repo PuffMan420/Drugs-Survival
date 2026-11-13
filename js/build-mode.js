@@ -17,6 +17,7 @@ import { AO_SKIP_LAYER, TILE } from "./constants.js";
 import { KITS } from "./kenney-city-catalog.js";
 import { FENCE_KIT } from "./fence-pieces.js";
 import { createGroundTemplate, GROUND_KIT, groundQuarter, isGroundFile } from "./ground-pieces.js";
+import { PARTS_KIT } from "./part-pieces.js";
 import { isBuildingFile, setModelBounds } from "./model-shell.js";
 import { layoutFrom, roadKey, roadRecord } from "./kenney-roads.js";
 import { createRoadBatches, pieceYaw } from "./road-batch.js";
@@ -40,7 +41,13 @@ import { menuIsOpen } from "./start-menu.js";
 // The suburban kit asks for nearest filtering; draw it with linear filtering
 // and leave the file alone.
 const UNIT = 4 * TILE;
-const BUILD_KITS = [GROUND_KIT, FENCE_KIT, ...KITS];
+function kitsWithParts(kits) {
+  const next = kits.slice();
+  const kaykitAt = next.findIndex((kit) => kit.id === "kaykit-low");
+  next.splice(kaykitAt < 0 ? next.length : kaykitAt, 0, PARTS_KIT);
+  return next;
+}
+const BUILD_KITS = kitsWithParts([GROUND_KIT, FENCE_KIT, ...KITS]);
 const GROUND_Y = 0.2;
 // The pole foot's top is the same height as the curb top, so the two fight.
 // This drops the foot just under that surface. It is not a shadow bias.
@@ -1037,7 +1044,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       linearize(scene);
       if (isSignalFile(file)) prepareSignal(scene);
       if (kit.startsWith("kaykit-")) seatOnGround(scene);
-      if (kit === "fences") seatFence(scene);
+      if (kit === "fences" || kit === "parts") seatFence(scene);
       if (isBuildingFile(file)) rememberBounds(kit, file, scene);
       templates.set(key, scene);
       return scene;

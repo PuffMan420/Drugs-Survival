@@ -20516,27 +20516,9 @@
     {
       "kit": "ground",
       "file": "tiny-grass-19.glb",
-      "x": 74,
+      "x": 75,
       "z": 241,
       "turn": 2,
-      "scale": 3,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-20.glb",
-      "x": 77,
-      "z": 240,
-      "turn": 2,
-      "scale": 3,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-19.glb",
-      "x": 74,
-      "z": 239,
-      "turn": 2,
       "scale": 1,
       "mirror": false
     },
@@ -20695,24 +20677,6 @@
     },
     {
       "kit": "ground",
-      "file": "tiny-grass-04.glb",
-      "x": 74,
-      "z": 238,
-      "turn": 2,
-      "scale": 3,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-19.glb",
-      "x": 76,
-      "z": 238,
-      "turn": 3,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
       "file": "tiny-grass-12.glb",
       "x": 71,
       "z": 240,
@@ -20731,60 +20695,6 @@
     },
     {
       "kit": "ground",
-      "file": "tiny-grass-19.glb",
-      "x": 71,
-      "z": 237,
-      "turn": 2,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-19.glb",
-      "x": 70,
-      "z": 237,
-      "turn": 0,
-      "scale": 0.75,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 72,
-      "z": 236,
-      "turn": 1,
-      "scale": 1.25,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-19.glb",
-      "x": 72,
-      "z": 237,
-      "turn": 2,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-03.glb",
-      "x": 72,
-      "z": 238,
-      "turn": 1,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-19.glb",
-      "x": 70,
-      "z": 238,
-      "turn": 2,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
       "file": "tiny-grass-12.glb",
       "x": 71,
       "z": 238,
@@ -20796,8 +20706,8 @@
       "kit": "ground",
       "file": "tiny-grass-12.glb",
       "x": 70,
-      "z": 237,
-      "turn": 1,
+      "z": 238,
+      "turn": 2,
       "scale": 1,
       "mirror": false
     },
@@ -21082,11 +20992,236 @@
     },
     {
       "kit": "ground",
-      "file": "tiny-grass-07.glb",
+      "file": "tiny-grass-04.glb",
       "x": 69,
+      "z": 239,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 70,
+      "z": 237,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 74,
+      "z": 238,
+      "turn": 3,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 76,
+      "z": 238,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 76,
       "z": 239,
       "turn": 0,
       "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 77,
+      "z": 240,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 78,
+      "z": 239,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 76,
+      "z": 241,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 78,
+      "z": 240,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 76,
+      "z": 240,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 77,
+      "z": 239,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 77,
+      "z": 241,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 71,
+      "z": 237,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 72,
+      "z": 236,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 72,
+      "z": 238,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 72,
+      "z": 237,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 73,
+      "z": 240,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 74,
+      "z": 240,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 75,
+      "z": 240,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 73,
+      "z": 241,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 74,
+      "z": 241,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 78,
+      "z": 241,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__wrecked-pink.glb",
+      "x": 72,
+      "z": 223,
+      "turn": 0,
+      "scale": 1.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 75,
+      "z": 223,
+      "turn": 0,
+      "scale": 1.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__weathered-cream.glb",
+      "x": 78,
+      "z": 223,
+      "turn": 0,
+      "scale": 1.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__stained-cream.glb",
+      "x": 69,
+      "z": 223,
+      "turn": 0,
+      "scale": 1.25,
       "mirror": false
     }
   ],

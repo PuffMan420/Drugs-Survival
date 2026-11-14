@@ -13,12 +13,11 @@ import { tileHash } from "./cells.js";
 import { clearBuildingsFromRoads, planKenneyRoads } from "./kenney-road-plan.js";
 import { createTextures } from "./textures.js";
 
-const flat = { toneMapped: false };
 // Water sits below the ground. The old quay used this same height.
 const WATER_Y = -58;
 
 function makeMaterial(texture, extra = {}) {
-  return new MeshBasicMaterial({ map: texture, side: FrontSide, ...flat, ...extra });
+  return new MeshBasicMaterial({ map: texture, side: FrontSide, ...extra });
 }
 
 function createMaterials(textures) {
@@ -26,7 +25,7 @@ function createMaterials(textures) {
   for (const [key, texture] of Object.entries(textures.ground)) {
     ground[key] = makeMaterial(texture, { side: DoubleSide });
   }
-  const tree = new MeshBasicMaterial({ vertexColors: true, side: FrontSide, ...flat });
+  const tree = new MeshBasicMaterial({ vertexColors: true, side: FrontSide });
   return { ground, tree };
 }
 
@@ -150,8 +149,8 @@ function buildChunk(map, cx, cz, materials, plan) {
 
 function makePlayer() {
   const geometry = new BoxGeometry(PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE);
-  const side = new MeshBasicMaterial({ color: 0xe0a000, ...flat });
-  const top = new MeshBasicMaterial({ color: 0xffe14a, ...flat });
+  const side = new MeshBasicMaterial({ color: 0xe0a000 });
+  const top = new MeshBasicMaterial({ color: 0xffe14a });
   const mesh = new Mesh(geometry, [side, side, top, side, side, side]);
   mesh.position.y = PLAYER_SIZE / 2;
   return mesh;

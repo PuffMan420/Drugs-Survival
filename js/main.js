@@ -1,22 +1,34 @@
 import {
   AdditiveBlending,
+  ACESFilmicToneMapping,
+  AgXToneMapping,
   DirectionalLight,
   DoubleSide,
+  Fog,
+  HalfFloatType,
   HemisphereLight,
   MeshLambertMaterial,
   MeshStandardMaterial,
-  NoToneMapping,
-  PCFShadowMap,
+  PCFSoftShadowMap,
   PerspectiveCamera,
   SRGBColorSpace,
   Scene,
+  Vector2,
   Vector3,
+  VSMShadowMap,
   WebGLRenderer,
+  WebGLRenderTarget,
 } from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+import { SMAAPass } from "three/addons/postprocessing/SMAAPass.js";
 import { SSAOPass } from "three/addons/postprocessing/SSAOPass.js";
+import { TAARenderPass } from "three/addons/postprocessing/TAARenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { HorizontalTiltShiftShader } from "three/addons/shaders/HorizontalTiltShiftShader.js";
+import { VerticalTiltShiftShader } from "three/addons/shaders/VerticalTiltShiftShader.js";
 import { installMaxAnisotropy } from "./anisotropy.js";
 import {
   AO_SKIP_LAYER,
@@ -52,9 +64,14 @@ import { bindPistolTouch, displayFrame, isTouchScreen, mountTouchUi } from "./to
 const NEAR = 10;
 // Wide enough to see the far shore from a camera sitting over the near one.
 const FAR = 48000;
-// Lambert shades by irradiance / PI. These scales keep sunlit streets about as
-// bright as the old unlit materials, with the hemisphere doing most of the work.
+// Lambert shades by irradiance / PI. These scales keep a sunlit street in a
+// similar range to the old unlit materials, with the sun carrying more of the day.
 const LAMBERT = Math.PI;
+// Dusty daytime haze. The camera sits a few thousand units out, so this starts
+// near the lens and the far island is gone by the far distance.
+const DAY_HAZE = 0xc6bba8;
+const FOG_NEAR = 2000;
+const FOG_FAR = 8000;
 // Full shadow still leaves the hemisphere. This scales that fill down in
 // shadow only, so sunlit ground stays put and the cast reads darker.
 const SHADOW_FILL = 0.45;
@@ -62,9 +79,18 @@ const SHADOW_FILL = 0.45;
 // fall southeast, which is the lower right of this north-facing view.
 // A slightly lower sun lets that cast clear the footprint.
 const SUN_DISTANCE = 1800;
+// The shadow box is the ground on screen, plus this margin, and tall enough
+// for roofs. It follows the player, so the 4096 map stays on that small patch.
+const SHADOW_MARGIN = 120;
+const SHADOW_ROOF = 360;
 // Daytime stays the high northwest sun. ?light=afternoon lowers and warms it.
 const lookPreview = parseLookPreview(window.location.search);
 const SUN_DIR = sunDirection(lookPreview?.afternoon === true);
+// ?fx=off skips the diorama stack so the plain picture can be compared.
+const fxOn = new URLSearchParams(window.location.search).get("fx") !== "off";
+// Composer targets are multisampled. The drawing buffer is also up to 2x.
+const MSAA_SAMPLES = 8;
+const drawSize = new Vector2();
 
 const canvas = document.getElementById("view");
 const fpsEl = document.getElementById("fps");
@@ -156,11 +182,25 @@ function lockPixelProjection(camera, viewFor) {
     // viewFor widens that frame: 5% on foot, 20% in a car, eased over 2 seconds.
     const view = viewFor();
     const scale = (camera.near / CAMERA_RADIUS) * view;
+    let left = (-spanW / 2) * scale;
+    let right = (spanW / 2) * scale;
+    let top = (spanH / 2) * scale;
+    let bottom = (-spanH / 2) * scale;
+    // TAA jitters by a fraction of a pixel. Honor that offset, or the samples stack in place.
+    const offset = camera.view;
+    if (offset && offset.enabled) {
+      const width = right - left;
+      const height = top - bottom;
+      left += offset.offsetX * width / offset.fullWidth;
+      top -= offset.offsetY * height / offset.fullHeight;
+      right = left + width * offset.width / offset.fullWidth;
+      bottom = top - height * offset.height / offset.fullHeight;
+    }
     camera.projectionMatrix.makePerspective(
-      (-spanW / 2) * scale,
-      (spanW / 2) * scale,
-      (spanH / 2) * scale,
-      (-spanH / 2) * scale,
+      left,
+      right,
+      top,
+      bottom,
       camera.near,
       camera.far,
     );
@@ -179,9 +219,9 @@ let shownCamera = null;
 
 function fitDisplay(renderer) {
   // Same 16:9 frame as the ground the camera shows. Draw it into the canvas
-  // at the window's own pixels, with devicePixelRatio capped at 2. The
-  // occlusion targets use this same drawing-buffer size. A touch screen uses
-  // the whole window instead of the letterbox.
+  // at the window's own pixels, with devicePixelRatio capped at 2 so a 1x
+  // screen is supersampled. The occlusion targets use this same drawing-buffer
+  // size. A touch screen uses the whole window instead of the letterbox.
   const frame = displayFrame(window.innerWidth, window.innerHeight, isTouchScreen(), GROUND_W, GROUND_H);
   spanW = frame.spanW;
   spanH = frame.spanH;
@@ -217,7 +257,6 @@ function litVersion(material) {
     depthWrite: material.depthWrite,
     depthTest: material.depthTest,
     fog: material.fog,
-    toneMapped: false,
   });
   litMaterials.set(material, lit);
   return lit;
@@ -343,37 +382,79 @@ installDeeperShadows(MeshStandardMaterial);
 function createSun(scene, afternoon) {
   const hemi = afternoon
     ? new HemisphereLight(0xffe0c4, 0xc4b8a8, LAMBERT * 0.58)
-    : new HemisphereLight(0xfff8f2, 0xe9eef3, LAMBERT * 1.02);
+    : new HemisphereLight(0xfff2e4, 0xe6dfd4, LAMBERT * 0.7);
   scene.add(hemi);
-  const sun = new DirectionalLight(afternoon ? 0xffb15a : 0xffe2b5, LAMBERT * (afternoon ? 0.42 : 0.24));
+  const sun = new DirectionalLight(afternoon ? 0xffb15a : 0xffd4a6, LAMBERT * (afternoon ? 0.42 : 0.45));
   sun.castShadow = true;
-  // 4096 across a slightly wider box: clearer texels, and casters just
-  // outside the old frame still throw a shadow into the street.
   sun.shadow.mapSize.set(4096, 4096);
-  sun.shadow.bias = -0.00035;
-  sun.shadow.normalBias = 0.8;
-  sun.shadow.radius = 0.6;
+  sun.shadow.bias = -0.0005;
+  sun.shadow.normalBias = 0.02;
+  sun.shadow.radius = fxOn ? 6 : 3;
+  sun.shadow.blurSamples = fxOn ? 16 : 8;
   sun.shadow.intensity = 1;
-  const extent = afternoon ? 3200 : 1500;
   sun.shadow.camera.near = 50;
   sun.shadow.camera.far = afternoon ? 6400 : 4200;
-  sun.shadow.camera.left = -extent;
-  sun.shadow.camera.right = extent;
-  sun.shadow.camera.top = extent;
-  sun.shadow.camera.bottom = -extent;
   sun.shadow.camera.updateProjectionMatrix();
   scene.add(sun);
   scene.add(sun.target);
   return sun;
 }
 
-function placeSun(sun, camX, camZ) {
+const shadowCorner = new Vector3();
+const shadowRight = new Vector3();
+const shadowUp = new Vector3();
+const shadowShift = new Vector3();
+
+function placeSun(sun, playerX, playerZ, viewX, viewZ, halfW, halfH) {
+  // Centre on the player. Reach out to the framed ground, which can sit off
+  // the player at the map edge, plus a small margin.
+  const reachX = Math.abs(viewX - playerX) + halfW + SHADOW_MARGIN;
+  const reachZ = Math.abs(viewZ - playerZ) + halfH + SHADOW_MARGIN;
+  const target = sun.target.position;
+  target.set(playerX, 0, playerZ);
   sun.position.set(
-    camX + SUN_DIR[0] * SUN_DISTANCE,
+    playerX + SUN_DIR[0] * SUN_DISTANCE,
     SUN_DIR[1] * SUN_DISTANCE,
-    camZ + SUN_DIR[2] * SUN_DISTANCE,
+    playerZ + SUN_DIR[2] * SUN_DISTANCE,
   );
-  sun.target.position.set(camX, 0, camZ);
+  const cam = sun.shadow.camera;
+  cam.position.copy(sun.position);
+  cam.up.set(0, 1, 0);
+  cam.lookAt(target);
+  cam.updateMatrixWorld();
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const y of [0, SHADOW_ROOF]) {
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        shadowCorner.set(playerX + sx * reachX, y, playerZ + sz * reachZ);
+        shadowCorner.applyMatrix4(cam.matrixWorldInverse);
+        if (shadowCorner.x < minX) minX = shadowCorner.x;
+        if (shadowCorner.x > maxX) maxX = shadowCorner.x;
+        if (shadowCorner.y < minY) minY = shadowCorner.y;
+        if (shadowCorner.y > maxY) maxY = shadowCorner.y;
+      }
+    }
+  }
+  cam.left = minX;
+  cam.right = maxX;
+  cam.bottom = minY;
+  cam.top = maxY;
+  cam.updateProjectionMatrix();
+  // Whole shadow-map texels. A sub-texel slide is what makes the edge crawl.
+  const map = sun.shadow.mapSize;
+  const texelW = (cam.right - cam.left) / map.x;
+  const texelH = (cam.top - cam.bottom) / map.y;
+  shadowCorner.copy(target).applyMatrix4(cam.matrixWorldInverse);
+  const dx = Math.round(shadowCorner.x / texelW) * texelW - shadowCorner.x;
+  const dy = Math.round(shadowCorner.y / texelH) * texelH - shadowCorner.y;
+  shadowRight.setFromMatrixColumn(cam.matrixWorld, 0);
+  shadowUp.setFromMatrixColumn(cam.matrixWorld, 1);
+  shadowShift.copy(shadowRight).multiplyScalar(dx).addScaledVector(shadowUp, dy);
+  sun.position.add(shadowShift);
+  target.add(shadowShift);
 }
 
 function skipsAmbientOcclusion(material) {
@@ -392,6 +473,32 @@ function omitFromAmbientOcclusion(root) {
   });
 }
 
+const VignetteShader = {
+  name: "Vignette",
+  uniforms: {
+    tDiffuse: { value: null },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    varying vec2 vUv;
+    void main() {
+      vec4 color = texture2D(tDiffuse, vUv);
+      vec2 fromMid = (vUv - 0.5) * vec2(1.15, 1.0);
+      float edge = smoothstep(0.25, 0.72, length(fromMid));
+      color.rgb *= mix(1.0, 0.75, edge);
+      color.rgb *= vec3(1.045, 1.01, 0.96);
+      gl_FragColor = color;
+    }
+  `,
+};
+
 function createAmbientOcclusion(renderer, scene, camera) {
   // The beauty pass sees light cards and shadow sheets. The occlusion camera
   // does not, or those flat cards would read as solid geometry.
@@ -404,67 +511,94 @@ function createAmbientOcclusion(renderer, scene, camera) {
   };
   view.updateProjectionMatrix();
 
+  // The drawing buffer's own antialiasing does not cover a composer target.
   const chain = new EffectComposer(renderer);
-  const gl = renderer.getContext();
-  const maxSamples = gl.MAX_SAMPLES ? gl.getParameter(gl.MAX_SAMPLES) : 0;
-  const samples = maxSamples >= 2 ? Math.min(4, maxSamples) : 0;
-  if (samples > 0) {
-    // Context antialiasing does not cover the composer's targets. Match it
-    // so Kenney edges stay as smooth as the direct render was.
-    chain.renderTarget1.samples = samples;
-    chain.renderTarget2.samples = samples;
+  const bufferW = chain.renderTarget1.width;
+  const bufferH = chain.renderTarget1.height;
+  chain.renderTarget1.dispose();
+  chain.renderTarget2.dispose();
+  chain.renderTarget1 = new WebGLRenderTarget(bufferW, bufferH, {
+    type: HalfFloatType,
+    samples: MSAA_SAMPLES,
+  });
+  chain.renderTarget2 = chain.renderTarget1.clone();
+  chain.renderTarget2.samples = MSAA_SAMPLES;
+  chain.writeBuffer = chain.renderTarget1;
+  chain.readBuffer = chain.renderTarget2;
+
+  let ssao = null;
+  let tiltH = null;
+  let tiltV = null;
+  if (fxOn) {
+    // sampleLevel 2 is four jittered samples every frame. Leaving accumulate
+    // off keeps cars and the player from freezing into the buffer.
+    const taa = new TAARenderPass(scene, camera, DAY_HAZE, 1);
+    taa.sampleLevel = 2;
+    taa.accumulate = false;
+    chain.addPass(taa);
+
+    ssao = new SSAOPass(scene, view);
+    // minDistance and maxDistance are a fraction of this camera's near-to-far
+    // span. 0.002 and 0.08 are the example-camera values, scaled so a curb
+    // still reads and the shade stays local.
+    const exampleSpan = 600;
+    const span = FAR - NEAR;
+    ssao.kernelRadius = 16;
+    ssao.minDistance = 0.002 * exampleSpan / span;
+    ssao.maxDistance = 0.08 * exampleSpan / span;
+    ssao.normalMaterial.side = DoubleSide;
+    const aoStrength = 1.6;
+    ssao.copyMaterial.uniforms.strength = { value: aoStrength };
+    ssao.copyMaterial.fragmentShader = `
+      uniform sampler2D tDiffuse;
+      uniform float strength;
+      varying vec2 vUv;
+      void main() {
+        float ao = texture2D(tDiffuse, vUv).r;
+        ao = clamp(1.0 - (1.0 - ao) * strength, 0.0, 1.0);
+        gl_FragColor = vec4(vec3(ao), 1.0);
+      }
+    `;
+    ssao.copyMaterial.needsUpdate = true;
+    ssao.blurMaterial.fragmentShader = ssao.blurMaterial.fragmentShader.replace(
+      "* texelSize",
+      "* texelSize * 3.0",
+    );
+    ssao.blurMaterial.needsUpdate = true;
+    chain.addPass(ssao);
+    chain.addPass(new SMAAPass());
+    chain.addPass(new UnrealBloomPass(new Vector2(bufferW, bufferH), 0.25, 0.6, 0.85));
+    tiltH = new ShaderPass(HorizontalTiltShiftShader);
+    tiltV = new ShaderPass(VerticalTiltShiftShader);
+    tiltH.uniforms.r.value = 0.5;
+    tiltV.uniforms.r.value = 0.5;
+    chain.addPass(tiltH);
+    chain.addPass(tiltV);
+    chain.addPass(new ShaderPass(VignetteShader));
+  } else {
+    chain.addPass(new RenderPass(scene, camera));
   }
-
-  chain.addPass(new RenderPass(scene, camera));
-
-  const ssao = new SSAOPass(scene, view);
-  // three.js's SSAO example uses kernelRadius 8, minDistance 0.005, and
-  // maxDistance 0.1 across a near/far span of 600. Those distances are
-  // fractions of the span. This camera's span is FAR - NEAR, so the same
-  // world distances stay moderate: a few units of depth noise ignored, and
-  // occluders beyond about 60 units ignored. The radius is in world units.
-  // 20 is a little under half a block, so a wall base or a wheel reads a
-  // bit more clearly than at 16, without shading the whole street.
-  const exampleSpan = 600;
-  const span = FAR - NEAR;
-  ssao.kernelRadius = 20;
-  ssao.minDistance = 0.005 * exampleSpan / span;
-  ssao.maxDistance = 0.1 * exampleSpan / span;
-  // Streets are wound downward and drawn double-sided. The normal material
-  // flips a back face only when its side is DoubleSide, so the hemisphere
-  // stays above the ground instead of darkening every street.
-  ssao.normalMaterial.side = DoubleSide;
-  // The pass multiplies its mask onto the picture and has no strength
-  // control. Open ground stays at 1. A crease of 0.8 becomes 0.68: the
-  // doubled darkening, pulled back by 20%.
-  const aoStrength = 1.6;
-  ssao.copyMaterial.uniforms.strength = { value: aoStrength };
-  ssao.copyMaterial.fragmentShader = `
-    uniform sampler2D tDiffuse;
-    uniform float strength;
-    varying vec2 vUv;
-    void main() {
-      float ao = texture2D(tDiffuse, vUv).r;
-      ao = clamp(1.0 - (1.0 - ao) * strength, 0.0, 1.0);
-      gl_FragColor = vec4(vec3(ao), 1.0);
-    }
-  `;
-  ssao.copyMaterial.needsUpdate = true;
-  chain.addPass(ssao);
   chain.addPass(new OutputPass());
 
   return {
     composer: chain,
     render() {
-      view.position.copy(camera.position);
-      view.quaternion.copy(camera.quaternion);
-      view.up.copy(camera.up);
-      view.updateProjectionMatrix();
-      view.updateMatrixWorld();
-      const projection = ssao.ssaoMaterial.uniforms.cameraProjectionMatrix.value;
-      const inverse = ssao.ssaoMaterial.uniforms.cameraInverseProjectionMatrix.value;
-      projection.copy(camera.projectionMatrix);
-      inverse.copy(camera.projectionMatrixInverse);
+      if (tiltH) {
+        renderer.getDrawingBufferSize(drawSize);
+        tiltH.uniforms.h.value = 2 / drawSize.x;
+        tiltV.uniforms.v.value = 2 / drawSize.y;
+      }
+      if (ssao) {
+        view.position.copy(camera.position);
+        view.quaternion.copy(camera.quaternion);
+        view.up.copy(camera.up);
+        view.updateProjectionMatrix();
+        view.updateMatrixWorld();
+        const projection = ssao.ssaoMaterial.uniforms.cameraProjectionMatrix.value;
+        const inverse = ssao.ssaoMaterial.uniforms.cameraInverseProjectionMatrix.value;
+        projection.copy(camera.projectionMatrix);
+        inverse.copy(camera.projectionMatrixInverse);
+      }
       chain.render();
     },
   };
@@ -507,13 +641,14 @@ async function start() {
 
   installMaxAnisotropy(renderer);
   renderer.outputColorSpace = SRGBColorSpace;
-  renderer.toneMapping = NoToneMapping;
+  renderer.toneMapping = fxOn ? ACESFilmicToneMapping : AgXToneMapping;
+  renderer.toneMappingExposure = fxOn ? 1.05 : 1.0;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = PCFShadowMap;
+  renderer.shadowMap.type = fxOn ? VSMShadowMap : PCFSoftShadowMap;
   // The occlusion pass renders the scene again for normals. Shadows are
   // already current after the beauty pass, so that second render skips them.
   renderer.shadowMap.autoUpdate = false;
-  renderer.setClearColor(0x102028, 1);
+  renderer.setClearColor(DAY_HAZE, 1);
   fitDisplay(renderer);
   window.addEventListener("resize", () => fitDisplay(renderer));
   if (isTouchScreen()) window.visualViewport?.addEventListener("resize", () => fitDisplay(renderer));
@@ -530,6 +665,7 @@ async function start() {
   await new Promise((resolve) => requestAnimationFrame(resolve));
 
   const scene = new Scene();
+  scene.fog = new Fog(DAY_HAZE, FOG_NEAR, FOG_FAR);
   const city = await buildCity(scene, map);
   const zoneRoot = await placeSampleBuildings(scene, map, renderer, savedLayout.pieces, savedLayout.zoneBuildings);
   await placeTexturedTest(scene, renderer);
@@ -765,7 +901,7 @@ async function start() {
     updateChunks(city.chunks, camX, camZ, view, spanW, spanH);
     buildMode.updateRoads(camX, camZ, view, spanW, spanH);
     lightVisibleCity(city.chunks);
-    placeSun(sun, camX, camZ);
+    placeSun(sun, player.x, player.z, camX, camZ, halfW, halfH);
     renderer.shadowMap.needsUpdate = true;
     ambient.render();
     minimap.draw(camX, camZ, player.x, player.z, TILE, (spanW * view) / TILE, (spanH * view) / TILE);

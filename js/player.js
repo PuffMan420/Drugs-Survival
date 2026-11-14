@@ -137,7 +137,6 @@ function litMaterials(model) {
       const lit = new MeshLambertMaterial({
         map,
         color: 0xffffff,
-        toneMapped: false,
         fog: false,
         side: source.side ?? DoubleSide,
       });

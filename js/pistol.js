@@ -2,13 +2,21 @@ import {
   BAT_EULER,
   BAT_HAND,
   BAT_HIT,
+  BAT_REACH,
   BAT_SCALE,
+  BAT_SIDE,
   BAT_SWING,
   batHits,
   freshBatWear,
   meleePlaybackRate,
   stepBatWear,
 } from "./bat.js";
+import {
+  BAT_CAR_DAMAGE,
+  BOTTLE_CAR_DAMAGE,
+  PISTOL_CAR_DAMAGE,
+  swingHitsCar,
+} from "./car-damage.js";
 import {
   GRAVITY,
   PUNCH_POSE,
@@ -53,9 +61,19 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 const MAG = 12;
 const SHOT_TIME = 0.2;
+// Six tiles. Shots farther than this do not hit a person or leave a mark on a car.
+const PISTOL_RANGE = 288;
+const PISTOL_DAMAGE = 2;
+const BAT_DAMAGE = 2;
+const BOTTLE_DAMAGE = 2;
+// One punch leaves a pedestrian standing; a second punch drops them.
+const PUNCH_DAMAGE = 1;
 // Long enough for the forearm recoil to read, short enough to retrigger on the next shot.
 const SHOT_POSE = 0.4;
 const RELOAD_TIME = 1.67;
+// Quieter than the gunshot (0.4), so the mag change sits under the action.
+const RELOAD_SOUND_VOLUME = 0.35;
+const RELOAD_SOUND_FILES = ["pistol-reload-1.ogg", "pistol-reload-2.ogg"];
 // A left click while the right button is held can drop the right-button bit for one event.
 const AIM_CHORD = 120;
 const AIM_TAU = 0.08;
@@ -290,6 +308,29 @@ export async function createPistol({
   }, undefined, (error) => {
     console.error("The melee hit sound failed to load", error);
   });
+  const reloadSound = new Audio(listener);
+  reloadSound.setLoop(false);
+  reloadSound.setVolume(RELOAD_SOUND_VOLUME);
+  const reloadBuffers = RELOAD_SOUND_FILES.map(() => null);
+  let lastReloadIndex = -1;
+  RELOAD_SOUND_FILES.forEach((name, i) => {
+    const url = new URL(`../assets/audio/${name}`, import.meta.url).href;
+    new AudioLoader().load(url, (buffer) => {
+      reloadBuffers[i] = buffer;
+    }, undefined, (error) => {
+      console.error("The pistol reload sound failed to load:", name, error);
+    });
+  });
+
+  function pickReloadClip(lastIndex, count, random = Math.random()) {
+    const n = Math.max(1, count | 0);
+    if (n === 1) return 0;
+    if (lastIndex == null || lastIndex < 0 || lastIndex >= n) {
+      return Math.floor(random * n) % n;
+    }
+    const skip = Math.floor(random * (n - 1)) % (n - 1);
+    return skip >= lastIndex ? skip + 1 : skip;
+  }
 
   const crosshair = document.createElement("div");
   crosshair.id = "crosshair";
@@ -334,6 +375,7 @@ export async function createPistol({
     aimDir = null;
     shootLeft = 0;
     poseLeft = 0;
+    if (reloadSound.isPlaying) reloadSound.stop();
     reloadLeft = 0;
     swinging = false;
     swingAge = 0;
@@ -384,6 +426,32 @@ export async function createPistol({
     }
   }
 
+  function playReloadSound() {
+    const loaded = [];
+    for (let i = 0; i < reloadBuffers.length; i += 1) {
+      if (reloadBuffers[i]) loaded.push(i);
+    }
+    if (loaded.length === 0) return;
+    const localLast = loaded.indexOf(lastReloadIndex);
+    const pick = loaded[pickReloadClip(localLast < 0 ? -1 : localLast, loaded.length)];
+    const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;
+    if (!(master > 0)) return;
+    try {
+      if (reloadSound.isPlaying) reloadSound.stop();
+      reloadSound.setBuffer(reloadBuffers[pick]);
+      reloadSound.setVolume(RELOAD_SOUND_VOLUME);
+      reloadSound.play();
+      lastReloadIndex = pick;
+    } catch (error) {
+      console.error("The pistol reload sound failed to play", error);
+    }
+  }
+
+  function beginReload() {
+    reloadLeft = RELOAD_TIME;
+    playReloadSound();
+  }
+
   function puffAt(x, y, z) {
     const sprite = new Sprite(puffMaterial.clone());
     sprite.position.set(x, y, z);
@@ -415,7 +483,7 @@ export async function createPistol({
     for (let i = 0; i < list.length; i += 1) {
       const hit = carRayHit(ray.origin, ray.direction, list[i]);
       if (!hit || (best && hit.t >= best.t)) continue;
-      best = hit;
+      best = { ...hit, car: list[i] };
     }
     return best;
   }
@@ -525,8 +593,8 @@ export async function createPistol({
     stainAt(point.x, flight.groundY, point.z, map);
   }
 
-  function hitsPed(point) {
-    if (!pedestrians || !pedestrians.targets) return false;
+  function hitPedAt(point) {
+    if (!pedestrians || !pedestrians.targets) return null;
     const list = pedestrians.targets();
     for (let i = 0; i < list.length; i += 1) {
       const ped = list[i];
@@ -535,18 +603,26 @@ export async function createPistol({
       if (dx * dx + dz * dz > PED_REACH_SQ) continue;
       const feet = ped.live ? ped.live.holder.position.y : point.y;
       if (point.y < feet - 4 || point.y > feet + 40) continue;
-      return true;
+      return ped;
     }
-    return false;
+    return null;
+  }
+
+  function hitsPed(point) {
+    return hitPedAt(point) != null;
   }
 
   function hitsCar(point) {
-    if (!traffic || !traffic.cars) return false;
+    return hitCarAt(point) != null;
+  }
+
+  function hitCarAt(point) {
+    if (!traffic || !traffic.cars) return null;
     const list = traffic.cars();
     for (let i = 0; i < list.length; i += 1) {
-      if (carContains(point.x, point.y, point.z, list[i])) return true;
+      if (carContains(point.x, point.y, point.z, list[i])) return list[i];
     }
-    return false;
+    return null;
   }
 
   function hitsWall(point) {
@@ -686,11 +762,18 @@ export async function createPistol({
     let connected = false;
     for (const ped of pedestrians.targets()) {
       if (!batHits(from.x, from.z, dirX, dirZ, ped.x, ped.z)) continue;
-      const hurt = pedestrians.hurt(ped, ped.x - from.x, ped.z - from.z);
+      const hurt = pedestrians.hurt(ped, ped.x - from.x, ped.z - from.z, BAT_DAMAGE);
       if (!hurt) continue;
       killed = true;
       connected = true;
       bleed(hurt);
+    }
+    if (traffic && traffic.cars && traffic.hit) {
+      for (const car of traffic.cars()) {
+        if (!swingHitsCar(from.x, from.z, dirX, dirZ, car, BAT_REACH, BAT_SIDE)) continue;
+        const result = traffic.hit(car, BAT_CAR_DAMAGE, "melee");
+        if (result && result.damaged) connected = true;
+      }
     }
     if (connected) playMeleeHit();
     return killed;
@@ -716,7 +799,7 @@ export async function createPistol({
     let connected = false;
     for (const ped of pedestrians.targets()) {
       if (!punchHits(from.x, from.z, dirX, dirZ, ped.x, ped.z)) continue;
-      const hurt = pedestrians.hurt(ped, ped.x - from.x, ped.z - from.z);
+      const hurt = pedestrians.hurt(ped, ped.x - from.x, ped.z - from.z, PUNCH_DAMAGE);
       if (!hurt) continue;
       connected = true;
       bleed(hurt);
@@ -742,7 +825,16 @@ export async function createPistol({
       const point = arcPoint(flight.start, flight.velocity, t, GRAVITY);
       flight.mesh.position.set(point.x, point.y, point.z);
       flight.mesh.rotateZ(step * 9);
-      if (hitsPed(point) || hitsCar(point) || hitsWall(point) || flight.age >= flight.time) {
+      const pedHit = hitPedAt(point);
+      const carHit = pedHit ? null : hitCarAt(point);
+      if (pedHit || carHit || hitsWall(point) || flight.age >= flight.time) {
+        if (pedHit) {
+          const from = player.mesh.position;
+          const hurt = pedestrians.hurt(pedHit, pedHit.x - from.x, pedHit.z - from.z, BOTTLE_DAMAGE);
+          if (hurt) bleed(hurt);
+        } else if (carHit && traffic.hit) {
+          traffic.hit(carHit, BOTTLE_CAR_DAMAGE, "melee");
+        }
         breakBottle(flight, point);
         flights.splice(i, 1);
       }
@@ -774,16 +866,22 @@ export async function createPistol({
     flashLife = FLASH_LIFE;
     playShot();
     traffic.scare(player.mesh.position.x, player.mesh.position.z);
+    if (pedestrians.scare) {
+      pedestrians.scare(player.mesh.position.x, player.mesh.position.z);
+    }
     const hit = pickTarget();
     const car = nearestCar(raycaster.ray);
-    if (car && !(hit && hit.t <= car.t)) {
+    // Range is measured from the player, not the camera (the camera sits far above).
+    const carInRange = car && Math.hypot(car.x - player.mesh.position.x, car.z - player.mesh.position.z) <= PISTOL_RANGE;
+    if (carInRange && !(hit && hit.t <= car.t)) {
       carHitAt(car.x, car.y, car.z);
+      if (traffic.bulletHit && car.car) traffic.bulletHit(car.car, PISTOL_CAR_DAMAGE, car.x, car.z);
     } else if (hit) {
       const from = player.mesh.position;
-      const hurt = pedestrians.hurt(hit.ped, hit.ped.x - from.x, hit.ped.z - from.z);
+      const hurt = pedestrians.hurt(hit.ped, hit.ped.x - from.x, hit.ped.z - from.z, PISTOL_DAMAGE);
       if (hurt) bleed(hurt);
     }
-    if (ammo === 0) reloadLeft = RELOAD_TIME;
+    if (ammo === 0) beginReload();
   }
 
   function pickTarget() {
@@ -806,6 +904,7 @@ export async function createPistol({
       pedBox.setFromObject(ped.live.holder);
       if (!ray.intersectBox(pedBox, pedHit)) continue;
       const t = pedHit.distanceTo(ray.origin);
+      if (Math.hypot(ped.x - player.mesh.position.x, ped.z - player.mesh.position.z) > PISTOL_RANGE) continue;
       if (t < bestT) {
         bestT = t;
         best = ped;
@@ -905,7 +1004,7 @@ export async function createPistol({
     const tag = event.target && event.target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") return;
     if (weapon !== "pistol" || busy() || reloadLeft > 0 || ammo >= MAG) return;
-    reloadLeft = RELOAD_TIME;
+    beginReload();
     shootLeft = 0;
   });
   window.addEventListener("blur", () => {

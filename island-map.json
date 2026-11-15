@@ -19729,15 +19729,6 @@
     },
     {
       "kit": "roads",
-      "file": "road-straight-6.glb",
-      "x": 70,
-      "z": 232,
-      "turn": 2,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "roads",
       "file": "road-straight-4.glb",
       "x": 74,
       "z": 232,
@@ -19827,45 +19818,6 @@
       "mirror": false
     },
     {
-      "kit": "kaykit-props",
-      "file": "car_stationwagon.glb",
-      "x": 76.007,
-      "z": 248.216,
-      "turn": 1,
-      "scale": 1,
-      "mirror": false,
-      "yaw": 3.172
-    },
-    {
-      "kit": "kaykit-props",
-      "file": "car_hatchback.glb",
-      "x": 73.064,
-      "z": 248.184,
-      "turn": 1,
-      "scale": 1,
-      "mirror": false,
-      "yaw": -3.235
-    },
-    {
-      "kit": "kaykit-props",
-      "file": "car_sedan.glb",
-      "x": 71.936,
-      "z": 248.138,
-      "turn": 2,
-      "scale": 1,
-      "mirror": false,
-      "yaw": 2.875
-    },
-    {
-      "kit": "kaykit-props",
-      "file": "car_police.glb",
-      "x": 70,
-      "z": 248,
-      "turn": 1,
-      "scale": 1,
-      "mirror": false
-    },
-    {
       "kit": "ground",
       "file": "tiny-grass-04.glb",
       "x": 76,
@@ -19941,7 +19893,7 @@
       "kit": "textured-low",
       "file": "building_1Story_GableRoof.glb",
       "x": 70,
-      "z": 228,
+      "z": 227,
       "turn": 0,
       "scale": 1.5,
       "mirror": false
@@ -19950,7 +19902,7 @@
       "kit": "textured-low",
       "file": "building_1Story_GableRoof__tagged-beige.glb",
       "x": 74,
-      "z": 228,
+      "z": 227,
       "turn": 0,
       "scale": 1.5,
       "mirror": false
@@ -19959,17 +19911,8 @@
       "kit": "textured-low",
       "file": "building_1Story_GableRoof__tagged-pink.glb",
       "x": 78,
-      "z": 228,
+      "z": 227,
       "turn": 0,
-      "scale": 1.5,
-      "mirror": false
-    },
-    {
-      "kit": "textured-low",
-      "file": "building_2Story_Sidehouse.glb",
-      "x": 62,
-      "z": 232,
-      "turn": 1,
       "scale": 1.5,
       "mirror": false
     },
@@ -20062,15 +20005,6 @@
       "turn": 2,
       "scale": 1,
       "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "asphalt-worn.glb",
-      "x": 69,
-      "z": 246,
-      "turn": 2,
-      "scale": 1,
-      "mirror": true
     },
     {
       "kit": "ground",
@@ -20320,16 +20254,7 @@
       "file": "asphalt-worn.glb",
       "x": 80,
       "z": 247,
-      "turn": 1,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-04.glb",
-      "x": 80,
-      "z": 248,
-      "turn": 1,
+      "turn": 2,
       "scale": 1,
       "mirror": false
     },
@@ -20479,15 +20404,6 @@
     },
     {
       "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 76,
-      "z": 245,
-      "turn": 0,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
       "file": "tiny-grass-04.glb",
       "x": 76,
       "z": 243,
@@ -20519,42 +20435,6 @@
       "x": 75,
       "z": 241,
       "turn": 2,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 71,
-      "z": 245,
-      "turn": 2,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 73,
-      "z": 245,
-      "turn": 3,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 75,
-      "z": 245,
-      "turn": 3,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-04.glb",
-      "x": 77,
-      "z": 245,
-      "turn": 0,
       "scale": 1,
       "mirror": false
     },
@@ -21189,39 +21069,642 @@
       "mirror": false
     },
     {
-      "kit": "textured-low",
-      "file": "building_1Story_GableRoof__wrecked-pink.glb",
+      "kit": "roads",
+      "file": "road-straight-2.glb",
+      "x": 70,
+      "z": 232,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
       "x": 72,
-      "z": 223,
-      "turn": 0,
-      "scale": 1.25,
+      "z": 226,
+      "turn": 1,
+      "scale": 1,
       "mirror": false
     },
     {
-      "kit": "textured-low",
-      "file": "building_1Story_GableRoof__busted-beige.glb",
-      "x": 75,
-      "z": 223,
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 72,
+      "z": 227,
       "turn": 0,
-      "scale": 1.25,
+      "scale": 1,
       "mirror": false
     },
     {
-      "kit": "textured-low",
-      "file": "building_1Story_GableRoof__weathered-cream.glb",
-      "x": 78,
-      "z": 223,
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 76,
+      "z": 228,
       "turn": 0,
-      "scale": 1.25,
+      "scale": 1,
       "mirror": false
     },
     {
-      "kit": "textured-low",
-      "file": "building_1Story_GableRoof__stained-cream.glb",
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 72,
+      "z": 228,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 76,
+      "z": 227,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 76,
+      "z": 226,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 71,
+      "z": 227,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-07.glb",
+      "x": 71,
+      "z": 226,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "detail-bricks-type-a.glb",
       "x": 69,
-      "z": 223,
+      "z": 246,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "pallet.glb",
+      "x": 69,
+      "z": 246,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "concrete-dirty.glb",
+      "x": 77,
+      "z": 228,
       "turn": 0,
-      "scale": 1.25,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "concrete-dirty.glb",
+      "x": 75,
+      "z": 228,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "concrete-dirty.glb",
+      "x": 74,
+      "z": 228,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "concrete-cracked.glb",
+      "x": 70,
+      "z": 228,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "concrete-cracked.glb",
+      "x": 69,
+      "z": 228,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 79,
+      "z": 229,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 78,
+      "z": 229,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 77,
+      "z": 229,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 77,
+      "z": 230,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 78,
+      "z": 230,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 79,
+      "z": 230,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 230,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 229,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 228,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 228,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 227,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 226,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 76,
+      "z": 229,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 76,
+      "z": 230,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 75,
+      "z": 230,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 75,
+      "z": 229,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 74,
+      "z": 229,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 74,
+      "z": 230,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 73,
+      "z": 230,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 73,
+      "z": 229,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 71,
+      "z": 229,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 72,
+      "z": 230,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 71,
+      "z": 230,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 70,
+      "z": 229,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 70,
+      "z": 230,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 69,
+      "z": 230,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 69,
+      "z": 229,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 68,
+      "z": 229,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 68,
+      "z": 230,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 72,
+      "z": 229,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 68,
+      "z": 241,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 68,
+      "z": 240,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 68,
+      "z": 239,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 68,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 68,
+      "z": 237,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 69,
+      "z": 234,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 70,
+      "z": 234,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 235,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 234,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 79,
+      "z": 234,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 78,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 71,
+      "z": 234,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 72,
+      "z": 234,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 73,
+      "z": 234,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 74,
+      "z": 234,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 75,
+      "z": 234,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 76,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 77,
+      "z": 234,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 68,
+      "z": 228,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 71,
+      "z": 245,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 75,
+      "z": 245,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 77,
+      "z": 245,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-07.glb",
+      "x": 80,
+      "z": 248,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 76,
+      "z": 245,
+      "turn": 0,
+      "scale": 1,
       "mirror": false
     }
   ],

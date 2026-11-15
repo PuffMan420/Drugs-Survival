@@ -818,6 +818,45 @@ function disposeGhost(root) {
   root.removeFromParent();
 }
 
+// 1-story gable houses had a plank door baked into the model. Those triangles are
+// removed from the house files, and every placed house gets one of these doors.
+// The door is picked from the house tile, so the same house keeps the same door.
+const GABLE_DOOR_URLS = [
+  "assets/buildings/textured/parts/Door1_dark.glb",
+  "assets/buildings/textured/parts/Door3_dark.glb",
+  "assets/buildings/textured/parts/Door5_dark.glb",
+];
+// The empty door hole in the house file, in file units: x -0.249..0.249,
+// y 0.011..0.935, back wall at z 0.958. The door is fitted a little inside it.
+const GABLE_DOOR_HOLE = { width: 0.492, bottom: 0.011, top: 0.932, back: 0.958 };
+
+function isGableOneStory(file) {
+  return typeof file === "string" && file.startsWith("building_1Story_GableRoof");
+}
+
+function gableDoorIndex(x, z) {
+  let h = Math.imul(Math.round(x * 100), 73856093) ^ Math.imul(Math.round(z * 100), 19349663);
+  h = Math.imul(h ^ (h >>> 13), 0x5bd1e995);
+  h ^= h >>> 15;
+  return (h >>> 0) % GABLE_DOOR_URLS.length;
+}
+
+function fitGableDoor(door) {
+  door.updateMatrixWorld(true);
+  const box = new Box3().setFromObject(door);
+  const size = box.getSize(new Vector3());
+  const sx = GABLE_DOOR_HOLE.width / size.x;
+  const sy = (GABLE_DOOR_HOLE.top - GABLE_DOOR_HOLE.bottom) / size.y;
+  door.scale.set(sx, sy, 1);
+  door.position.set(
+    -((box.min.x + box.max.x) / 2) * sx,
+    GABLE_DOOR_HOLE.bottom - box.min.y * sy,
+    GABLE_DOOR_HOLE.back - box.min.z,
+  );
+  door.updateMatrixWorld(true);
+  return door;
+}
+
 // Textured houses used to be saved as 1Story.glb and the other Story names.
 // The files are building_1Story.glb now. Old saves keep those houses.
 function renamedHouseFile(file) {
@@ -847,6 +886,9 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
 
   const loader = new GLTFLoader();
   const templates = new Map();
+  // Base gable template -> one template per door. Index 0 is the base itself.
+  const gableDoorVariants = new WeakMap();
+  const gableDoors = new Map();
   const pieces = [];
   const signalLamps = new Map();
   const junctions = signals?.junctions || [];
@@ -885,7 +927,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   panel.hidden = true;
   const info = document.createElement("p");
   info.id = "build-info";
-  info.textContent = "BUILD MODE\nClick = place\nShift + click = place many\nClick a building or placed piece = move\nX = remove\nR = rotate\nHold G = free move, wheel turns\n+ / 0 = bigger / smaller\nF = mirror\nWASD = walk\nSearch = type to find pieces\nMouse wheel = zoom";
+  info.textContent = "BUILD MODE\nClick = place\nShift + click = place many\nClick a building or placed piece = move\nClick a piece onto ground = place on top\nX = remove\nR = rotate\nHold G = free move, wheel turns\n+ / 0 = bigger / smaller\nF = mirror\nWASD = walk\nSearch = type to find pieces\nMouse wheel = zoom";
   const search = document.createElement("input");
   search.id = "build-search";
   search.type = "search";
@@ -1041,7 +1083,9 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
         else if (PLANAR_MESH.has(mesh)) paintPlanarSkin(scene, texture);
         else paintStraightSkin(scene, texture);
       }
+      if (isGableOneStory(file)) await addGableDoors(scene);
       linearize(scene);
+      for (const variant of gableDoorVariants.get(scene) || []) if (variant !== scene) linearize(variant);
       if (isSignalFile(file)) prepareSignal(scene);
       if (kit.startsWith("kaykit-")) seatOnGround(scene);
       if (kit === "fences" || kit === "parts") seatFence(scene);
@@ -1054,6 +1098,35 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     });
     templates.set(key, pending);
     return pending;
+  }
+
+  function loadGableDoor(url) {
+    let pending = gableDoors.get(url);
+    if (!pending) {
+      pending = loader.loadAsync(modelUrl(url)).then((gltf) => fitGableDoor(gltf.scene));
+      pending.catch(() => gableDoors.delete(url));
+      gableDoors.set(url, pending);
+    }
+    return pending;
+  }
+
+  async function addGableDoors(scene) {
+    const doors = await Promise.all(GABLE_DOOR_URLS.map(loadGableDoor));
+    const house = scene.clone(true);
+    const variants = doors.map((door, index) => {
+      const root = index === 0 ? scene : house.clone(true);
+      root.add(door.clone(true));
+      root.userData.doorVariant = index;
+      return root;
+    });
+    gableDoorVariants.set(scene, variants);
+  }
+
+  // A placed gable house uses the door picked from its tile.
+  function templateFor(spec, template) {
+    const variants = template ? gableDoorVariants.get(template) : null;
+    if (!variants) return template;
+    return variants[gableDoorIndex(spec.x, spec.z)] || template;
   }
 
   // KayKit cars are authored with the wheels a little below the origin.
@@ -1103,7 +1176,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
 
   function wrapper(template, spec) {
     const root = new Group();
-    root.add(template.clone(true));
+    root.add(templateFor(spec, template).clone(true));
     const unit = spec.unit ?? unitFor(spec.kit, spec.file);
     root.userData.unit = unit;
     applyScale(root, spec.scale ?? 1, spec.mirror === true, unit);
@@ -1130,7 +1203,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       record.oneWay = spec.oneWay;
     }
     if (isSignalFile(record.file)) mountSignal(record, template);
-    else batches.track(record, template);
+    else batches.track(record, templateFor(record, template));
     pieces.push(record);
     return record;
   }
@@ -1885,9 +1958,16 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
         clearSelection();
         if (pickUpZone(zone.root, cell)) return;
       } else if (piece) {
-        clearSelection();
-        pickUp(piece.record, cell);
-        return;
+        // A selected house or prop sits on the yard. Clicking the yard with
+        // nothing selected, or with another ground tile selected, still picks it up.
+        const placeOnGround = selection
+          && selection.kit !== "ground"
+          && piece.record.kit === "ground";
+        if (!placeOnGround) {
+          clearSelection();
+          pickUp(piece.record, cell);
+          return;
+        }
       }
     }
     place(cell, placeMany);

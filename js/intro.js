@@ -30,6 +30,10 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { installMaxAnisotropy } from "./anisotropy.js";
 import { menuRevealed, openMenu } from "./start-menu.js";
 
+if (new URLSearchParams(window.location.search).get("rats") === "fast") {
+  openMenu();
+}
+
 const HOLD = 8;
 const DRIVE = 1.05;
 const SETTLE = 0.5;

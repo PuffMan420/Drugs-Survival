@@ -168,7 +168,9 @@ export function createRoadBatches(parent) {
         bucket = new Map();
         next.set(key, bucket);
       }
-      const fileKey = `${record.kit}/${record.file}${record.mirror ? "#mirror" : ""}`;
+      // Gable houses share a file but not a door, so each door gets its own batch.
+      const door = template.userData?.doorVariant ? `#door${template.userData.doorVariant}` : "";
+      const fileKey = `${record.kit}/${record.file}${door}${record.mirror ? "#mirror" : ""}`;
       let group = bucket.get(fileKey);
       if (!group) {
         group = [];

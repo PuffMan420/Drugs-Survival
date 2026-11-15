@@ -62,6 +62,15 @@ const CLIP_NAMES = {
 };
 const CROWD = 1200;
 const BLOCK = 6;
+// Starting hit points. A fist takes two hits; a bat, pistol, bottle, or a fast car takes one.
+const PED_HP = 2;
+// Damage used when hurt() is not given an amount (bat, pistol, bottle, run-over).
+const KILL_DAMAGE = 2;
+// How far a gunshot scare reaches, and how long those people sprint away.
+const PANIC_RANGE = 900;
+const PANIC_TIME = 6;
+// Cars slower than this (world units per second) shove past without ragdolling anyone.
+const RUNOVER_SPEED = 40;
 
 // The camera sits close to straight down, so the crown and the outfit are
 // what separate a person from the player. These looks replace his hair bun,
@@ -513,6 +522,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
       look: PED_LOOKS[pedLookIndex(index + 3)],
       vary: 0.85 + unitHash(index + 11) * 0.3,
       salt: index + 3,
+      hp: PED_HP,
       calm,
       playing: calm,
       live: null,
@@ -581,6 +591,10 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
   function release(ped) {
     pedHist.delete(ped);
     endRagdoll(ped, true);
+    if (ped.phase === "react") {
+      ped.phase = null;
+      ped.phaseTime = 0;
+    }
     const live = ped.live;
     ped.live = null;
     live.holder.removeFromParent();
@@ -589,6 +603,48 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
   }
 
   let panic = false;
+  let panicLeft = 0;
+  let scareX = 0;
+  let scareZ = 0;
+  let scareArmed = false;
+
+  function fleeing(ped) {
+    if (ped.dead || panicLeft <= 0) return false;
+    if (scareArmed) return Math.hypot(ped.x - scareX, ped.z - scareZ) <= PANIC_RANGE;
+    return panic;
+  }
+
+  function syncPanicClips() {
+    for (const ped of people) {
+      if (ped.dead || !ped.live) continue;
+      if (ped.phase === "react") continue;
+      showClip(ped, fleeing(ped) ? "sprint" : ped.calm);
+    }
+  }
+
+  function setPanic(value) {
+    const next = Boolean(value);
+    if (next) {
+      panic = true;
+      scareArmed = false;
+      if (panicLeft <= 0) panicLeft = PANIC_TIME;
+    } else {
+      panic = false;
+      panicLeft = 0;
+      scareArmed = false;
+    }
+    syncPanicClips();
+  }
+
+  // A gunshot at (x, z). Living peds inside PANIC_RANGE sprint away for PANIC_TIME seconds.
+  function scare(x, z) {
+    scareX = x;
+    scareZ = z;
+    scareArmed = true;
+    panic = true;
+    panicLeft = PANIC_TIME;
+    syncPanicClips();
+  }
 
   function bestAway(tx, tz, dx, dz, playerX, playerZ) {
     const options = graph.neighbors(tx, tz);
@@ -627,7 +683,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
   }
 
   function steer(ped, playerX, playerZ) {
-    if (!panic) return;
+    if (!fleeing(ped)) return;
     const [tx, tz] = tileAt(ped.x, ped.z);
     const best = bestAway(tx, tz, ped.dx, ped.dz, playerX, playerZ);
     if (!best) return;
@@ -658,7 +714,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
         remain -= dist;
       }
       const [tx, tz] = tileAt(ped.x, ped.z);
-      const next = panic
+      const next = fleeing(ped)
         ? bestAway(tx, tz, ped.dx, ped.dz, playerX, playerZ)
         : nextWalk(tx, tz, ped.dx, ped.dz, ped.salt);
       if (!next || (next.x === ped.x && next.z === ped.z)) {
@@ -736,24 +792,36 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);
   }
 
-  function hurt(ped, dirX, dirZ) {
+  function hurt(ped, dirX, dirZ, damage = KILL_DAMAGE) {
     if (!ped || ped.dead || !ped.live) return null;
-    ped.dead = true;
-    ped.settled = false;
-    ped.pooled = false;
-    ped.phase = "hit";
-    ped.phaseTime = 0;
-    ped.hitClip = Math.random() < 0.5 ? "hitChest" : "hitHead";
+    if (ped.hp == null) ped.hp = PED_HP;
+    ped.hp -= damage;
     const len = Math.hypot(dirX, dirZ) || 1;
-    ped.vx = (dirX / len) * 40;
-    ped.vz = (dirZ / len) * 40;
-    showClip(ped, ped.hitClip);
-    return {
+    const hitClip = Math.random() < 0.5 ? "hitChest" : "hitHead";
+    const impact = {
       x: ped.x,
       z: ped.z,
       y: ped.live.holder.position.y + 16,
       ground: sole(ped.x, ped.z) + 0.35,
     };
+    // A punch leaves them on 1 HP. Play the hit, then let update() resume walking.
+    if (ped.hp > 0) {
+      ped.phase = "react";
+      ped.phaseTime = 0;
+      ped.hitClip = hitClip;
+      showClip(ped, hitClip);
+      return impact;
+    }
+    ped.dead = true;
+    ped.settled = false;
+    ped.pooled = false;
+    ped.phase = "hit";
+    ped.phaseTime = 0;
+    ped.hitClip = hitClip;
+    ped.vx = (dirX / len) * 40;
+    ped.vz = (dirZ / len) * 40;
+    showClip(ped, ped.hitClip);
+    return impact;
   }
 
   function endRagdoll(ped, reset) {
@@ -886,7 +954,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     if (cars) {
       for (let i = 0; i < cars.length; i += 1) {
         const motion = carVelocity(cars[i], driven);
-        if (!motion) continue;
+        if (!motion || motion.speed < RUNOVER_SPEED) continue;
         let slot = movingCars[count];
         if (!slot) {
           slot = { car: null, motion: null };
@@ -949,15 +1017,8 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
       }
       return list;
     },
-    setPanic(value) {
-      const next = Boolean(value);
-      if (next === panic) return;
-      panic = next;
-      for (const ped of people) {
-        if (ped.dead) continue;
-        showClip(ped, panic ? "sprint" : ped.calm);
-      }
-    },
+    scare,
+    setPanic,
     ragdollFocus(x, z) {
       if (!rig || !rig.physicsScene) return;
       const awake = ragdolls && ragdolls.active > 0;
@@ -965,6 +1026,10 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     },
     update(dt, playerX, playerZ, spanW = GROUND_W, spanH = GROUND_H) {
       const step = Math.min(Math.max(dt, 0), 0.05);
+      if (panicLeft > 0) {
+        panicLeft = Math.max(0, panicLeft - step);
+        if (panicLeft === 0) setPanic(false);
+      }
       if (ragdolls) ragdolls.maintain(step, playerX, playerZ);
       const enter = viewRect(playerX, playerZ, enterMargin, spanW, spanH);
       const leave = viewRect(playerX, playerZ, leaveMargin, spanW, spanH);
@@ -980,9 +1045,20 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
         }
         if (!ped.live && inRect(ped, enter)) acquire(ped);
         if (!ped.live) continue;
+        // Finish a non-lethal hit in place, then fall through to walking.
+        if (ped.phase === "react") {
+          ped.phaseTime += step;
+          if (ped.phaseTime < duration(ped, ped.hitClip)) {
+            ped.live.mixer.update(step);
+            ped.live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);
+            continue;
+          }
+          ped.phase = null;
+          ped.phaseTime = 0;
+        }
         steer(ped, playerX, playerZ);
         const moving = ped.dx !== 0 || ped.dz !== 0;
-        const gait = moving ? (panic ? "sprint" : ped.calm) : "idle";
+        const gait = moving ? (fleeing(ped) ? "sprint" : ped.calm) : "idle";
         const live = ped.live;
         if (moving) {
           live.holder.rotation.y = Math.atan2(ped.dx, ped.dz);

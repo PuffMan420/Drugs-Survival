@@ -42,6 +42,7 @@ import {
   PLAYER_SIZE,
   TILE,
 } from "./constants.js";
+import { createCarCrashSounds } from "./car-damage.js";
 import { createTraffic } from "./cars.js";
 import { createDrive } from "./drive.js";
 import { createDriveEffects } from "./drive-effects.js";
@@ -49,12 +50,14 @@ import { createPhysics } from "./physics.js";
 import { createPhysicsScene } from "./physics-scene.js";
 import { buildCity, tileAt, tileCenter, updateChunks } from "./city.js";
 import { createPedestrians } from "./pedestrians.js";
+import { createRats, ratsFast } from "./rats.js";
 import { createSidewalkIndex } from "./sidewalk-height.js";
 import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
 import { createPlayer } from "./player.js";
 import { createPistol } from "./pistol.js";
 import { createBuildMode, loadNamedMap } from "./build-mode.js";
+import { placeBlueZone } from "./blue-zone.js";
 import { placeSampleBuildings } from "./sample-buildings.js";
 import { placeTexturedTest } from "./textured-test.js";
 import { parseLookPreview, previewRadius, sunDirection, LOOK_CORNER } from "./look-preview.js";
@@ -669,6 +672,7 @@ async function start() {
   const city = await buildCity(scene, map);
   const zoneRoot = await placeSampleBuildings(scene, map, renderer, savedLayout.pieces, savedLayout.zoneBuildings);
   await placeTexturedTest(scene, renderer);
+  // await placeBlueZone(scene, map, renderer); // blue zone turned off for now
   city.playerMesh.removeFromParent();
   city.playerMesh.geometry.dispose();
   for (const material of city.playerMesh.material) material.dispose();
@@ -696,6 +700,8 @@ async function start() {
     { physics, physicsScene, mobile: isTouchScreen() },
   );
   window.pedestrians = pedestrians;
+  if (traffic.usePeds) traffic.usePeds(pedestrians);
+  window.traffic = traffic;
   const glow = createGlow(scene);
   const sun = createSun(scene, lookPreview?.afternoon === true);
   const minimap = createMinimap(map, ISLAND_JUMPS, savedLayout.pieces);
@@ -715,6 +721,9 @@ async function start() {
   const driveFx = createDriveEffects(scene, camera);
   session.audio = driveFx.listener.context;
   playerSprite.useListener(driveFx.listener);
+  const crashSounds = await createCarCrashSounds(driveFx.listener);
+  if (traffic.useCrashSounds) traffic.useCrashSounds(crashSounds);
+  if (drive.useCrashSounds) drive.useCrashSounds(crashSounds);
   const pistol = await createPistol({
     scene,
     player: playerSprite,
@@ -751,6 +760,13 @@ async function start() {
   });
   await sidewalks.ready;
 
+  const rats = await createRats(scene, map, savedLayout.pieces, (x, z) => {
+    const roadY = traffic.roadHeight(x, z, 0.6);
+    const streetY = roadY == null ? 0.6 : roadY;
+    return sidewalks.feetY(x, z, streetY);
+  }, camera);
+  window.rats = rats;
+
   omitFromAmbientOcclusion(scene);
   const ambient = createAmbientOcclusion(renderer, scene, camera);
   composer = ambient.composer;
@@ -759,6 +775,9 @@ async function start() {
   session.ready = true;
   canvas.tabIndex = 0;
   markMenuReady();
+  if (ratsFast) {
+    document.getElementById("menu-play").click();
+  }
   if (!menuIsOpen()) {
     window.focus();
     canvas.focus({ preventScroll: true });
@@ -822,6 +841,7 @@ async function start() {
     // Ragdolls need the buildings even when nobody is driving.
     pedestrians.ragdollFocus(player.x, player.z);
     physics.step(frameDt);
+    if (drive.mustExit) session.use();
 
     pistol.pre();
     if (drive.driving) {
@@ -890,6 +910,7 @@ async function start() {
     pistol.update(dt);
     pedestrians.runOver(traffic.cars(), drive.driving ? drive.sample() : null);
     pedestrians.update(dt, player.x, player.z, spanW, spanH);
+    rats.update(dt, player.x, player.z, camX, camZ, halfW, halfH);
     camX = frameCenter(snappedX, halfW, city.mapW);
     camZ = frameCenter(snappedZ, halfH, city.mapH);
     glow.update(camX, camZ, traffic.lights(camX, camZ));
@@ -924,6 +945,7 @@ function lookStand(map) {
   let best = null;
   let bestDist = Infinity;
   for (const building of map.buildings || []) {
+    if (building.style === "blue") continue;
     if (!(building.h > 8)) continue;
     const cx = (building.x + building.w / 2) * TILE;
     const cz = (building.z + building.d / 2) * TILE;

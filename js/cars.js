@@ -12,6 +12,16 @@ import {
   Uint32BufferAttribute,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import {
+  applyCarDamage,
+  bulletHitCar,
+  playBulletWorldHitSound,
+  blastPeds,
+  createCarDamageFx,
+  initCarHealth,
+  shouldCullWreck,
+  wreckRgb,
+} from "./car-damage.js";
 import { isBulkyCar } from "./car-kind.js";
 import { rockVertexColors } from "./bed-rocks.js";
 import { foldHeadlightGeometry } from "./headlights.js";
@@ -718,6 +728,7 @@ export async function createTraffic(scene, map, pieces = []) {
     car.angle = headingAngle(car.hx, car.hz);
     car.level = wearLevel(models[car.model].file, car.hash);
     settleParked(car, map);
+    initCarHealth(car);
   }
   const parked = plan.parked;
   const sim = createSim(plan, models, pick);
@@ -759,7 +770,8 @@ export async function createTraffic(scene, map, pieces = []) {
     const model = models[modelIndex];
     for (const level of levelsFor(model.file)) {
       const parkedHere = parked.filter((car) => car.model === modelIndex && car.level === level);
-      const capacity = parkedHere.length + 32;
+      // Extra slots so wrecks can linger without dropping a live car of the same model.
+      const capacity = parkedHere.length + 56;
       const partDraws = [];
       for (const part of model.levels[level]) {
         const geometry = part.geometry.clone();
@@ -820,6 +832,8 @@ export async function createTraffic(scene, map, pieces = []) {
     }
   }
 
+  const wreckTint = new Color().setRGB(wreckRgb().r, wreckRgb().g, wreckRgb().b);
+
   function placeCar(group, car, salt, count) {
     const matrix = matrixAt(
       car.x,
@@ -830,14 +844,54 @@ export async function createTraffic(scene, map, pieces = []) {
       car.quat,
     );
     const civilian = !SERVICE.has(group.model.name);
-    const tint = civilian ? PALETTE[colourIndex(salt)] : WHITE;
+    const tint = car.wrecked ? wreckTint : (civilian ? PALETTE[colourIndex(salt)] : WHITE);
+    const rec = car.wrecked ? 1 : (civilian ? 1 : 0);
     for (const part of group.parts) {
       part.mesh.setMatrixAt(count, matrix);
       if (!part.paintable) continue;
-      part.recolor.setX(count, civilian ? 1 : 0);
+      part.recolor.setX(count, rec);
       part.mesh.setColorAt(count, tint);
     }
     return count + 1;
+  }
+
+  function slotCap(group) {
+    const part = group.parts[0];
+    return part ? part.mesh.instanceMatrix.count : 0;
+  }
+
+  function removeParked(car) {
+    const at = parked.indexOf(car);
+    if (at >= 0) parked.splice(at, 1);
+    for (const group of groups) {
+      const gi = group.parked.indexOf(car);
+      if (gi >= 0) group.parked.splice(gi, 1);
+    }
+    for (let i = parkedBodies.length - 1; i >= 0; i -= 1) {
+      const body = parkedBodies[i];
+      if (body.src !== car) continue;
+      const id = `${Math.floor(body.x / BUCKET)},${Math.floor(body.z / BUCKET)}`;
+      const list = buckets.get(id);
+      if (list) {
+        const bi = list.indexOf(body);
+        if (bi >= 0) list.splice(bi, 1);
+      }
+      parkedBodies.splice(i, 1);
+    }
+  }
+
+  let peds = null;
+  let crashSounds = null;
+  let hearX = 0;
+  let hearZ = 0;
+  const damageFx = await createCarDamageFx(scene);
+
+  function finishWreck(car) {
+    if (!car || car.blew) return;
+    car.blew = true;
+    car.speed = 0;
+    damageFx.explode(car);
+    blastPeds(car, peds);
   }
 
   function pushLight(kind, x, y, z) {
@@ -852,6 +906,46 @@ export async function createTraffic(scene, map, pieces = []) {
   return {
     scare(x, z) {
       sim.scare(x, z);
+    },
+    usePeds(pedestrians) {
+      peds = pedestrians;
+    },
+    useCrashSounds(sounds) {
+      crashSounds = sounds;
+    },
+    hit(car, amount, kind = "crash") {
+      const result = applyCarDamage(car, amount);
+      if (result.damaged && crashSounds) {
+        crashSounds.play({
+          damage: amount,
+          kind,
+          x: car.x,
+          z: car.z,
+          listenerX: hearX,
+          listenerZ: hearZ,
+          isPlayerCar: Boolean(car.held),
+        });
+      }
+      if (result.justWrecked) finishWreck(car);
+      return result;
+    },
+    // Any gun that fires bullets should call bulletHit when a shot hits a car.
+    bulletHit(car, damage, x, z) {
+      const result = bulletHitCar(car, damage, x, z, {
+        sounds: crashSounds,
+        listenerX: hearX,
+        listenerZ: hearZ,
+      });
+      if (result.justWrecked) finishWreck(car);
+      return result;
+    },
+    // Call playBulletWorldHitSound when a bullet hits a wall, building, or prop.
+    // Do not call it for the ground, the street, people, or cars.
+    playBulletWorldHitSound(x, z) {
+      return playBulletWorldHitSound(crashSounds, x, z, {
+        listenerX: hearX,
+        listenerZ: hearZ,
+      });
     },
     cars() {
       const total = parked.length + sim.drivers.length;
@@ -868,8 +962,21 @@ export async function createTraffic(scene, map, pieces = []) {
       return signalNow();
     },
     update(dt, camX, camZ, playerX, playerZ) {
+      hearX = playerX;
+      hearZ = playerZ;
       sim.step(dt, camX, camZ, playerX, playerZ);
+      for (const car of parked) {
+        if (car.wrecked) car.wreckAge = (car.wreckAge || 0) + dt;
+      }
+      for (let i = parked.length - 1; i >= 0; i -= 1) {
+        if (shouldCullWreck(parked[i], playerX, playerZ)) removeParked(parked[i]);
+      }
       syncParked();
+      const all = parked.concat(sim.drivers);
+      for (const car of all) {
+        if (car.wrecked && !car.blew) finishWreck(car);
+      }
+      damageFx.update(dt, all, playerX, playerZ);
       for (const list of driversByGroup) list.length = 0;
       for (const car of sim.drivers) {
         const row = groupAt[car.model];
@@ -881,11 +988,14 @@ export async function createTraffic(scene, map, pieces = []) {
       for (let index = 0; index < groups.length; index += 1) {
         const group = groups[index];
         let count = 0;
+        const cap = slotCap(group);
         for (const car of group.parked) {
+          if (count >= cap) break;
           if (!inView(car.x, car.z, camX, camZ)) continue;
           count = placeCar(group, car, car.hash, count);
         }
         for (const car of driversByGroup[index]) {
+          if (count >= cap) break;
           if (!inView(car.x, car.z, camX, camZ)) continue;
           count = placeCar(group, car, car.id, count);
         }
@@ -901,6 +1011,7 @@ export async function createTraffic(scene, map, pieces = []) {
     lights(camX, camZ) {
       lightList.length = 0;
       const pushCar = (car) => {
+        if (car.wrecked) return;
         if (lightList.length >= LIGHT_CAP) return;
         if (!inView(car.x, car.z, camX, camZ)) return;
         const fx = -Math.sin(car.angle);

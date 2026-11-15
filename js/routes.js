@@ -5,6 +5,7 @@
 // 1 (west), 2 (east), 5 (south) and 6 (north) are driven as marked.
 // Medians 4 and 8 are never driven.
 
+import { initCarHealth, shouldCullWreck } from "./car-damage.js";
 import { planBuiltLanes } from "./built-lanes.js";
 import { DRIVEN_ROAD, tileHash } from "./cells.js";
 import { planKenneyRoads, westOfCanal } from "./kenney-road-plan.js";
@@ -784,6 +785,7 @@ export function createSim(plan, models, pick) {
       driver.bodyLift = models[driver.model].bodyLift;
       driver.bulky = !!(models[driver.model] && models[driver.model].bulky);
       if (!place(driver, node.index, exit)) continue;
+      initCarHealth(driver);
       return driver;
     }
     return null;
@@ -948,7 +950,7 @@ export function createSim(plan, models, pick) {
     // but the open-road cap is higher until the scare wears off.
     scare(x, z) {
       for (const driver of drivers) {
-        if (driver.held || driver.stray) continue;
+        if (driver.held || driver.stray || driver.wrecked) continue;
         if (Math.hypot(driver.x - x, driver.z - z) < 900) driver.flee = 3;
       }
     },
@@ -960,7 +962,21 @@ export function createSim(plan, models, pick) {
           driver.wasHeld = true;
           continue;
         }
-        if (driver.wasHeld) release(driver);
+        if (driver.wasHeld) {
+          if (driver.wrecked) {
+            driver.wasHeld = false;
+            driver.stray = true;
+            driver.speed = 0;
+          } else {
+            release(driver);
+          }
+        }
+        if (driver.wrecked) {
+          driver.speed = 0;
+          driver.wreckAge = (driver.wreckAge || 0) + dt;
+          if (shouldCullWreck(driver, playerX, playerZ)) drivers.splice(i, 1);
+          continue;
+        }
         const dist = Math.hypot(driver.x - camX, driver.z - camZ);
         const onScreen = Math.abs(driver.x - camX) < 560 && driver.z > camZ - 420 && driver.z < camZ + 560;
         if (driver.stray) {
@@ -972,16 +988,21 @@ export function createSim(plan, models, pick) {
         if (dist > DESPAWN) drivers.splice(i, 1);
       }
       let guard = 0;
-      while (drivers.length < MAX_DRIVERS && guard < 12) {
+      let live = 0;
+      for (const driver of drivers) {
+        if (!driver.wrecked) live += 1;
+      }
+      while (live < MAX_DRIVERS && guard < 12) {
         guard += 1;
         const born = spawn(camX, camZ, playerX, playerZ);
         if (!born) break;
         drivers.push(born);
+        live += 1;
       }
 
       const player = { x: playerX, z: playerZ, y: 0.6, angle: 0, w: 32, h: 32, speed: 0 };
       for (const driver of drivers) {
-        if (driver.held || driver.stray) continue;
+        if (driver.held || driver.stray || driver.wrecked) continue;
         if (driver.flee > 0) driver.flee = Math.max(0, driver.flee - dt);
         let limit = driver.flee > 0 ? driver.cruise * 1.65 : driver.cruise;
         let blocked = false;

@@ -1,0 +1,1542 @@
+{
+  "tile": 48,
+  "seed": 20261114,
+  "count": 61,
+  "lots": [
+    {
+      "id": "L01",
+      "x0": 45,
+      "x1": 51,
+      "z0": 152,
+      "z1": 167,
+      "width": 7,
+      "depth": 16,
+      "centroid": {
+        "x": 48.5,
+        "z": 160
+      },
+      "kind": "terrace",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_1Story_RoundRoof.glb",
+          "skin": "weathered-cream"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Slim.glb",
+          "skin": "tagged-beige"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Sidehouse.glb",
+          "skin": "dirty-mustard"
+        }
+      ]
+    },
+    {
+      "id": "L02",
+      "x0": 61,
+      "x1": 63,
+      "z0": 168,
+      "z1": 199,
+      "width": 3,
+      "depth": 32,
+      "centroid": {
+        "x": 62.5,
+        "z": 184
+      },
+      "kind": "alley",
+      "face": "east",
+      "kept": false,
+      "buildings": []
+    },
+    {
+      "id": "L03",
+      "x0": 65,
+      "x1": 75,
+      "z0": 152,
+      "z1": 166,
+      "width": 11,
+      "depth": 15,
+      "centroid": {
+        "x": 70.5,
+        "z": 159.5
+      },
+      "kind": "boarded",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Columns.glb",
+          "skin": "stained-cream"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story.glb",
+          "skin": "wrecked-pink"
+        }
+      ]
+    },
+    {
+      "id": "L04",
+      "x0": 76,
+      "x1": 86,
+      "z0": 152,
+      "z1": 166,
+      "width": 11,
+      "depth": 15,
+      "centroid": {
+        "x": 81.5,
+        "z": 159.5
+      },
+      "kind": "fenced",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_2.glb",
+          "skin": "dusty-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_3Story_Small.glb",
+          "skin": "pale-green-gray"
+        }
+      ]
+    },
+    {
+      "id": "L05",
+      "x0": 87,
+      "x1": 95,
+      "z0": 158,
+      "z1": 166,
+      "width": 9,
+      "depth": 9,
+      "centroid": {
+        "x": 91.5,
+        "z": 162.5
+      },
+      "kind": "terrace",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Balcony.glb",
+          "skin": "tagged-cream"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story_RoundRoof.glb",
+          "skin": "dirty-mustard"
+        }
+      ]
+    },
+    {
+      "id": "L06",
+      "x0": 45,
+      "x1": 51,
+      "z0": 173,
+      "z1": 199,
+      "width": 7,
+      "depth": 27,
+      "centroid": {
+        "x": 48.5,
+        "z": 186.5
+      },
+      "kind": "terrace",
+      "face": "west",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Stairs.glb",
+          "skin": "busted-beige"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_3Story_Slim.glb",
+          "skin": "weathered-cream"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Double.glb",
+          "skin": "stained-cream"
+        }
+      ]
+    },
+    {
+      "id": "L07",
+      "x0": 69,
+      "x1": 79,
+      "z0": 173,
+      "z1": 199,
+      "width": 11,
+      "depth": 27,
+      "centroid": {
+        "x": 74.5,
+        "z": 186.5
+      },
+      "kind": "terrace",
+      "face": "west",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Wide.glb",
+          "skin": "dusty-beige"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story.glb",
+          "skin": "tagged-beige"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Center.glb",
+          "skin": "wrecked-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_3Story_Balcony.glb",
+          "skin": "dirty-mustard"
+        }
+      ]
+    },
+    {
+      "id": "L08",
+      "x0": 85,
+      "x1": 95,
+      "z0": 173,
+      "z1": 199,
+      "width": 11,
+      "depth": 27,
+      "centroid": {
+        "x": 90.5,
+        "z": 186.5
+      },
+      "kind": "market",
+      "face": "east",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_1Story_Sign.glb",
+          "skin": "tagged-cream"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_4Story.glb",
+          "skin": "dusty-beige"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_RoundRoof.glb",
+          "skin": "busted-beige"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Sign.glb",
+          "skin": "stained-cream"
+        }
+      ]
+    },
+    {
+      "id": "L09",
+      "x0": 229,
+      "x1": 239,
+      "z0": 152,
+      "z1": 167,
+      "width": 11,
+      "depth": 16,
+      "centroid": {
+        "x": 234.5,
+        "z": 160
+      },
+      "kind": "terrace",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Wide_2Doors.glb",
+          "skin": "tagged-pink"
+        },
+        {
+          "file": "assets/buildings/kaykit/low/building_A.glb",
+          "skin": null
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story.glb",
+          "skin": "pale-green-gray"
+        }
+      ]
+    },
+    {
+      "id": "L10",
+      "x0": 205,
+      "x1": 223,
+      "z0": 173,
+      "z1": 199,
+      "width": 19,
+      "depth": 27,
+      "centroid": {
+        "x": 214.5,
+        "z": 186.5
+      },
+      "kind": "estate",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_4Story_Center.glb",
+          "skin": "dusty-beige"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Columns.glb",
+          "skin": "tagged-beige"
+        },
+        {
+          "file": "assets/buildings/kaykit/low/building_C.glb",
+          "skin": null
+        }
+      ]
+    },
+    {
+      "id": "L11",
+      "x0": 229,
+      "x1": 239,
+      "z0": 173,
+      "z1": 199,
+      "width": 11,
+      "depth": 27,
+      "centroid": {
+        "x": 234.5,
+        "z": 186.5
+      },
+      "kind": "terrace",
+      "face": "west",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/kaykit/low/building_B.glb",
+          "skin": null
+        },
+        {
+          "file": "assets/buildings/textured/low/building_3Story_Small.glb",
+          "skin": "wrecked-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Stairs.glb",
+          "skin": "weathered-cream"
+        }
+      ]
+    },
+    {
+      "id": "L12",
+      "x0": 181,
+      "x1": 194,
+      "z0": 157,
+      "z1": 167,
+      "width": 14,
+      "depth": 11,
+      "centroid": {
+        "x": 188,
+        "z": 162.5
+      },
+      "kind": "terrace",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/kaykit/low/building_E.glb",
+          "skin": null
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Double.glb",
+          "skin": "dirty-mustard"
+        }
+      ]
+    },
+    {
+      "id": "L13",
+      "x0": 195,
+      "x1": 208,
+      "z0": 157,
+      "z1": 167,
+      "width": 14,
+      "depth": 11,
+      "centroid": {
+        "x": 202,
+        "z": 162.5
+      },
+      "kind": "terrace",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Wide_2Doors.glb",
+          "skin": "tagged-cream"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story_RoundRoof.glb",
+          "skin": "stained-cream"
+        }
+      ]
+    },
+    {
+      "id": "L14",
+      "x0": 209,
+      "x1": 223,
+      "z0": 157,
+      "z1": 167,
+      "width": 15,
+      "depth": 11,
+      "centroid": {
+        "x": 216.5,
+        "z": 162.5
+      },
+      "kind": "terrace",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/kaykit/low/building_F.glb",
+          "skin": null
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Balcony.glb",
+          "skin": "stained-cream"
+        }
+      ]
+    },
+    {
+      "id": "L15a",
+      "x0": 101,
+      "x1": 115,
+      "z0": 157,
+      "z1": 170,
+      "width": 15,
+      "depth": 14,
+      "centroid": {
+        "x": 108.5,
+        "z": 164
+      },
+      "kind": "terrace",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story.glb",
+          "skin": "tagged-beige"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story.glb",
+          "skin": "dusty-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_3Story_Slim.glb",
+          "skin": "busted-beige"
+        }
+      ]
+    },
+    {
+      "id": "L15b",
+      "x0": 116,
+      "x1": 130,
+      "z0": 157,
+      "z1": 170,
+      "width": 15,
+      "depth": 14,
+      "centroid": {
+        "x": 123.5,
+        "z": 164
+      },
+      "kind": "estate",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_2.glb",
+          "skin": "weathered-cream"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_4Story_Wide_2Doors.glb",
+          "skin": "dusty-beige"
+        }
+      ]
+    },
+    {
+      "id": "L15c",
+      "x0": 131,
+      "x1": 145,
+      "z0": 157,
+      "z1": 170,
+      "width": 15,
+      "depth": 14,
+      "centroid": {
+        "x": 138.5,
+        "z": 164
+      },
+      "kind": "waste",
+      "face": "north",
+      "kept": false,
+      "buildings": []
+    },
+    {
+      "id": "L15d",
+      "x0": 146,
+      "x1": 160,
+      "z0": 157,
+      "z1": 170,
+      "width": 15,
+      "depth": 14,
+      "centroid": {
+        "x": 153.5,
+        "z": 164
+      },
+      "kind": "terrace",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/kaykit/low/building_G.glb",
+          "skin": null
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Sidehouse.glb",
+          "skin": "tagged-pink"
+        }
+      ]
+    },
+    {
+      "id": "L15e",
+      "x0": 161,
+      "x1": 175,
+      "z0": 157,
+      "z1": 170,
+      "width": 15,
+      "depth": 14,
+      "centroid": {
+        "x": 168.5,
+        "z": 164
+      },
+      "kind": "terrace",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Center.glb",
+          "skin": "dirty-mustard"
+        },
+        {
+          "file": "assets/buildings/kaykit/low/building_H.glb",
+          "skin": null
+        }
+      ]
+    },
+    {
+      "id": "L16a",
+      "x0": 101,
+      "x1": 115,
+      "z0": 171,
+      "z1": 185,
+      "width": 15,
+      "depth": 15,
+      "centroid": {
+        "x": 108.5,
+        "z": 178.5
+      },
+      "kind": "terrace",
+      "face": "west",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Columns.glb",
+          "skin": "wrecked-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
+          "skin": "tagged-cream"
+        }
+      ]
+    },
+    {
+      "id": "L16b",
+      "x0": 116,
+      "x1": 130,
+      "z0": 171,
+      "z1": 185,
+      "width": 15,
+      "depth": 15,
+      "centroid": {
+        "x": 123.5,
+        "z": 178.5
+      },
+      "kind": "waste",
+      "face": "west",
+      "kept": false,
+      "buildings": []
+    },
+    {
+      "id": "L16c",
+      "x0": 131,
+      "x1": 145,
+      "z0": 171,
+      "z1": 185,
+      "width": 15,
+      "depth": 15,
+      "centroid": {
+        "x": 138.5,
+        "z": 178.5
+      },
+      "kind": "cluster",
+      "face": "west",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Slim.glb",
+          "skin": "dusty-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_3Story_Small.glb",
+          "skin": "tagged-beige"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story_RoundRoof.glb",
+          "skin": "busted-beige"
+        }
+      ]
+    },
+    {
+      "id": "L16d",
+      "x0": 146,
+      "x1": 160,
+      "z0": 171,
+      "z1": 185,
+      "width": 15,
+      "depth": 15,
+      "centroid": {
+        "x": 153.5,
+        "z": 178.5
+      },
+      "kind": "waste",
+      "face": "west",
+      "kept": false,
+      "buildings": []
+    },
+    {
+      "id": "L16e",
+      "x0": 161,
+      "x1": 175,
+      "z0": 171,
+      "z1": 185,
+      "width": 15,
+      "depth": 15,
+      "centroid": {
+        "x": 168.5,
+        "z": 178.5
+      },
+      "kind": "cluster",
+      "face": "east",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Stairs.glb",
+          "skin": "tagged-cream"
+        },
+        {
+          "file": "assets/buildings/kaykit/low/building_D.glb",
+          "skin": null
+        }
+      ]
+    },
+    {
+      "id": "L17a",
+      "x0": 101,
+      "x1": 115,
+      "z0": 186,
+      "z1": 199,
+      "width": 15,
+      "depth": 14,
+      "centroid": {
+        "x": 108.5,
+        "z": 193
+      },
+      "kind": "terrace",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Wide.glb",
+          "skin": "stained-cream"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story.glb",
+          "skin": "weathered-cream"
+        }
+      ]
+    },
+    {
+      "id": "L17b",
+      "x0": 116,
+      "x1": 130,
+      "z0": 186,
+      "z1": 199,
+      "width": 15,
+      "depth": 14,
+      "centroid": {
+        "x": 123.5,
+        "z": 193
+      },
+      "kind": "estate",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_4Story.glb",
+          "skin": "tagged-beige"
+        }
+      ]
+    },
+    {
+      "id": "L17c",
+      "x0": 131,
+      "x1": 145,
+      "z0": 186,
+      "z1": 199,
+      "width": 15,
+      "depth": 14,
+      "centroid": {
+        "x": 138.5,
+        "z": 193
+      },
+      "kind": "terrace",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Double.glb",
+          "skin": "dusty-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_RoundRoof.glb",
+          "skin": "dirty-mustard"
+        }
+      ]
+    },
+    {
+      "id": "L17d",
+      "x0": 146,
+      "x1": 160,
+      "z0": 186,
+      "z1": 199,
+      "width": 15,
+      "depth": 14,
+      "centroid": {
+        "x": 153.5,
+        "z": 193
+      },
+      "kind": "waste",
+      "face": "south",
+      "kept": false,
+      "buildings": []
+    },
+    {
+      "id": "L17e",
+      "x0": 161,
+      "x1": 175,
+      "z0": 186,
+      "z1": 199,
+      "width": 15,
+      "depth": 14,
+      "centroid": {
+        "x": 168.5,
+        "z": 193
+      },
+      "kind": "estate",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/kaykit/low/building_E_6f.glb",
+          "skin": null
+        }
+      ]
+    },
+    {
+      "id": "L18a",
+      "x0": 176,
+      "x1": 187,
+      "z0": 173,
+      "z1": 199,
+      "width": 12,
+      "depth": 27,
+      "centroid": {
+        "x": 182,
+        "z": 186.5
+      },
+      "kind": "cluster",
+      "face": "east",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Slim.glb",
+          "skin": "pale-green-gray"
+        }
+      ]
+    },
+    {
+      "id": "L18b",
+      "x0": 188,
+      "x1": 199,
+      "z0": 173,
+      "z1": 199,
+      "width": 12,
+      "depth": 27,
+      "centroid": {
+        "x": 194,
+        "z": 186.5
+      },
+      "kind": "estate",
+      "face": "east",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/kaykit/low/building_D_8f.glb",
+          "skin": null
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Balcony.glb",
+          "skin": "busted-beige"
+        }
+      ]
+    },
+    {
+      "id": "L19",
+      "x0": 69,
+      "x1": 79,
+      "z0": 205,
+      "z1": 229,
+      "width": 11,
+      "depth": 25,
+      "centroid": {
+        "x": 74.5,
+        "z": 217.5
+      },
+      "kind": "kept",
+      "face": "west",
+      "kept": true,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Wide_2Doors.glb",
+          "skin": "tagged-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_3Story_Slim.glb",
+          "skin": "dusty-beige"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Center.glb",
+          "skin": "wrecked-pink"
+        }
+      ]
+    },
+    {
+      "id": "L20",
+      "x0": 85,
+      "x1": 95,
+      "z0": 205,
+      "z1": 215,
+      "width": 11,
+      "depth": 11,
+      "centroid": {
+        "x": 90.5,
+        "z": 210.5
+      },
+      "kind": "terrace",
+      "face": "west",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_GableRoof.glb",
+          "skin": "stained-cream"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story.glb",
+          "skin": "busted-beige"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_2.glb",
+          "skin": "tagged-beige"
+        }
+      ]
+    },
+    {
+      "id": "L21a",
+      "x0": 101,
+      "x1": 115,
+      "z0": 205,
+      "z1": 215,
+      "width": 15,
+      "depth": 11,
+      "centroid": {
+        "x": 108.5,
+        "z": 210.5
+      },
+      "kind": "terrace",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Columns.glb",
+          "skin": "dirty-mustard"
+        },
+        {
+          "file": "assets/buildings/kaykit/low/building_C.glb",
+          "skin": null
+        }
+      ]
+    },
+    {
+      "id": "L21b",
+      "x0": 116,
+      "x1": 130,
+      "z0": 205,
+      "z1": 215,
+      "width": 15,
+      "depth": 11,
+      "centroid": {
+        "x": 123.5,
+        "z": 210.5
+      },
+      "kind": "terrace",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_1Story_RoundRoof.glb",
+          "skin": "tagged-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_3Story_Small.glb",
+          "skin": "weathered-cream"
+        }
+      ]
+    },
+    {
+      "id": "L21c",
+      "x0": 131,
+      "x1": 145,
+      "z0": 205,
+      "z1": 215,
+      "width": 15,
+      "depth": 11,
+      "centroid": {
+        "x": 138.5,
+        "z": 210.5
+      },
+      "kind": "waste",
+      "face": "north",
+      "kept": false,
+      "buildings": []
+    },
+    {
+      "id": "L21d",
+      "x0": 146,
+      "x1": 160,
+      "z0": 205,
+      "z1": 215,
+      "width": 15,
+      "depth": 11,
+      "centroid": {
+        "x": 153.5,
+        "z": 210.5
+      },
+      "kind": "estate",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_4Story_Wide_2Doors_Roof.glb",
+          "skin": "dusty-beige"
+        }
+      ]
+    },
+    {
+      "id": "L21e",
+      "x0": 161,
+      "x1": 175,
+      "z0": 205,
+      "z1": 215,
+      "width": 15,
+      "depth": 11,
+      "centroid": {
+        "x": 168.5,
+        "z": 210.5
+      },
+      "kind": "terrace",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Sidehouse.glb",
+          "skin": "busted-beige"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Stairs.glb",
+          "skin": "dusty-pink"
+        }
+      ]
+    },
+    {
+      "id": "L22",
+      "x0": 181,
+      "x1": 199,
+      "z0": 205,
+      "z1": 215,
+      "width": 19,
+      "depth": 11,
+      "centroid": {
+        "x": 190.5,
+        "z": 210.5
+      },
+      "kind": "estate",
+      "face": "east",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/kaykit/low/building_G_6f.glb",
+          "skin": null
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Wide.glb",
+          "skin": "tagged-cream"
+        }
+      ]
+    },
+    {
+      "id": "L23",
+      "x0": 205,
+      "x1": 223,
+      "z0": 205,
+      "z1": 215,
+      "width": 19,
+      "depth": 11,
+      "centroid": {
+        "x": 214.5,
+        "z": 210.5
+      },
+      "kind": "terrace",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Double.glb",
+          "skin": "pale-green-gray"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story_GableRoof.glb",
+          "skin": "faded-white"
+        },
+        {
+          "file": "assets/buildings/kaykit/low/building_B.glb",
+          "skin": null
+        }
+      ]
+    },
+    {
+      "id": "L24",
+      "x0": 229,
+      "x1": 239,
+      "z0": 205,
+      "z1": 215,
+      "width": 11,
+      "depth": 11,
+      "centroid": {
+        "x": 234.5,
+        "z": 210.5
+      },
+      "kind": "terrace",
+      "face": "west",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_3Story_Balcony.glb",
+          "skin": "dirty-mustard"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story.glb",
+          "skin": "wrecked-pink"
+        }
+      ]
+    },
+    {
+      "id": "L25a",
+      "x0": 101,
+      "x1": 115,
+      "z0": 221,
+      "z1": 231,
+      "width": 15,
+      "depth": 11,
+      "centroid": {
+        "x": 108.5,
+        "z": 226.5
+      },
+      "kind": "cluster",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Slim.glb",
+          "skin": "tagged-beige"
+        }
+      ]
+    },
+    {
+      "id": "L25b",
+      "x0": 116,
+      "x1": 130,
+      "z0": 221,
+      "z1": 231,
+      "width": 15,
+      "depth": 11,
+      "centroid": {
+        "x": 123.5,
+        "z": 226.5
+      },
+      "kind": "terrace",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_1Story.glb",
+          "skin": "dusty-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_RoundRoof.glb",
+          "skin": "busted-beige"
+        }
+      ]
+    },
+    {
+      "id": "L25c",
+      "x0": 131,
+      "x1": 145,
+      "z0": 221,
+      "z1": 231,
+      "width": 15,
+      "depth": 11,
+      "centroid": {
+        "x": 138.5,
+        "z": 226.5
+      },
+      "kind": "terrace",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/kaykit/low/building_E.glb",
+          "skin": null
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Center.glb",
+          "skin": "stained-cream"
+        }
+      ]
+    },
+    {
+      "id": "L25d",
+      "x0": 146,
+      "x1": 160,
+      "z0": 221,
+      "z1": 231,
+      "width": 15,
+      "depth": 11,
+      "centroid": {
+        "x": 153.5,
+        "z": 226.5
+      },
+      "kind": "waste",
+      "face": "south",
+      "kept": false,
+      "buildings": []
+    },
+    {
+      "id": "L25e",
+      "x0": 161,
+      "x1": 175,
+      "z0": 221,
+      "z1": 231,
+      "width": 15,
+      "depth": 11,
+      "centroid": {
+        "x": 168.5,
+        "z": 226.5
+      },
+      "kind": "terrace",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_3Story_Slim.glb",
+          "skin": "tagged-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Balcony.glb",
+          "skin": "weathered-cream"
+        }
+      ]
+    },
+    {
+      "id": "L26",
+      "x0": 176,
+      "x1": 199,
+      "z0": 217,
+      "z1": 231,
+      "width": 24,
+      "depth": 15,
+      "centroid": {
+        "x": 188,
+        "z": 224.5
+      },
+      "kind": "cluster",
+      "face": "east",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Wide_2Doors.glb",
+          "skin": "dirty-mustard"
+        },
+        {
+          "file": "assets/buildings/kaykit/low/building_F.glb",
+          "skin": null
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story_RoundRoof.glb",
+          "skin": "tagged-cream"
+        }
+      ]
+    },
+    {
+      "id": "L27",
+      "x0": 85,
+      "x1": 95,
+      "z0": 221,
+      "z1": 251,
+      "width": 11,
+      "depth": 31,
+      "centroid": {
+        "x": 90.5,
+        "z": 236.5
+      },
+      "kind": "terrace",
+      "face": "south",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Columns.glb",
+          "skin": "wrecked-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_3Story_Small.glb",
+          "skin": "dusty-beige"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story.glb",
+          "skin": "tagged-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story.glb",
+          "skin": "faded-white"
+        }
+      ]
+    },
+    {
+      "id": "L28",
+      "x0": 205,
+      "x1": 223,
+      "z0": 221,
+      "z1": 231,
+      "width": 19,
+      "depth": 11,
+      "centroid": {
+        "x": 214.5,
+        "z": 226.5
+      },
+      "kind": "terrace",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_2.glb",
+          "skin": "busted-beige"
+        },
+        {
+          "file": "assets/buildings/kaykit/low/building_D.glb",
+          "skin": null
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story.glb",
+          "skin": "weathered-cream"
+        }
+      ]
+    },
+    {
+      "id": "L29",
+      "x0": 229,
+      "x1": 239,
+      "z0": 221,
+      "z1": 231,
+      "width": 11,
+      "depth": 11,
+      "centroid": {
+        "x": 234.5,
+        "z": 226.5
+      },
+      "kind": "terrace",
+      "face": "west",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_3Story_Balcony.glb",
+          "skin": "dusty-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Wide.glb",
+          "skin": "tagged-beige"
+        }
+      ]
+    },
+    {
+      "id": "L30",
+      "x0": 69,
+      "x1": 79,
+      "z0": 235,
+      "z1": 247,
+      "width": 11,
+      "depth": 13,
+      "centroid": {
+        "x": 74.5,
+        "z": 241.5
+      },
+      "kind": "kept",
+      "face": "south",
+      "kept": true,
+      "buildings": []
+    },
+    {
+      "id": "L31",
+      "x0": 61,
+      "x1": 63,
+      "z0": 221,
+      "z1": 251,
+      "width": 3,
+      "depth": 31,
+      "centroid": {
+        "x": 62.5,
+        "z": 236.5
+      },
+      "kind": "alley",
+      "face": "east",
+      "kept": false,
+      "buildings": []
+    },
+    {
+      "id": "L32a",
+      "x0": 101,
+      "x1": 115,
+      "z0": 237,
+      "z1": 251,
+      "width": 15,
+      "depth": 15,
+      "centroid": {
+        "x": 108.5,
+        "z": 244.5
+      },
+      "kind": "terrace",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story.glb",
+          "skin": "stained-cream"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story_RoundRoof.glb",
+          "skin": "dirty-mustard"
+        }
+      ]
+    },
+    {
+      "id": "L32b",
+      "x0": 116,
+      "x1": 130,
+      "z0": 237,
+      "z1": 251,
+      "width": 15,
+      "depth": 15,
+      "centroid": {
+        "x": 123.5,
+        "z": 244.5
+      },
+      "kind": "estate",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/kaykit/low/building_E_8f.glb",
+          "skin": null
+        }
+      ]
+    },
+    {
+      "id": "L32c",
+      "x0": 131,
+      "x1": 145,
+      "z0": 237,
+      "z1": 251,
+      "width": 15,
+      "depth": 15,
+      "centroid": {
+        "x": 138.5,
+        "z": 244.5
+      },
+      "kind": "terrace",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Sidehouse.glb",
+          "skin": "tagged-cream"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_3Story_Small.glb",
+          "skin": "busted-beige"
+        }
+      ]
+    },
+    {
+      "id": "L32d",
+      "x0": 146,
+      "x1": 160,
+      "z0": 237,
+      "z1": 251,
+      "width": 15,
+      "depth": 15,
+      "centroid": {
+        "x": 153.5,
+        "z": 244.5
+      },
+      "kind": "terrace",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Double.glb",
+          "skin": "wrecked-pink"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_1Story.glb",
+          "skin": "dusty-beige"
+        }
+      ]
+    },
+    {
+      "id": "L32e",
+      "x0": 161,
+      "x1": 175,
+      "z0": 237,
+      "z1": 251,
+      "width": 15,
+      "depth": 15,
+      "centroid": {
+        "x": 168.5,
+        "z": 244.5
+      },
+      "kind": "waste",
+      "face": "north",
+      "kept": false,
+      "buildings": []
+    },
+    {
+      "id": "L33",
+      "x0": 181,
+      "x1": 199,
+      "z0": 237,
+      "z1": 251,
+      "width": 19,
+      "depth": 15,
+      "centroid": {
+        "x": 190.5,
+        "z": 244.5
+      },
+      "kind": "estate",
+      "face": "east",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_4Story_Wide_2Doors.glb",
+          "skin": "dusty-beige"
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Wide.glb",
+          "skin": "tagged-pink"
+        }
+      ]
+    },
+    {
+      "id": "L34",
+      "x0": 205,
+      "x1": 221,
+      "z0": 237,
+      "z1": 251,
+      "width": 17,
+      "depth": 15,
+      "centroid": {
+        "x": 213.5,
+        "z": 244.5
+      },
+      "kind": "estate",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/kaykit/low/building_D_6f.glb",
+          "skin": null
+        },
+        {
+          "file": "assets/buildings/textured/low/building_2Story_Center.glb",
+          "skin": "pale-green-gray"
+        }
+      ]
+    },
+    {
+      "id": "L35",
+      "x0": 222,
+      "x1": 239,
+      "z0": 237,
+      "z1": 251,
+      "width": 18,
+      "depth": 15,
+      "centroid": {
+        "x": 231,
+        "z": 244.5
+      },
+      "kind": "estate",
+      "face": "north",
+      "kept": false,
+      "buildings": [
+        {
+          "file": "assets/buildings/textured/low/building_6Story_Stack.glb",
+          "skin": "weathered-cream"
+        },
+        {
+          "file": "assets/buildings/kaykit/low/building_G_8f.glb",
+          "skin": null
+        }
+      ]
+    },
+    {
+      "id": "L36",
+      "x0": 61,
+      "x1": 63,
+      "z0": 205,
+      "z1": 215,
+      "width": 3,
+      "depth": 11,
+      "centroid": {
+        "x": 62.5,
+        "z": 210.5
+      },
+      "kind": "alley",
+      "face": "east",
+      "kept": false,
+      "buildings": []
+    }
+  ]
+}

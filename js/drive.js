@@ -6,6 +6,7 @@
 // car stays on the traffic sim. The world steps while someone is driving,
 // and while a pedestrian ragdoll is still simulating.
 
+import { applyCarDamage, crashDamageFromLostSpeed } from "./car-damage.js";
 import { createArcadeVehicle } from "./kenney-vehicle.js";
 import { carShell } from "./model-shell.js";
 import { GROUP, groups, yawQuat } from "./physics.js";
@@ -68,6 +69,8 @@ export function createDrive(physics, scene) {
   let input = IDLE;
   let arcade = null;
   let commanded = { x: 0, z: 0 };
+  let pendingExit = false;
+  let crashSounds = null;
   const rayGroups = groups(GROUP.WHEEL, GROUP.ROAD);
   const notChassis = (collider) => collider.handle !== chassisCol.handle;
   const blended = {};
@@ -98,6 +101,37 @@ export function createDrive(physics, scene) {
     const velocity = chassis.linvel();
     const have = Math.hypot(velocity.x, velocity.z);
     const want = Math.hypot(commanded.x, commanded.z);
+    if (occupied && occupied.wrecked) {
+      arcade.scalePlanar(0);
+      commanded = { x: 0, z: 0 };
+      chassis.setLinvel({ x: 0, y: velocity.y, z: 0 }, true);
+      chassis.setAngvel({ x: 0, y: 0, z: 0 }, true);
+      pendingExit = true;
+      return;
+    }
+    const lost = want - have;
+    if (occupied && lost > 0) {
+      const bang = crashDamageFromLostSpeed(lost);
+      if (bang > 0) {
+        const result = applyCarDamage(occupied, bang);
+        if (result.damaged && crashSounds) {
+          crashSounds.play({
+            damage: bang,
+            x: occupied.x,
+            z: occupied.z,
+            isPlayerCar: true,
+          });
+        }
+        if (result.justWrecked) {
+          arcade.scalePlanar(0);
+          commanded = { x: 0, z: 0 };
+          chassis.setLinvel({ x: 0, y: velocity.y, z: 0 }, true);
+          chassis.setAngvel({ x: 0, y: 0, z: 0 }, true);
+          pendingExit = true;
+          return;
+        }
+      }
+    }
     if (want > 40 && have < want * 0.7) arcade.scalePlanar(have / want);
     arcade.syncYaw(yawOf(chassis.rotation()));
     const motion = arcade.step(h, input, onGround());
@@ -135,6 +169,7 @@ export function createDrive(physics, scene) {
       let best = null;
       let bestGap = Infinity;
       for (const car of cars) {
+        if (car.wrecked) continue;
         const gap = sideGap(px, pz, car);
         if (gap < bestGap) {
           bestGap = gap;
@@ -218,6 +253,7 @@ export function createDrive(physics, scene) {
       tracked = physics.track(chassis);
       best.held = true;
       occupied = best;
+      pendingExit = false;
       scene.follow(occupied);
       writePose(true);
       return true;
@@ -252,7 +288,17 @@ export function createDrive(physics, scene) {
       arcade = null;
       commanded = { x: 0, z: 0 };
       input = IDLE;
+      pendingExit = false;
       return spot;
+    },
+    get occupied() {
+      return occupied;
+    },
+    get mustExit() {
+      return occupied != null && (pendingExit || occupied.wrecked);
+    },
+    useCrashSounds(sounds) {
+      crashSounds = sounds;
     },
     // Held keys for the coming physics steps.
     control(next) {

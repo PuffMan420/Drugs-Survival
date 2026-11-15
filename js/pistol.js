@@ -15,6 +15,7 @@ import {
   BAT_CAR_DAMAGE,
   BOTTLE_CAR_DAMAGE,
   PISTOL_CAR_DAMAGE,
+  isBulletWorldGroundHit,
   swingHitsCar,
 } from "./car-damage.js";
 import {
@@ -45,6 +46,8 @@ import {
   Group,
   Mesh,
   MeshBasicMaterial,
+  Matrix3,
+  Matrix4,
   MeshLambertMaterial,
   Object3D,
   PlaneGeometry,
@@ -93,6 +96,10 @@ const pedHit = new Vector3();
 const flightPos = new Vector3();
 const flightQuat = new Quaternion();
 const flightScale = new Vector3();
+const worldHitNormal = new Vector3();
+const worldHitWorld = new Matrix4();
+const worldHitInst = new Matrix4();
+const worldHitNormMat = new Matrix3();
 // Same footprint the player uses. A scene raycast is not used: it walks every instanced road.
 const PED_REACH = 16;
 const PED_REACH_SQ = PED_REACH * PED_REACH;
@@ -625,6 +632,53 @@ export async function createPistol({
     return null;
   }
 
+  function buildRecordFromHit(item) {
+    const records = item.object && item.object.userData && item.object.userData.records;
+    if (records && item.instanceId != null) return records[item.instanceId] || null;
+    let node = item.object;
+    while (node) {
+      if (node.userData && node.userData.piece) return node.userData.piece;
+      if (node.name === "build") break;
+      node = node.parent;
+    }
+    return null;
+  }
+
+  function hitNormalY(item) {
+    if (!item.face || !item.object) return null;
+    worldHitNormal.copy(item.face.normal);
+    if (item.object.isInstancedMesh && item.instanceId != null) {
+      item.object.getMatrixAt(item.instanceId, worldHitInst);
+      worldHitWorld.multiplyMatrices(item.object.matrixWorld, worldHitInst);
+    } else {
+      worldHitWorld.copy(item.object.matrixWorld);
+    }
+    worldHitNormMat.getNormalMatrix(worldHitWorld);
+    worldHitNormal.applyMatrix3(worldHitNormMat).normalize();
+    return worldHitNormal.y;
+  }
+
+  // First wall, building, or prop along the aim ray. Ground and street are skipped.
+  function nearestWorldHit() {
+    const build = scene.getObjectByName("build");
+    if (!build) return null;
+    const from = player.mesh.position;
+    const hits = raycaster.intersectObject(build, true);
+    for (let i = 0; i < hits.length; i += 1) {
+      const item = hits[i];
+      if (Math.hypot(item.point.x - from.x, item.point.z - from.z) > PISTOL_RANGE) continue;
+      const record = buildRecordFromHit(item);
+      const file = record && record.file ? record.file : "";
+      if (file.startsWith("road")) continue;
+      const groundY = traffic && traffic.roadHeight
+        ? (traffic.roadHeight(item.point.x, item.point.z, item.point.y) ?? from.y)
+        : from.y;
+      if (isBulletWorldGroundHit(hitNormalY(item), item.point.y, groundY)) continue;
+      return { x: item.point.x, y: item.point.y, z: item.point.z };
+    }
+    return null;
+  }
+
   function hitsWall(point) {
     const build = scene.getObjectByName("build");
     if (!build) return false;
@@ -880,6 +934,9 @@ export async function createPistol({
       const from = player.mesh.position;
       const hurt = pedestrians.hurt(hit.ped, hit.ped.x - from.x, hit.ped.z - from.z, PISTOL_DAMAGE);
       if (hurt) bleed(hurt);
+    } else if (traffic.playBulletWorldHitSound) {
+      const world = nearestWorldHit();
+      if (world) traffic.playBulletWorldHitSound(world.x, world.z);
     }
     if (ammo === 0) beginReload();
   }

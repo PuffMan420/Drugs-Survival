@@ -83,6 +83,16 @@ const PED_LOOKS = PED_LOOK_HEX.map((row) => ({
   skin: new Color(row.skin),
 }));
 
+// Police outfit for police.js cops: dark blue shirt and trousers.
+const COP_LOOK = {
+  shirt: new Color(0x1f2f66),
+  pants: new Color(0x141b38),
+  shoes: new Color(0x0d0d0d),
+  hair: new Color(0x1a1a1a),
+  skin: new Color(0xd7a67a),
+};
+let copSalt = 50000;
+
 // One atlas, one material. These bones own the shirt, pants, and shoe islands.
 const SHIRT_BONES = new Set([
   "Chest", "UpperChest", "Spine",
@@ -1011,7 +1021,39 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     // Walking normally: on screen, alive, not ragdolled, not reacting to a
     // hit, and not panicking or fleeing. Only these will buy from the player.
     isCalm(ped) {
-      return Boolean(ped && ped.live && !ped.dead && !ped.ragdoll && !ped.phase && !fleeing(ped));
+      return Boolean(ped && !ped.cop && ped.live && !ped.dead && !ped.ragdoll && !ped.phase && !fleeing(ped));
+    },
+    // A cop is a pedestrian police.js steers: it sets x, z, dx, dz and
+    // copGait each frame; update() only animates it. Hurt like anyone else.
+    spawnCop(x, z, hp = PED_HP) {
+      copSalt += 1;
+      const ped = {
+        proto: 0,
+        look: COP_LOOK,
+        vary: 1,
+        salt: copSalt,
+        hp,
+        calm: "jog",
+        playing: "idle",
+        live: null,
+        dx: 0,
+        dz: 1,
+        x,
+        z,
+        goalX: x,
+        goalZ: z,
+        cop: true,
+        copGait: "idle",
+      };
+      people.push(ped);
+      acquire(ped);
+      return ped;
+    },
+    removeCop(ped) {
+      const index = people.indexOf(ped);
+      if (index < 0) return;
+      if (ped.live) release(ped);
+      people.splice(index, 1);
     },
     freshCorpses() {
       const list = [];
@@ -1042,6 +1084,25 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
         if (ped.live && ped.dead) {
           if (ped.ragdoll) applyRagdoll(ped);
           else fall(ped, step);
+          continue;
+        }
+        if (ped.cop) {
+          if (!ped.live) acquire(ped);
+          if (ped.phase === "react") {
+            ped.phaseTime += step;
+            if (ped.phaseTime < duration(ped, ped.hitClip)) {
+              ped.live.mixer.update(step);
+              ped.live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);
+              continue;
+            }
+            ped.phase = null;
+            ped.phaseTime = 0;
+          }
+          const gait = ped.copGait || "idle";
+          if (ped.dx !== 0 || ped.dz !== 0) ped.live.holder.rotation.y = Math.atan2(ped.dx, ped.dz);
+          showClip(ped, gait);
+          ped.live.mixer.update(step);
+          ped.live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);
           continue;
         }
         if (ped.live && !inRect(ped, leave)) {

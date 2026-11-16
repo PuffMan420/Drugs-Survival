@@ -66,6 +66,21 @@ import { createSidewalkIndex } from "./sidewalk-height.js";
 import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
 import { hud } from "./hud.js";
+import {
+  MAX_STOCK,
+  SUPPLIER_RANGE,
+  SUPPLIER_X,
+  SUPPLIER_Z,
+  WEED_BUY_PRICE,
+  buyWeed,
+  createEconomy,
+  loseOnDeath,
+  nearSupplier,
+  pickBuyer,
+  sellWeed,
+  stepEconomy,
+} from "./economy.js";
+import { createSupplierMarker } from "./supplier-marker.js";
 import { createPlayer } from "./player.js";
 import { createPistol } from "./pistol.js";
 import { createBuildMode, loadNamedMap } from "./build-mode.js";
@@ -760,6 +775,14 @@ async function start() {
   const origin = lookPreview ? lookStand(map) : tileCenter(map.spawn.x, map.spawn.z);
   const player = { x: origin.x, z: origin.z, y: 0.6 };
   bindPlayerVitals(player, vitals);
+  // Cash, weed stock and heat live in economy.js. The HUD reads player.cash,
+  // player.stock and player.maxStock.
+  const economy = createEconomy();
+  Object.defineProperty(player, "cash", { get: () => economy.cash, enumerable: true });
+  Object.defineProperty(player, "stock", { get: () => economy.stock, enumerable: true });
+  Object.defineProperty(player, "heat", { get: () => economy.heat, enumerable: true });
+  player.maxStock = MAX_STOCK;
+  session.economy = economy;
   const half = PLAYER_SIZE / 2;
   const carHist = new Map();
   const carHits = new Set();
@@ -790,6 +813,10 @@ async function start() {
     return sidewalks.feetY(x, z, streetY);
   }, camera);
   window.rats = rats;
+
+  const supplierY = sidewalks.feetY(SUPPLIER_X, SUPPLIER_Z, traffic.roadHeight(SUPPLIER_X, SUPPLIER_Z, 0.6) ?? 0.6);
+  const supplier = createSupplierMarker(SUPPLIER_X, supplierY + 0.4, SUPPLIER_Z, SUPPLIER_RANGE * 0.6);
+  scene.add(supplier.group);
 
   omitFromAmbientOcclusion(scene);
   const ambient = createAmbientOcclusion(renderer, scene, camera);
@@ -825,6 +852,9 @@ async function start() {
     },
     get high() {
       return player.high;
+    },
+    get economy() {
+      return economy;
     },
   };
   session.minimap = minimap;
@@ -887,12 +917,43 @@ async function start() {
 
   function respawnAtSpawn() {
     respawnPlayer(vitals);
+    const loss = loseOnDeath(economy);
+    if (loss.lost > 0 || loss.stockLost > 0) hud.message(`-$${loss.lost}${loss.stockLost ? `, lost ${loss.stockLost} weed` : ""}`, 3);
     if (drive.driving) session.use();
     const spawn = tileCenter(map.spawn.x, map.spawn.z);
     player.x = spawn.x;
     player.z = spawn.z;
     player.y = footHeight();
     playerSprite.halt();
+  }
+
+  // E on foot: buy at the supplier, else sell to a calm pedestrian in reach.
+  function tryDeal() {
+    if (nearSupplier(player.x, player.z)) {
+      const result = buyWeed(economy);
+      if (result.ok) hud.message(`-$${WEED_BUY_PRICE}  +1 weed`);
+      else hud.message(result.reason === "full" ? "Can't carry more" : `Need $${WEED_BUY_PRICE}`);
+      return true;
+    }
+    if (economy.stock <= 0) return false;
+    const buyer = pickBuyer(economy, player.x, player.z, pedestrians.targets(), pedestrians.isCalm);
+    if (!buyer) return false;
+    const result = sellWeed(economy, buyer);
+    if (!result.ok) return false;
+    hud.message(`+$${result.price}`);
+    return true;
+  }
+
+  function dealPrompt() {
+    if (drive.driving || vitals.dead) return "";
+    if (nearSupplier(player.x, player.z)) {
+      if (economy.stock >= MAX_STOCK) return "Stock full";
+      return economy.cash >= WEED_BUY_PRICE ? `Buy weed $${WEED_BUY_PRICE}` : `Need $${WEED_BUY_PRICE}`;
+    }
+    if (economy.stock > 0 && pickBuyer(economy, player.x, player.z, pedestrians.targets(), pedestrians.isCalm)) {
+      return "Sell weed";
+    }
+    return "";
   }
 
   session.use = () => {
@@ -909,6 +970,7 @@ async function start() {
       return;
     }
     if (vitals.dead) return;
+    if (tryDeal()) return;
     if (!drive.enter(traffic.cars(), player.x, player.z)) return;
     playerSprite.mesh.visible = false;
     session.driving = true;
@@ -1016,6 +1078,9 @@ async function start() {
     if (vitalStep.justDied && drive.driving) session.use();
     if (vitalStep.readyToRespawn) respawnAtSpawn();
     pedestrians.update(dt, player.x, player.z, spanW, spanH);
+    stepEconomy(economy, dt);
+    supplier.update(dt);
+    hud.setPrompt(dealPrompt());
     rats.update(dt, player.x, player.z, camX, camZ, halfW, halfH);
     camX = frameCenter(snappedX, halfW, city.mapW);
     camZ = frameCenter(snappedZ, halfH, city.mapH);

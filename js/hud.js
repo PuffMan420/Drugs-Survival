@@ -16,6 +16,15 @@ let healthFrac = [0, 0, 1, 1];
 let drugFrac = [0, 0, 1, 1];
 let hudRoot = null;
 let canvas = null;
+let cashEl = null;
+let stockEl = null;
+let promptEl = null;
+let shownCash = null;
+let shownStock = null;
+let shownPrompt = null;
+let messageText = "";
+let messageUntil = 0;
+let promptText = "";
 
 function place(el, x, y, w, h) {
   el.style.left = `${(x / REF_W) * 100}%`;
@@ -94,6 +103,22 @@ function installStyle() {
       display: block;
       max-width: none;
       object-fit: fill;
+    }
+    #game-hud .hud-text {
+      position: absolute;
+      margin: 0;
+      color: #f3e6c0;
+      font: 700 2.6cqh/1 Georgia, "Times New Roman", serif;
+      letter-spacing: 0.06em;
+      text-shadow: 0 2px 2px #000, 0 0 8px #000;
+      white-space: nowrap;
+      transform: translate(0, -50%);
+    }
+    #game-hud #hud-stock {
+      font-size: 2.1cqh;
+    }
+    #game-hud #hud-prompt {
+      font-size: 2.1cqh;
     }
     #game-hud [hidden] {
       display: none;
@@ -178,15 +203,23 @@ function build(layout) {
 
   const prompt = layout.prompt_plate;
   addImage(prompt.file, prompt.x, prompt.y, prompt.w, prompt.h);
+  let promptLeft = prompt.x + 20;
   if (prompt.key_hint) {
     const key = prompt.key_hint;
     addImage(key.file, key.x, key.y, key.w, key.h);
+    promptLeft = key.x + key.w + 12;
   }
+  promptEl = addText("hud-prompt", promptLeft, prompt.y + prompt.h / 2);
 
   const cash = layout.currency_plate;
   addImage(cash.file, cash.x, cash.y, cash.w, cash.h);
+  cashEl = addText("hud-cash", cash.x + cash.h * 0.95, cash.y + cash.h / 2);
   const quest = layout.quest_tracker;
   addImage(quest.file, quest.x, quest.y, quest.w, quest.h);
+  stockEl = addText("hud-stock", quest.x + 18, quest.y + 30);
+  shownCash = null;
+  shownStock = null;
+  shownPrompt = null;
 
   for (const star of layout.stars) {
     addImage(star.file_empty, star.x, star.y, star.w, star.h);
@@ -197,6 +230,49 @@ function build(layout) {
   mixEl = addImage(glow.file, glow.x, glow.y, glow.w, glow.h);
   mixEl.hidden = !mixWanted;
   for (const key of keys) addImage(key.file, key.x, key.y, key.w, key.h);
+}
+
+function addText(id, x, y) {
+  const el = document.createElement("p");
+  el.id = id;
+  el.className = "hud-text";
+  el.style.left = `${(x / REF_W) * 100}%`;
+  el.style.top = `${(y / REF_H) * 100}%`;
+  hudRoot.append(el);
+  return el;
+}
+
+// A short line on the prompt plate, e.g. "+$42". It wins over the prompt
+// until it runs out.
+function message(text, seconds = 1.6) {
+  messageText = String(text || "");
+  messageUntil = performance.now() + seconds * 1000;
+}
+
+// The standing hint on the prompt plate, e.g. "Buy weed $20". "" clears it.
+function setPrompt(text) {
+  promptText = String(text || "");
+}
+
+function paintEconomy(player) {
+  const cash = player && Number.isFinite(player.cash) ? Math.floor(player.cash) : null;
+  const stock = player && Number.isFinite(player.stock) ? player.stock : null;
+  if (cashEl && cash !== shownCash) {
+    shownCash = cash;
+    cashEl.textContent = cash == null ? "" : `$${cash}`;
+  }
+  if (stockEl && stock !== shownStock) {
+    shownStock = stock;
+    const max = player && Number.isFinite(player.maxStock) ? `/${player.maxStock}` : "";
+    stockEl.textContent = stock == null ? "" : `Weed ${stock}${max}`;
+  }
+  if (promptEl) {
+    const text = performance.now() < messageUntil ? messageText : promptText;
+    if (text !== shownPrompt) {
+      shownPrompt = text;
+      promptEl.textContent = text;
+    }
+  }
 }
 
 function setMixGlow(on) {
@@ -217,6 +293,7 @@ function sync(session) {
   const player = session && session.player;
   paintFill(healthFill, healthFrac, player ? player.health : 0);
   paintFill(drugFill, drugFrac, player ? player.high : 0);
+  paintEconomy(player);
 }
 
 function mount() {
@@ -250,6 +327,8 @@ function mount() {
 mount();
 
 export const hud = {
+  message,
+  setPrompt,
   setMixGlow,
   setSlotDisabled,
   sync,

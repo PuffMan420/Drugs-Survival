@@ -1008,6 +1008,11 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     },
     hurt,
     runOver,
+    // Walking normally: on screen, alive, not ragdolled, not reacting to a
+    // hit, and not panicking or fleeing. Only these will buy from the player.
+    isCalm(ped) {
+      return Boolean(ped && ped.live && !ped.dead && !ped.ragdoll && !ped.phase && !fleeing(ped));
+    },
     freshCorpses() {
       const list = [];
       for (const ped of people) {

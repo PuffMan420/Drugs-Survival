@@ -25,7 +25,6 @@ import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { SMAAPass } from "three/addons/postprocessing/SMAAPass.js";
 import { SSAOPass } from "three/addons/postprocessing/SSAOPass.js";
-import { TAARenderPass } from "three/addons/postprocessing/TAARenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { HorizontalTiltShiftShader } from "three/addons/shaders/HorizontalTiltShiftShader.js";
 import { VerticalTiltShiftShader } from "three/addons/shaders/VerticalTiltShiftShader.js";
@@ -96,7 +95,7 @@ const SHADOW_FILL = 0.45;
 // A slightly lower sun lets that cast clear the footprint.
 const SUN_DISTANCE = 1800;
 // The shadow box is the ground on screen, plus this margin, and tall enough
-// for roofs. It follows the player, so the 4096 map stays on that small patch.
+// for roofs. It follows the player, so the 2048 map stays on that small patch.
 const SHADOW_MARGIN = 120;
 const SHADOW_ROOF = 360;
 // Daytime stays the high northwest sun. ?light=afternoon lowers and warms it.
@@ -104,8 +103,15 @@ const lookPreview = parseLookPreview(window.location.search);
 const SUN_DIR = sunDirection(lookPreview?.afternoon === true);
 // ?fx=off skips the diorama stack so the plain picture can be compared.
 const fxOn = new URLSearchParams(window.location.search).get("fx") !== "off";
-// Composer targets are multisampled. The drawing buffer is also up to 2x.
-const MSAA_SAMPLES = 8;
+// Composer targets are multisampled. 4 samples plus the SMAA pass keep edges
+// smooth; 8 doubled the cost of every scene pixel for little visible gain.
+const MSAA_SAMPLES = 4;
+// The drawing buffer follows devicePixelRatio up to this cap. 2x on a
+// high-DPI screen meant 4x the pixels through every post pass.
+const MAX_PIXEL_RATIO = 1.5;
+// Shadow map side. 4096 with VSM blur cost a 16M-texel render and blur every
+// frame; 2048 with half the blur radius keeps the same soft edge in the world.
+const SHADOW_MAP = 2048;
 const drawSize = new Vector2();
 
 const canvas = document.getElementById("view");
@@ -235,14 +241,14 @@ let shownCamera = null;
 
 function fitDisplay(renderer) {
   // Same 16:9 frame as the ground the camera shows. Draw it into the canvas
-  // at the window's own pixels, with devicePixelRatio capped at 2 so a 1x
-  // screen is supersampled. The occlusion targets use this same drawing-buffer
+  // at the window's own pixels, with devicePixelRatio capped at
+  // MAX_PIXEL_RATIO. The occlusion targets use this same drawing-buffer
   // size. A touch screen uses the whole window instead of the letterbox.
   const frame = displayFrame(window.innerWidth, window.innerHeight, isTouchScreen(), GROUND_W, GROUND_H);
   spanW = frame.spanW;
   spanH = frame.spanH;
   const { cssW: width, cssH: height } = frame;
-  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
   if (isTouchScreen()) canvas.style.touchAction = "none";
@@ -403,11 +409,12 @@ function createSun(scene, afternoon) {
   scene.add(hemi);
   const sun = new DirectionalLight(afternoon ? 0xffb15a : 0xffd4a6, LAMBERT * (afternoon ? 0.42 : 0.45));
   sun.castShadow = true;
-  sun.shadow.mapSize.set(4096, 4096);
+  sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
   sun.shadow.bias = -0.0005;
   sun.shadow.normalBias = 0.02;
-  sun.shadow.radius = fxOn ? 6 : 3;
-  sun.shadow.blurSamples = fxOn ? 16 : 8;
+  // Radius is in shadow-map texels, so half the map size takes half the radius.
+  sun.shadow.radius = fxOn ? 3 : 1.5;
+  sun.shadow.blurSamples = 8;
   sun.shadow.intensity = 1;
   sun.shadow.camera.near = 50;
   sun.shadow.camera.far = afternoon ? 6400 : 4200;
@@ -547,12 +554,9 @@ function createAmbientOcclusion(renderer, scene, camera) {
   let tiltH = null;
   let tiltV = null;
   if (fxOn) {
-    // sampleLevel 2 is four jittered samples every frame. Leaving accumulate
-    // off keeps cars and the player from freezing into the buffer.
-    const taa = new TAARenderPass(scene, camera, DAY_HAZE, 1);
-    taa.sampleLevel = 2;
-    taa.accumulate = false;
-    chain.addPass(taa);
+    // One scene render per frame. The old TAA pass with accumulate off drew
+    // the whole scene four times (sampleLevel 2) on top of MSAA and SMAA.
+    chain.addPass(new RenderPass(scene, camera));
 
     ssao = new SSAOPass(scene, view);
     // minDistance and maxDistance are a fraction of this camera's near-to-far

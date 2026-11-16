@@ -131,6 +131,7 @@ export async function createPistol({
   traffic,
   blocked,
   stick = null,
+  onShot = null,
 }) {
   const hand = player.model.getObjectByName("handr")
     || player.model.getObjectByName("RightHand");
@@ -925,6 +926,7 @@ export async function createPistol({
     flash.visible = true;
     flashLife = FLASH_LIFE;
     playShot();
+    if (onShot) onShot();
     traffic.scare(player.mesh.position.x, player.mesh.position.z);
     if (pedestrians.scare) {
       pedestrians.scare(player.mesh.position.x, player.mesh.position.z);

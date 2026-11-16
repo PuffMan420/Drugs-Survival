@@ -25,6 +25,8 @@ let shownPrompt = null;
 let messageText = "";
 let messageUntil = 0;
 let promptText = "";
+let starEls = [];
+let shownStars = null;
 
 function place(el, x, y, w, h) {
   el.style.left = `${(x / REF_W) * 100}%`;
@@ -221,8 +223,13 @@ function build(layout) {
   shownStock = null;
   shownPrompt = null;
 
+  starEls = [];
+  shownStars = null;
   for (const star of layout.stars) {
     addImage(star.file_empty, star.x, star.y, star.w, star.h);
+    const full = addImage(star.file_full, star.x, star.y, star.w, star.h);
+    full.hidden = true;
+    starEls.push(full);
   }
 
   for (const grey of disabled) hudRoot.append(grey);
@@ -294,6 +301,15 @@ function sync(session) {
   paintFill(healthFill, healthFrac, player ? player.health : 0);
   paintFill(drugFill, drugFrac, player ? player.high : 0);
   paintEconomy(player);
+  paintStars(player && Number.isFinite(player.wanted) ? player.wanted : 0);
+}
+
+function paintStars(count) {
+  if (count === shownStars || starEls.length === 0) return;
+  shownStars = count;
+  starEls.forEach((el, i) => {
+    el.hidden = i >= count;
+  });
 }
 
 function mount() {

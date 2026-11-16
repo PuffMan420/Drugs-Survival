@@ -81,6 +81,7 @@ import {
   stepEconomy,
 } from "./economy.js";
 import { createSupplierMarker } from "./supplier-marker.js";
+import { createPolice } from "./police.js";
 import {
   WANTED_DEAL_SEEN,
   WANTED_SHOT,
@@ -800,6 +801,16 @@ async function start() {
   const wanted = createWanted();
   Object.defineProperty(player, "wanted", { get: () => wantedStars(wanted), enumerable: true });
   session.wanted = wanted;
+  const police = createPolice({
+    pedestrians,
+    player,
+    wanted,
+    economy,
+    onBusted: (loss) => {
+      hud.message(`BUSTED  -$${loss.lost}${loss.stockLost ? `, lost ${loss.stockLost} weed` : ""}`, 3.5);
+    },
+  });
+  session.police = police;
   const hurtPed = pedestrians.hurt;
   pedestrians.hurt = (ped, ...rest) => {
     const impact = hurtPed(ped, ...rest);
@@ -881,6 +892,14 @@ async function start() {
     },
     get wanted() {
       return wanted;
+    },
+    setWanted(level) {
+      wanted.level = Math.max(0, Math.min(5, Number(level) || 0));
+      wanted.quiet = 0;
+      return wanted.level;
+    },
+    get police() {
+      return police;
     },
   };
   session.minimap = minimap;
@@ -1105,9 +1124,10 @@ async function start() {
     const vitalStep = stepPlayerVitals(vitals, dt);
     if (vitalStep.justDied && drive.driving) session.use();
     if (vitalStep.readyToRespawn) respawnAtSpawn();
+    stepWanted(wanted, dt);
+    police.update(dt, halfW, halfH);
     pedestrians.update(dt, player.x, player.z, spanW, spanH);
     stepEconomy(economy, dt);
-    stepWanted(wanted, dt);
     supplier.update(dt);
     hud.setPrompt(dealPrompt());
     rats.update(dt, player.x, player.z, camX, camZ, halfW, halfH);

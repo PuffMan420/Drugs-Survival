@@ -1086,8 +1086,9 @@ async function start() {
       };
       const stepLen = playerSprite.speed * dt;
       if (stepLen > 0.001) {
-        const stepX = playerSprite.dirX * stepLen;
-        const stepZ = playerSprite.dirZ * stepLen;
+        // moveX/moveZ: the WASD direction while aiming, the facing otherwise.
+        const stepX = playerSprite.moveX * stepLen;
+        const stepZ = playerSprite.moveZ * stepLen;
         // Short slices so a fast step cannot hop through a narrow car.
         const slices = Math.max(1, Math.ceil(stepLen / 8));
         for (let slice = 0; slice < slices; slice += 1) {

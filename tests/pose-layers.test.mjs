@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { aimChord, isLowerBone, legsWhileAiming, pistolPose, splitTrackNames } from "../js/pose-layers.js";
+import { aimChord, isLowerBone, legsWhileAiming, moveDirection, pistolPose, splitTrackNames } from "../js/pose-layers.js";
 
 test("legs and feet stay on the lower layer, and the gun arm stays on the upper", () => {
   assert.equal(isLowerBone("Hips"), true);
@@ -90,4 +90,18 @@ test("the gubbe walk and aim clips both have legs and arms to split", () => {
     assert.ok(split.upper.some((name) => name.startsWith("RightForeArm.")), clipName);
     assert.equal(split.lower.length + split.upper.length, names.length, clipName);
   }
+});
+
+test("moveDirection walks the facing without aim and the WASD wish while aiming", () => {
+  const facing = Math.PI / 2; // facing +x
+  const plain = moveDirection({ aiming: false, facing, wishX: 0, wishZ: -1, lastX: 0, lastZ: 1 });
+  assert.ok(Math.abs(plain.x - 1) < 1e-9 && Math.abs(plain.z) < 1e-9);
+  // Aiming at +x, pressing W (-z): walk -z, not toward the aim
+  const strafe = moveDirection({ aiming: true, facing, wishX: 0, wishZ: -1, lastX: 1, lastZ: 0 });
+  assert.deepEqual(strafe, { x: 0, z: -1 });
+  // Diagonal wish is normalised
+  const diag = moveDirection({ aiming: true, facing, wishX: 1, wishZ: 1, lastX: 0, lastZ: 1 });
+  assert.ok(Math.abs(Math.hypot(diag.x, diag.z) - 1) < 1e-9);
+  // No wish while aiming keeps the last direction
+  assert.deepEqual(moveDirection({ aiming: true, facing, wishX: 0, wishZ: 0, lastX: -1, lastZ: 0 }), { x: -1, z: 0 });
 });

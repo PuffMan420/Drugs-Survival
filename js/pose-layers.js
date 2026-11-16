@@ -93,3 +93,13 @@ export function aimChord({ armed, busy, aiming, right, left, leftWas, sinceRight
   if (fire) next = true;
   return { aiming: next, fire };
 }
+
+// Which way the feet carry him. Without an aim he walks where he faces, as
+// before. While aiming he faces the aim but walks the WASD wish (a strafe);
+// with no wish the last direction is kept while speed eases to a stop.
+export function moveDirection({ aiming, facing, wishX, wishZ, lastX, lastZ }) {
+  if (!aiming) return { x: Math.sin(facing), z: Math.cos(facing) };
+  const wish = Math.hypot(wishX, wishZ);
+  if (wish > 0.001) return { x: wishX / wish, z: wishZ / wish };
+  return { x: lastX, z: lastZ };
+}

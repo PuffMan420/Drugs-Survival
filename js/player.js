@@ -18,7 +18,7 @@ import {
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { PLAYER_SPEED } from "./constants.js";
 import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
-import { isLowerBone, legsWhileAiming } from "./pose-layers.js";
+import { isLowerBone, legsWhileAiming, moveDirection } from "./pose-layers.js";
 
 // Blue sedan footprint in js/cars.js (assets/cars3d/sedan.glb): 37 wide, 71 long.
 // A real height is a third of that length. He is drawn a bit larger than that
@@ -365,6 +365,9 @@ export async function createPlayer() {
   let facing = 0;
   let forced = "";
   let aim = null;
+  // Walking direction. Same as facing unless he aims (see moveDirection).
+  let moveX = 0;
+  let moveZ = 1;
   let layered = false;
   let legGait = "idle";
   let kick = "";
@@ -489,6 +492,13 @@ export async function createPlayer() {
     get dirZ() {
       return Math.cos(facing);
     },
+    // Use these for the step. dirX/dirZ stay the facing for hits and shots.
+    get moveX() {
+      return moveX;
+    },
+    get moveZ() {
+      return moveZ;
+    },
     model,
     useListener,
     // True while the pistol is in his hand. The finger pose is applied after
@@ -530,6 +540,9 @@ export async function createPlayer() {
         facing += delta * (1 - Math.exp(-step / tau));
         holder.rotation.y = facing;
       }
+      const move = moveDirection({ aiming: Boolean(aim), facing, wishX, wishZ, lastX: moveX, lastZ: moveZ });
+      moveX = move.x;
+      moveZ = move.z;
       const rate = GAIT_SPEED[gait] || 0;
       const goal = PLAYER_SPEED * rate * (boost > 0 ? boost : 1);
       speed += (goal - speed) * (1 - Math.exp(-step / SPEED_TAU));

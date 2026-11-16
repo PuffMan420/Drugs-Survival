@@ -786,6 +786,7 @@ export function createSim(plan, models, pick) {
       driver.bulky = !!(models[driver.model] && models[driver.model].bulky);
       if (!place(driver, node.index, exit)) continue;
       initCarHealth(driver);
+      driver.smokeSoundPlayed = false;
       return driver;
     }
     return null;

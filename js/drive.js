@@ -6,7 +6,7 @@
 // car stays on the traffic sim. The world steps while someone is driving,
 // and while a pedestrian ragdoll is still simulating.
 
-import { applyCarDamage, crashDamageFromLostSpeed } from "./car-damage.js";
+import { applyCarDamage, crashDamageFromLostSpeed, playCarSmokeSound } from "./car-damage.js";
 import { createArcadeVehicle } from "./kenney-vehicle.js";
 import { carShell } from "./model-shell.js";
 import { GROUP, groups, yawQuat } from "./physics.js";
@@ -121,6 +121,9 @@ export function createDrive(physics, scene) {
             z: occupied.z,
             isPlayerCar: true,
           });
+        }
+        if (result.smokeSound) {
+          playCarSmokeSound(crashSounds, occupied.x, occupied.z, { isPlayerCar: true });
         }
         if (result.justWrecked) {
           arcade.scalePlanar(0);

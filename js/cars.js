@@ -16,6 +16,8 @@ import {
   applyCarDamage,
   bulletHitCar,
   playBulletWorldHitSound,
+  playCarExplodeSound,
+  playCarSmokeSound,
   blastPeds,
   createCarDamageFx,
   initCarHealth,
@@ -729,6 +731,7 @@ export async function createTraffic(scene, map, pieces = []) {
     car.level = wearLevel(models[car.model].file, car.hash);
     settleParked(car, map);
     initCarHealth(car);
+    car.smokeSoundPlayed = false;
   }
   const parked = plan.parked;
   const sim = createSim(plan, models, pick);
@@ -891,6 +894,11 @@ export async function createTraffic(scene, map, pieces = []) {
     car.blew = true;
     car.speed = 0;
     damageFx.explode(car);
+    playCarExplodeSound(crashSounds, car.x, car.z, {
+      listenerX: hearX,
+      listenerZ: hearZ,
+      isPlayerCar: Boolean(car.held),
+    });
     blastPeds(car, peds);
   }
 
@@ -921,6 +929,13 @@ export async function createTraffic(scene, map, pieces = []) {
           kind,
           x: car.x,
           z: car.z,
+          listenerX: hearX,
+          listenerZ: hearZ,
+          isPlayerCar: Boolean(car.held),
+        });
+      }
+      if (result.smokeSound) {
+        playCarSmokeSound(crashSounds, car.x, car.z, {
           listenerX: hearX,
           listenerZ: hearZ,
           isPlayerCar: Boolean(car.held),

@@ -6,7 +6,8 @@
 // Every car starts with this many hit points, including parked and driven cars.
 export const CAR_HP = 100;
 // Weapon damage to a car. The pistol still shows its spark.
-export const PISTOL_CAR_DAMAGE = 10;
+// Twenty shots wreck a 100 HP car; smoke starts at shot 12, fire at 16.
+export const PISTOL_CAR_DAMAGE = 5;
 export const BAT_CAR_DAMAGE = 5;
 export const BOTTLE_CAR_DAMAGE = 2;
 // Crash damage is only for the car the player is driving.
@@ -56,14 +57,26 @@ export const WORLD_HIT_GROUND_SLACK = 8;
 // Short enough that follow-up shots still speak.
 export const BULLET_SOUND_COOLDOWN = 0.05;
 // Pistol impacts stay quiet, except when the car is right next to the player.
-export const BULLET_SOUND_VOLUME = 0.3;
-export const BULLET_SOUND_CLOSE_VOLUME = 0.6;
+export const BULLET_SOUND_VOLUME = 0.15;
+export const BULLET_SOUND_CLOSE_VOLUME = 0.3;
 // Two tiles. Inside this the shot is at the close volume.
 export const BULLET_SOUND_CLOSE_RANGE = 96;
 // By this distance the shot has eased down to BULLET_SOUND_VOLUME, then the far fade takes over.
 export const BULLET_SOUND_MID_RANGE = 300;
 // Bat and bottle hits reuse the crash clips, quieter than a real smash.
 export const MELEE_CAR_SOUND_SCALE = 0.4;
+// Played once when a car first starts smoking, or first goes to fire/wreck
+// without a smoking stage. Quieter than a crash, heard at the usual car range.
+export const SMOKE_SOUND_FILES = ["car-smoke-1.ogg"];
+export const SMOKE_SOUND_VOLUME = 0.35;
+export const SMOKE_SOUND_NEAR = 160;
+export const SMOKE_SOUND_FAR = 520;
+// Wreck explosion pool. Louder than a gunshot (0.4) and heard farther than
+// bullet hits, which fade out by CRASH_SOUND_FAR (520).
+export const EXPLODE_SOUND_FILES = ["car-explode-1.ogg", "car-explode-2.ogg"];
+export const EXPLODE_SOUND_VOLUME = 0.6;
+export const EXPLODE_SOUND_NEAR = 280;
+export const EXPLODE_SOUND_FAR = 900;
 
 const WRECK_R = 0.12;
 const WRECK_G = 0.11;
@@ -74,7 +87,24 @@ export function initCarHealth(car) {
   if (car.hp == null) car.hp = CAR_HP;
   if (!car.wrecked) car.wrecked = false;
   if (car.wreckAge == null) car.wreckAge = 0;
+  // New and recycled cars start ready to play the smoke clip once.
+  if (car.smokeSoundPlayed == null) car.smokeSoundPlayed = false;
   return car;
+}
+
+export function resetSmokeSound(car) {
+  if (!car) return car;
+  car.smokeSoundPlayed = false;
+  return car;
+}
+
+// First time this car reaches the smoke HP line, or skips straight to fire/wreck.
+export function markSmokeSound(car) {
+  if (!car || car.smokeSoundPlayed) return false;
+  const triggered = Boolean(car.wrecked) || (car.hp != null && car.hp <= SMOKE_HP);
+  if (!triggered) return false;
+  car.smokeSoundPlayed = true;
+  return true;
 }
 
 // Damage from a sudden speed drop, in the same units as the arcade car.
@@ -106,13 +136,25 @@ export function pickCrashClip(lastIndex, count = CRASH_SOUND_FILES.length, rando
   return skip >= lastIndex ? skip + 1 : skip;
 }
 
-export function crashSoundFalloff(dist, isPlayerCar = false) {
+export function distanceFalloff(dist, near, far, isPlayerCar = false) {
   if (isPlayerCar) return 1;
   if (!(dist >= 0)) return 0;
-  if (dist >= CRASH_SOUND_FAR) return 0;
-  if (dist <= CRASH_SOUND_NEAR) return 1;
-  const t = (dist - CRASH_SOUND_NEAR) / (CRASH_SOUND_FAR - CRASH_SOUND_NEAR);
+  if (dist >= far) return 0;
+  if (dist <= near) return 1;
+  const t = (dist - near) / (far - near);
   return (1 - t) * (1 - t);
+}
+
+export function crashSoundFalloff(dist, isPlayerCar = false) {
+  return distanceFalloff(dist, CRASH_SOUND_NEAR, CRASH_SOUND_FAR, isPlayerCar);
+}
+
+export function smokeSoundGain(dist, isPlayerCar = false) {
+  return SMOKE_SOUND_VOLUME * distanceFalloff(dist, SMOKE_SOUND_NEAR, SMOKE_SOUND_FAR, isPlayerCar);
+}
+
+export function explodeSoundGain(dist, isPlayerCar = false) {
+  return EXPLODE_SOUND_VOLUME * distanceFalloff(dist, EXPLODE_SOUND_NEAR, EXPLODE_SOUND_FAR, isPlayerCar);
 }
 
 export function crashSoundGain(damage, dist, isPlayerCar = false) {
@@ -170,6 +212,13 @@ export function bulletHitCar(car, damage, x, z, hooks = {}) {
       isPlayerCar: Boolean(hooks.isPlayerCar) || Boolean(car?.held),
     });
   }
+  if (result.smokeSound) {
+    playCarSmokeSound(hooks.sounds, x ?? car?.x, z ?? car?.z, {
+      listenerX: hooks.listenerX,
+      listenerZ: hooks.listenerZ,
+      isPlayerCar: Boolean(hooks.isPlayerCar) || Boolean(car?.held),
+    });
+  }
   return result;
 }
 
@@ -193,6 +242,28 @@ export function playBulletWorldHitSound(sounds, x, z, opts = {}) {
   });
 }
 
+export function playCarSmokeSound(sounds, x, z, opts = {}) {
+  if (!sounds || typeof sounds.playSmoke !== "function") return false;
+  return sounds.playSmoke({
+    x,
+    z,
+    listenerX: opts.listenerX,
+    listenerZ: opts.listenerZ,
+    isPlayerCar: Boolean(opts.isPlayerCar),
+  });
+}
+
+export function playCarExplodeSound(sounds, x, z, opts = {}) {
+  if (!sounds || typeof sounds.playExplode !== "function") return false;
+  return sounds.playExplode({
+    x,
+    z,
+    listenerX: opts.listenerX,
+    listenerZ: opts.listenerZ,
+    isPlayerCar: Boolean(opts.isPlayerCar),
+  });
+}
+
 export function createCrashSoundClock(now = 0) {
   return { lastIndex: -1, nextTime: now };
 }
@@ -204,11 +275,11 @@ export function canPlayCrashSound(clock, now) {
 export function applyCarDamage(car, amount) {
   initCarHealth(car);
   if (!car || car.wrecked) {
-    return { damaged: false, justWrecked: false, hp: car ? car.hp : 0 };
+    return { damaged: false, justWrecked: false, smokeSound: false, hp: car ? car.hp : 0 };
   }
   const dealt = Math.max(0, amount);
   if (!(dealt > 0)) {
-    return { damaged: false, justWrecked: false, hp: car.hp };
+    return { damaged: false, justWrecked: false, smokeSound: false, hp: car.hp };
   }
   car.hp = Math.max(0, car.hp - dealt);
   const justWrecked = car.hp <= 0;
@@ -218,7 +289,8 @@ export function applyCarDamage(car, amount) {
     car.speed = 0;
     car.wait = 0;
   }
-  return { damaged: true, justWrecked, hp: car.hp };
+  const smokeSound = markSmokeSound(car);
+  return { damaged: true, justWrecked, smokeSound, hp: car.hp };
 }
 
 export function shouldCullWreck(car, playerX, playerZ) {
@@ -491,7 +563,7 @@ export function blastPeds(car, pedestrians) {
 // Loads crash, bullet-hit, and world-impact clips on the shared listener from drive-effects.
 export async function createCarCrashSounds(listener) {
   if (!listener) {
-    return { play() { return false; }, playWorld() { return false; } };
+    return { play() { return false; }, playWorld() { return false; }, playSmoke() { return false; }, playExplode() { return false; } };
   }
   const Three = await import("three");
   const loader = new Three.AudioLoader();
@@ -540,9 +612,13 @@ export async function createCarCrashSounds(listener) {
   const crash = makeBank(CRASH_SOUND_FILES, "crash", 4);
   const bullet = makeBank(BULLET_SOUND_FILES, "bullet", 4);
   const world = makeBank(BULLET_WORLD_SOUNDS, "world", 4);
+  const smoke = makeBank(SMOKE_SOUND_FILES, "smoke", 4);
+  const explode = makeBank(EXPLODE_SOUND_FILES, "explode", 4);
   crash.buffers = await loadBuffers(crash.files, crash.label);
   bullet.buffers = await loadBuffers(bullet.files, bullet.label);
   world.buffers = await loadBuffers(world.files, world.label);
+  smoke.buffers = await loadBuffers(smoke.files, smoke.label);
+  explode.buffers = await loadBuffers(explode.files, explode.label);
 
   function playBank(bank, cooldown, gain) {
     const context = listener.context;
@@ -584,7 +660,23 @@ export async function createCarCrashSounds(listener) {
 
   return {
     get ready() {
-      return crash.buffers.some(Boolean) || bullet.buffers.some(Boolean) || world.buffers.some(Boolean);
+      return crash.buffers.some(Boolean) || bullet.buffers.some(Boolean) || world.buffers.some(Boolean)
+        || smoke.buffers.some(Boolean) || explode.buffers.some(Boolean);
+    },
+    playPositional(bank, cooldown, gainFn, opts = {}) {
+      const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;
+      if (!(master > 0)) return false;
+      const hasPos = opts.x != null && opts.z != null && opts.listenerX != null && opts.listenerZ != null;
+      const dist = hasPos ? Math.hypot(opts.x - opts.listenerX, opts.z - opts.listenerZ) : 0;
+      const gain = gainFn(dist, Boolean(opts.isPlayerCar));
+      if (!(gain > 0)) return false;
+      return playBank(bank, cooldown, gain);
+    },
+    playSmoke(opts = {}) {
+      return this.playPositional(smoke, 0, smokeSoundGain, opts);
+    },
+    playExplode(opts = {}) {
+      return this.playPositional(explode, 0, explodeSoundGain, opts);
     },
     playWorld(opts = {}) {
       const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;

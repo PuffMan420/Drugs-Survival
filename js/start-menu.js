@@ -1,11 +1,10 @@
-// Menu shown after the intro. Play stays locked until main.js says the world is ready.
+// Start menu. Play stays locked until main.js says the world is ready.
 
 const menu = document.getElementById("start-menu");
 const home = document.getElementById("menu-home");
 const settings = document.getElementById("menu-settings-page");
 const play = document.getElementById("menu-play");
 const note = document.getElementById("menu-note");
-const intro = document.getElementById("intro");
 
 let revealed = false;
 
@@ -22,7 +21,6 @@ function showSettings() {
 export function openMenu() {
   if (revealed) return;
   revealed = true;
-  if (intro) intro.hidden = true;
   menu.hidden = false;
 }
 
@@ -33,8 +31,7 @@ export function menuRevealed() {
 document.getElementById("menu-settings").addEventListener("click", showSettings);
 document.getElementById("menu-back").addEventListener("click", showHome);
 
-const skip = document.getElementById("intro-skip");
-if (skip) skip.addEventListener("click", openMenu);
+openMenu();
 
 play.addEventListener("click", () => {
   if (play.disabled) return;

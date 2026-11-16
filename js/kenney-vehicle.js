@@ -345,7 +345,7 @@ export function nearestTraffic(cars, x, z, limit = TRAFFIC_VOICES) {
   const heard = [];
   if (!cars) return heard;
   for (const car of cars) {
-    if (!car || car.held || car.speed == null || car.id == null) continue;
+    if (!car || car.held || car.wrecked || car.speed == null || car.id == null) continue;
     const dist = Math.hypot((car.x || 0) - x, (car.z || 0) - z);
     const falloff = trafficFalloff(dist);
     if (falloff <= 0) continue;

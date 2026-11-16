@@ -1,0 +1,26 @@
+Drugs Survival HUD - credits
+
+ICONS
+Icons from game-icons.net, licensed under CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/).
+Modified: recoloured to a bone tint, grime/dust added, drop shadow added.
+
+- arm-bandage: by Delapouite (https://game-icons.net/1x1/delapouite/arm-bandage.html)
+- first-aid-kit: by Delapouite (https://game-icons.net/1x1/delapouite/first-aid-kit.html)
+- health-potion: by Delapouite (https://game-icons.net/1x1/delapouite/health-potion.html)
+- lock-picking: by Delapouite (https://game-icons.net/1x1/delapouite/lock-picking.html)
+- medicine-pills: by Delapouite (https://game-icons.net/1x1/delapouite/medicine-pills.html)
+- walkie-talkie: by Delapouite (https://game-icons.net/1x1/delapouite/walkie-talkie.html)
+- flash-grenade: by Lorc (https://game-icons.net/1x1/lorc/flash-grenade.html)
+- love-injection: by Lorc (https://game-icons.net/1x1/lorc/love-injection.html)
+- miracle-medecine: by Lorc (https://game-icons.net/1x1/lorc/miracle-medecine.html)
+- pill: by Lorc (https://game-icons.net/1x1/lorc/pill.html)
+- pill-drop: by Lorc (https://game-icons.net/1x1/lorc/pill-drop.html)
+- syringe: by Lorc (https://game-icons.net/1x1/lorc/syringe.html)
+- glock: by Skoll (https://game-icons.net/1x1/skoll/glock.html)
+- switchblade: by Skoll (https://game-icons.net/1x1/skoll/switchblade.html)
+
+UI ART
+Frames, orbs, slots, panels, keys, stars, plates and minimap are derived from the CinderUI v2.0 GUI kit,
+modified for Drugs Survival (dust/grime layer, orb gems replaced with gold weed-leaf ornaments, mana fill recoloured purple,
+added danger line, highlight/disabled overlays and mix glow). The CinderUI license allows use and modification in a game,
+including commercial games; the kit itself (or these files as a standalone UI pack) must not be resold or redistributed.

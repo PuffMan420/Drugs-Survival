@@ -84,13 +84,19 @@ canvas {
 }
 
 #minimap {
-  position: fixed;
-  right: 12px;
-  bottom: 36px;
-  z-index: 2;
-  width: 280px;
-  height: 280px;
-  outline: 2px solid #fff;
+  display: none;
+}
+
+#game-hud #minimap {
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  background: transparent;
+  pointer-events: none;
 }
 
 #hint {
@@ -100,6 +106,12 @@ canvas {
   z-index: 2;
   padding: 2px 6px;
   font-size: 14px;
+}
+
+#fps,
+#place,
+#hint {
+  display: none;
 }
 
 #map-overlay {
@@ -362,6 +374,7 @@ body.is-menu #fps,
 body.is-menu #place,
 body.is-menu #minimap,
 body.is-menu #hint,
+body.is-menu #game-hud,
 body.is-menu #touch-ui,
 body.is-menu #crosshair,
 body.is-menu #map-overlay,
@@ -400,14 +413,6 @@ body.is-menu #build-panel {
   #hint,
   #build-info {
     display: none;
-  }
-
-  #minimap {
-    top: max(8px, env(safe-area-inset-top));
-    right: max(8px, env(safe-area-inset-right));
-    bottom: auto;
-    width: min(22vmin, 112px);
-    height: min(22vmin, 112px);
   }
 
   #build-panel {

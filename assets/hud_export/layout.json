@@ -1,0 +1,580 @@
+{
+ "reference_screen": {
+  "w": 1920,
+  "h": 1080
+ },
+ "asset_scale": "assets are 2x the reference rects (native for 3840x2160); scale rects by screen_w/1920",
+ "draw_order": [
+  "minimap",
+  "panels",
+  "slots",
+  "slot_icons",
+  "orbs",
+  "prompt_plate",
+  "currency_plate",
+  "quest_tracker",
+  "stars",
+  "overlays (highlight/disabled/mix_glow/key hints/danger line) where needed"
+ ],
+ "orbs": {
+  "health": {
+   "x": -1,
+   "y": 792,
+   "w": 289,
+   "h": 289,
+   "layers": [
+    "orbs/health_orb_back.png",
+    "orbs/health_orb_fill.png",
+    "orbs/health_orb_frame.png"
+   ],
+   "fill_box_px_in_asset": [
+    88,
+    88,
+    490,
+    490
+   ],
+   "fill_box_frac": [
+    0.1522491349480969,
+    0.1522491349480969,
+    0.8477508650519031,
+    0.8477508650519031
+   ],
+   "note": "draw back, then fill clipped from the bottom to the health fraction inside fill_box, then frame (glass highlight + gold frame + weed leaves) on top"
+  },
+  "drug_HIGH": {
+   "x": 1632,
+   "y": 792,
+   "w": 289,
+   "h": 289,
+   "layers": [
+    "orbs/drug_orb_back.png",
+    "orbs/drug_orb_fill.png",
+    "orbs/drug_orb_frame.png"
+   ],
+   "fill_box_px_in_asset": [
+    88,
+    88,
+    490,
+    490
+   ],
+   "fill_box_frac": [
+    0.1522491349480969,
+    0.1522491349480969,
+    0.8477508650519031,
+    0.8477508650519031
+   ],
+   "danger_line": {
+    "file": "orbs/drug_orb_danger_line_80.png",
+    "same_rect_as_orb": true,
+    "level": 0.8,
+    "y_frac_in_asset": 0.2913,
+    "note": "draw after the fill, before the frame layer"
+   },
+   "label_HIGH": null
+  }
+ },
+ "panels": {
+  "left": {
+   "file": "panels/left_panel.png",
+   "x": 184,
+   "y": 911,
+   "w": 604,
+   "h": 164
+  },
+  "right": {
+   "file": "panels/right_panel.png",
+   "x": 1132,
+   "y": 911,
+   "w": 604,
+   "h": 164
+  }
+ },
+ "slots": [
+  {
+   "slot": 1,
+   "panel": "left",
+   "size": "large",
+   "file": "slots/slot_large.png",
+   "x": 303,
+   "y": 931,
+   "w": 124,
+   "h": 124,
+   "role": "heal",
+   "key": "1",
+   "input": null,
+   "item": "first-aid-kit",
+   "icon": {
+    "file": "icons/first-aid-kit.png",
+    "x": 332,
+    "y": 963,
+    "w": 69,
+    "h": 62
+   },
+   "highlight_file": "slots/slot_highlight_large.png",
+   "disabled_file": "slots/slot_disabled_large.png",
+   "key_hint": {
+    "file": "keys/key_1.png",
+    "x": 350,
+    "y": 1037,
+    "w": 30,
+    "h": 30
+   }
+  },
+  {
+   "slot": 2,
+   "panel": "left",
+   "size": "large",
+   "file": "slots/slot_large.png",
+   "x": 434,
+   "y": 931,
+   "w": 124,
+   "h": 124,
+   "role": "current_weapon",
+   "key": null,
+   "input": "mouse_wheel",
+   "item": "glock",
+   "icon": {
+    "file": "icons/glock.png",
+    "x": 462,
+    "y": 966,
+    "w": 69,
+    "h": 55
+   },
+   "highlight_file": "slots/slot_highlight_large.png",
+   "disabled_file": "slots/slot_disabled_large.png"
+  },
+  {
+   "slot": 3,
+   "panel": "left",
+   "size": "small",
+   "file": "slots/slot_small.png",
+   "x": 581,
+   "y": 931,
+   "w": 59,
+   "h": 59,
+   "role": "inventory_hotkey",
+   "key": null,
+   "input": null,
+   "item": "arm-bandage",
+   "icon": {
+    "file": "icons/arm-bandage.png",
+    "x": 596,
+    "y": 946,
+    "w": 32,
+    "h": 32
+   },
+   "highlight_file": "slots/slot_highlight_small.png",
+   "disabled_file": "slots/slot_disabled_small.png"
+  },
+  {
+   "slot": 4,
+   "panel": "left",
+   "size": "small",
+   "file": "slots/slot_small.png",
+   "x": 645,
+   "y": 931,
+   "w": 59,
+   "h": 59,
+   "role": "inventory_hotkey",
+   "key": null,
+   "input": null,
+   "item": "medicine-pills",
+   "icon": {
+    "file": "icons/medicine-pills.png",
+    "x": 662,
+    "y": 946,
+    "w": 28,
+    "h": 32
+   },
+   "highlight_file": "slots/slot_highlight_small.png",
+   "disabled_file": "slots/slot_disabled_small.png"
+  },
+  {
+   "slot": 5,
+   "panel": "left",
+   "size": "small",
+   "file": "slots/slot_small.png",
+   "x": 709,
+   "y": 931,
+   "w": 59,
+   "h": 59,
+   "role": "inventory_hotkey",
+   "key": null,
+   "input": null,
+   "item": "health-potion",
+   "icon": {
+    "file": "icons/health-potion.png",
+    "x": 724,
+    "y": 946,
+    "w": 30,
+    "h": 32
+   },
+   "highlight_file": "slots/slot_highlight_small.png",
+   "disabled_file": "slots/slot_disabled_small.png"
+  },
+  {
+   "slot": 6,
+   "panel": "left",
+   "size": "small",
+   "file": "slots/slot_small.png",
+   "x": 581,
+   "y": 995,
+   "w": 59,
+   "h": 59,
+   "role": "inventory_hotkey",
+   "key": null,
+   "input": null,
+   "item": "switchblade",
+   "icon": {
+    "file": "icons/switchblade.png",
+    "x": 596,
+    "y": 1010,
+    "w": 32,
+    "h": 32
+   },
+   "highlight_file": "slots/slot_highlight_small.png",
+   "disabled_file": "slots/slot_disabled_small.png"
+  },
+  {
+   "slot": 7,
+   "panel": "left",
+   "size": "small",
+   "file": "slots/slot_small.png",
+   "x": 645,
+   "y": 995,
+   "w": 59,
+   "h": 59,
+   "role": "inventory_hotkey",
+   "key": null,
+   "input": null,
+   "item": "flash-grenade",
+   "icon": {
+    "file": "icons/flash-grenade.png",
+    "x": 660,
+    "y": 1010,
+    "w": 31,
+    "h": 32
+   },
+   "highlight_file": "slots/slot_highlight_small.png",
+   "disabled_file": "slots/slot_disabled_small.png"
+  },
+  {
+   "slot": 8,
+   "panel": "left",
+   "size": "small",
+   "file": "slots/slot_small.png",
+   "x": 709,
+   "y": 995,
+   "w": 59,
+   "h": 59,
+   "role": "inventory_hotkey",
+   "key": null,
+   "input": null,
+   "item": null,
+   "icon": null,
+   "highlight_file": "slots/slot_highlight_small.png",
+   "disabled_file": "slots/slot_disabled_small.png"
+  },
+  {
+   "slot": 9,
+   "panel": "right",
+   "size": "small",
+   "file": "slots/slot_small.png",
+   "x": 1152,
+   "y": 931,
+   "w": 59,
+   "h": 59,
+   "role": "inventory_hotkey",
+   "key": null,
+   "input": null,
+   "item": "love-injection",
+   "icon": {
+    "file": "icons/love-injection.png",
+    "x": 1166,
+    "y": 946,
+    "w": 32,
+    "h": 32
+   },
+   "highlight_file": "slots/slot_highlight_small.png",
+   "disabled_file": "slots/slot_disabled_small.png"
+  },
+  {
+   "slot": 10,
+   "panel": "right",
+   "size": "small",
+   "file": "slots/slot_small.png",
+   "x": 1216,
+   "y": 931,
+   "w": 59,
+   "h": 59,
+   "role": "inventory_hotkey",
+   "key": null,
+   "input": null,
+   "item": "pill-drop",
+   "icon": {
+    "file": "icons/pill-drop.png",
+    "x": 1230,
+    "y": 946,
+    "w": 32,
+    "h": 32
+   },
+   "highlight_file": "slots/slot_highlight_small.png",
+   "disabled_file": "slots/slot_disabled_small.png"
+  },
+  {
+   "slot": 11,
+   "panel": "right",
+   "size": "small",
+   "file": "slots/slot_small.png",
+   "x": 1280,
+   "y": 931,
+   "w": 59,
+   "h": 59,
+   "role": "inventory_hotkey",
+   "key": null,
+   "input": null,
+   "item": "miracle-medecine",
+   "icon": {
+    "file": "icons/miracle-medecine.png",
+    "x": 1295,
+    "y": 946,
+    "w": 31,
+    "h": 32
+   },
+   "highlight_file": "slots/slot_highlight_small.png",
+   "disabled_file": "slots/slot_disabled_small.png"
+  },
+  {
+   "slot": 12,
+   "panel": "right",
+   "size": "small",
+   "file": "slots/slot_small.png",
+   "x": 1152,
+   "y": 995,
+   "w": 59,
+   "h": 59,
+   "role": "inventory_hotkey",
+   "key": null,
+   "input": null,
+   "item": "lock-picking",
+   "icon": {
+    "file": "icons/lock-picking.png",
+    "x": 1167,
+    "y": 1010,
+    "w": 31,
+    "h": 32
+   },
+   "highlight_file": "slots/slot_highlight_small.png",
+   "disabled_file": "slots/slot_disabled_small.png"
+  },
+  {
+   "slot": 13,
+   "panel": "right",
+   "size": "small",
+   "file": "slots/slot_small.png",
+   "x": 1216,
+   "y": 995,
+   "w": 59,
+   "h": 59,
+   "role": "inventory_hotkey",
+   "key": null,
+   "input": null,
+   "item": "walkie-talkie",
+   "icon": {
+    "file": "icons/walkie-talkie.png",
+    "x": 1231,
+    "y": 1010,
+    "w": 31,
+    "h": 32
+   },
+   "highlight_file": "slots/slot_highlight_small.png",
+   "disabled_file": "slots/slot_disabled_small.png"
+  },
+  {
+   "slot": 14,
+   "panel": "right",
+   "size": "small",
+   "file": "slots/slot_small.png",
+   "x": 1280,
+   "y": 995,
+   "w": 59,
+   "h": 59,
+   "role": "inventory_hotkey",
+   "key": null,
+   "input": null,
+   "item": null,
+   "icon": null,
+   "highlight_file": "slots/slot_highlight_small.png",
+   "disabled_file": "slots/slot_disabled_small.png"
+  },
+  {
+   "slot": 15,
+   "panel": "right",
+   "size": "large",
+   "file": "slots/slot_large.png",
+   "x": 1362,
+   "y": 931,
+   "w": 124,
+   "h": 124,
+   "role": "drug_A",
+   "key": "2",
+   "input": null,
+   "item": "syringe",
+   "icon": {
+    "file": "icons/syringe.png",
+    "x": 1390,
+    "y": 960,
+    "w": 69,
+    "h": 69
+   },
+   "highlight_file": "slots/slot_highlight_large.png",
+   "disabled_file": "slots/slot_disabled_large.png",
+   "key_hint": {
+    "file": "keys/key_2.png",
+    "x": 1409,
+    "y": 1037,
+    "w": 30,
+    "h": 30
+   }
+  },
+  {
+   "slot": 16,
+   "panel": "right",
+   "size": "large",
+   "file": "slots/slot_large.png",
+   "x": 1493,
+   "y": 931,
+   "w": 124,
+   "h": 124,
+   "role": "drug_B",
+   "key": "3",
+   "input": null,
+   "item": "pill",
+   "icon": {
+    "file": "icons/pill.png",
+    "x": 1522,
+    "y": 967,
+    "w": 69,
+    "h": 54
+   },
+   "highlight_file": "slots/slot_highlight_large.png",
+   "disabled_file": "slots/slot_disabled_large.png",
+   "key_hint": {
+    "file": "keys/key_3.png",
+    "x": 1540,
+    "y": 1037,
+    "w": 30,
+    "h": 30
+   }
+  }
+ ],
+ "mix_glow": {
+  "file": "slots/mix_glow.png",
+  "x": 1348,
+  "y": 917,
+  "w": 283,
+  "h": 152,
+  "links_slots": [
+   15,
+   16
+  ],
+  "use": "show while the 1.5 s drug-mix window is open"
+ },
+ "minimap": {
+  "x": 1615,
+  "y": 14,
+  "w": 287,
+  "h": 287,
+  "layers": [
+   "minimap/minimap_back.png",
+   "minimap/minimap_frame.png"
+  ],
+  "note": "render the map between back and frame"
+ },
+ "stars": [
+  {
+   "index": 1,
+   "x": 1652,
+   "y": 279,
+   "w": 46,
+   "h": 46,
+   "file_empty": "stars/star_empty.png",
+   "file_full": "stars/star_full.png"
+  },
+  {
+   "index": 2,
+   "x": 1694,
+   "y": 279,
+   "w": 46,
+   "h": 46,
+   "file_empty": "stars/star_empty.png",
+   "file_full": "stars/star_full.png"
+  },
+  {
+   "index": 3,
+   "x": 1736,
+   "y": 279,
+   "w": 46,
+   "h": 46,
+   "file_empty": "stars/star_empty.png",
+   "file_full": "stars/star_full.png"
+  },
+  {
+   "index": 4,
+   "x": 1779,
+   "y": 279,
+   "w": 46,
+   "h": 46,
+   "file_empty": "stars/star_empty.png",
+   "file_full": "stars/star_full.png"
+  },
+  {
+   "index": 5,
+   "x": 1821,
+   "y": 279,
+   "w": 46,
+   "h": 46,
+   "file_empty": "stars/star_empty.png",
+   "file_full": "stars/star_full.png"
+  }
+ ],
+ "currency_plate": {
+  "file": "misc/currency_plate.png",
+  "x": 20,
+  "y": 18,
+  "w": 218,
+  "h": 57
+ },
+ "quest_tracker": {
+  "file": "misc/quest_tracker.png",
+  "x": 20,
+  "y": 87,
+  "w": 352,
+  "h": 132
+ },
+ "prompt_plate": {
+  "file": "misc/prompt_plate.png",
+  "x": 806,
+  "y": 840,
+  "w": 308,
+  "h": 57,
+  "key_hint": {
+   "file": "keys/key_e.png",
+   "x": 826,
+   "y": 851,
+   "w": 34,
+   "h": 34
+  }
+ },
+ "keys": {
+  "files": [
+   "keys/key_1.png",
+   "keys/key_2.png",
+   "keys/key_3.png",
+   "keys/key_e.png",
+   "keys/key_blank.png"
+  ],
+  "native_px": 96,
+  "suggested_display_px_1080p": "22-30"
+ }
+}

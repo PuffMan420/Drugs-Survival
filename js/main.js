@@ -54,6 +54,7 @@ import { createRats, ratsFast } from "./rats.js";
 import { createSidewalkIndex } from "./sidewalk-height.js";
 import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
+import { hud } from "./hud.js";
 import { createPlayer } from "./player.js";
 import { createPistol } from "./pistol.js";
 import { createBuildMode, loadNamedMap } from "./build-mode.js";
@@ -240,6 +241,7 @@ function fitDisplay(renderer) {
     composer.setSize(width, height);
   }
   shownCamera?.updateProjectionMatrix();
+  hud.sync(session);
 }
 
 const litMaterials = new WeakMap();
@@ -927,6 +929,7 @@ async function start() {
     ambient.render();
     minimap.draw(camX, camZ, player.x, player.z, TILE, (spanW * view) / TILE, (spanH * view) / TILE);
 
+    hud.sync(session);
     const instant = 1 / Math.max(dt, 1 / 240);
     fps = fps === 0 ? instant : fps + (instant - fps) * 0.1;
     fpsEl.textContent = `FPS ${Math.round(fps)}`;

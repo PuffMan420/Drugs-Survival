@@ -90,10 +90,11 @@ canvas {
 #game-hud #minimap {
   display: block;
   position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
+  /* Fit inside the frame's opening (pixels 51-522 of the 574 px frame). */
+  left: 8.9%;
+  top: 8.9%;
+  width: 82.2%;
+  height: 82.2%;
   outline: none;
   background: transparent;
   pointer-events: none;

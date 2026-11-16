@@ -17,11 +17,14 @@ import {
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { PLAYER_SPEED } from "./constants.js";
+import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
 import { isLowerBone, legsWhileAiming } from "./pose-layers.js";
 
 // Blue sedan footprint in js/cars.js (assets/cars3d/sedan.glb): 37 wide, 71 long.
-// He is fitted to a third of that length, times the same bump the old
-// figure and the pedestrians use, so he stands at their height.
+// A real height is a third of that length. He is drawn a bit larger than that
+// so he reads clearly beside the cars, then another 10%, another 10% on
+// top of that, and another 5%. Pedestrians use this same bump, so they stand at his height.
+// Shoulders stay inside the sedan's width.
 const SEDAN_LENGTH = 71;
 const SCALE_BUMP = 1.15 * 1.1 * 1.1 * 1.05;
 // Tires sit at this height. His soles use the same ground.
@@ -55,14 +58,7 @@ function isLeftArmBone(name) {
   return name.startsWith("LeftShoulder")
     || name.startsWith("LeftArm")
     || name.startsWith("LeftForeArm")
-    || name.startsWith("LeftHand")
-    || name.startsWith("upperarml")
-    || name.startsWith("lowerarml")
-    || name.startsWith("wristl")
-    || name.startsWith("handl")
-    || name.startsWith("handslotl")
-    || name.startsWith("elbowIKl")
-    || name.startsWith("handIKl");
+    || name.startsWith("LeftHand");
 }
 
 function clipWithout(clip, drop) {
@@ -79,13 +75,11 @@ const SPEED_TAU = 0.16;
 // About nine tenths of a 90° turn is done by 0.12s, and it is finished by 0.15s.
 const TURN_TAU = 0.055;
 // Toe plants, then the clip length so the next plant wraps.
-// Walking_A is 25/24 s. Running_A is 19/24 s and also covers sprint.
-const WALK_DUR = 25 / 24;
-const RUN_DUR = 19 / 24;
+// Walk_Loop is 4/3 s, Jog_Fwd_Loop is 11/12 s, Sprint_Loop is 2/3 s.
 const STEP_MARKS = {
-  walk: { plants: [WALK_DUR * 0.25, WALK_DUR * 0.75], duration: WALK_DUR },
-  jog: { plants: [RUN_DUR * 0.25, RUN_DUR * 0.75], duration: RUN_DUR },
-  sprint: { plants: [RUN_DUR * 0.25, RUN_DUR * 0.75], duration: RUN_DUR },
+  walk: { plants: [0.1667, 0.8333], duration: 4 / 3 },
+  jog: { plants: [0.0339, 0.5143], duration: 11 / 12 },
+  sprint: { plants: [0.051, 0.4243], duration: 2 / 3 },
 };
 const GAIT_SPEED = {
   walk: 0.5,
@@ -163,12 +157,6 @@ function clipNamed(animations, name) {
   return clip;
 }
 
-function clipOrEmpty(animations, name) {
-  const clip = animations.find((item) => item.name === name);
-  if (clip) return clip;
-  return new AnimationClip(name, 0, []);
-}
-
 function maskedClip(clip, lower) {
   const tracks = clip.tracks.filter((track) => isLowerBone(track.name.split(".")[0]) === lower);
   return new AnimationClip(`${clip.name}_${lower ? "legs" : "arms"}`, clip.duration, tracks);
@@ -176,7 +164,7 @@ function maskedClip(clip, lower) {
 
 export async function createPlayer() {
   const loader = new GLTFLoader();
-  const url = new URL("../06 Player Character/GreenEye_v4.glb", import.meta.url).href;
+  const url = new URL("../06 Player Character/gubbe.glb", import.meta.url).href;
   const batUrl = new URL("../06 Player Character/gubbe-bat.glb", import.meta.url).href;
   let gltf;
   let batClips;
@@ -188,15 +176,27 @@ export async function createPlayer() {
 
   const model = gltf.scene;
   litMaterials(model);
-  // GreenEye is authored in meters (about 2.4 tall). The world is in car
-  // units, so fit his height to the cars like the old figure was.
+  // The figure faces +Z. atan2(east, south) turns that axis toward travel.
+  // The sedan fit divides out the file's root scale. v13 was root 1.05, so
+  // measure there and put this file's scale back. 1.134 / 1.05 is the 8%.
+  // v14 stored that 1.134 on Root. v15's root is 1.0, so measure at
+  // 1.05 / 1.134 and the restored scale still lands on the same height.
+  const root = model.getObjectByName("Root");
+  const fileScale = root ? root.scale.x : 1;
+  if (root) root.scale.setScalar(1.05 / 1.134);
   model.updateMatrixWorld(true);
   const bounds = new Box3().setFromObject(model);
   const height = Math.max(0.001, bounds.max.y - bounds.min.y);
-  model.scale.setScalar((SEDAN_LENGTH / 3) * SCALE_BUMP / height);
+  const scale = (SEDAN_LENGTH / 3) * SCALE_BUMP / height;
+  model.scale.setScalar(scale);
+  if (root) root.scale.setScalar(fileScale);
   model.updateMatrixWorld(true);
   const fitted = new Box3().setFromObject(model);
   model.position.y -= fitted.min.y;
+  // After the height fit, so SCALE_BUMP still measures the full body.
+  // The clips' Head.scale tracks are a constant 1 and would undo this.
+  shrinkHead(model);
+  dropHeadScaleTracks(gltf.animations);
 
   const holder = new Group();
   holder.frustumCulled = false;
@@ -217,16 +217,13 @@ export async function createPlayer() {
   shadow.position.y = SHADOW_Y;
 
   const mixer = new AnimationMixer(model);
-  // Idle when he is still. Walking_A is half speed. Running_A is PLAYER_SPEED,
-  // and the same clip plays again for the 1.4 sprint. The upper and lower
-  // body masks below stay in place. There is no jump.
-  const runClip = clipNamed(gltf.animations, "Running_A");
-  const sprintClip = runClip.clone();
+  // Idle when he is still. Jog is PLAYER_SPEED. Walk is half of that, sprint
+  // is 1.4 times. The other UAL clips stay in the file. There is no jump.
   const actions = {
-    idle: mixer.clipAction(clipNamed(gltf.animations, "Idle")),
-    walk: mixer.clipAction(clipNamed(gltf.animations, "Walking_A")),
-    jog: mixer.clipAction(runClip),
-    sprint: mixer.clipAction(sprintClip),
+    idle: mixer.clipAction(clipNamed(gltf.animations, "Idle_Loop")),
+    walk: mixer.clipAction(clipNamed(gltf.animations, "Walk_Loop")),
+    jog: mixer.clipAction(clipNamed(gltf.animations, "Jog_Fwd_Loop")),
+    sprint: mixer.clipAction(clipNamed(gltf.animations, "Sprint_Loop")),
   };
 
   // webgl_animation_skinning_blending.html: every action stays playing, and a
@@ -263,10 +260,10 @@ export async function createPlayer() {
   setWeight(actions.jog, 0);
   setWeight(actions.sprint, 0);
   const pistolSources = {
-    pistolIdle: clipOrEmpty(gltf.animations, "Pistol_Idle_Loop"),
-    pistolAim: clipOrEmpty(gltf.animations, "Pistol_Aim_Neutral"),
-    pistolShoot: clipOrEmpty(gltf.animations, "Pistol_Shoot"),
-    pistolReload: clipOrEmpty(gltf.animations, "Pistol_Reload"),
+    pistolIdle: clipNamed(gltf.animations, "Pistol_Idle_Loop"),
+    pistolAim: clipNamed(gltf.animations, "Pistol_Aim_Neutral"),
+    pistolShoot: clipNamed(gltf.animations, "Pistol_Shoot"),
+    pistolReload: clipNamed(gltf.animations, "Pistol_Reload"),
   };
   // Aim and shoot are two-handed. The left arm is a separate blend, so those
   // clips no longer drive LeftShoulder, LeftArm, LeftForeArm, or LeftHand.
@@ -289,7 +286,7 @@ export async function createPlayer() {
   actions.pistolShoot.clampWhenFinished = true;
   actions.pistolReload.setLoop(LoopOnce, 1);
   actions.pistolReload.clampWhenFinished = true;
-  actions.punchCross = mixer.clipAction(clipOrEmpty(gltf.animations, "Punch_Cross"));
+  actions.punchCross = mixer.clipAction(clipNamed(gltf.animations, "Punch_Cross"));
   setWeight(actions.punchCross, 0);
   actions.punchCross.setLoop(LoopOnce, 1);
   actions.punchCross.clampWhenFinished = true;
@@ -302,21 +299,14 @@ export async function createPlayer() {
   actions.pistolShoot.play();
   actions.pistolReload.play();
   actions.punchCross.play();
-  actions.swordIdle = mixer.clipAction(clipOrEmpty(gltf.animations, "Sword_Idle"));
-  actions.swordAttack = mixer.clipAction(clipOrEmpty(gltf.animations, "Sword_Attack"));
+  actions.swordIdle = mixer.clipAction(clipNamed(gltf.animations, "Sword_Idle"));
+  actions.swordAttack = mixer.clipAction(clipNamed(gltf.animations, "Sword_Attack"));
   setWeight(actions.swordIdle, 0);
   setWeight(actions.swordAttack, 0);
   actions.swordAttack.setLoop(LoopOnce, 1);
   actions.swordAttack.clampWhenFinished = true;
   actions.swordIdle.play();
   actions.swordAttack.play();
-  // gubbe-bat.glb was made for the old rig. Keep only tracks whose bone this
-  // rig has, so three.js does not warn about every missing bone.
-  const boneNames = new Set();
-  model.traverse((obj) => boneNames.add(obj.name));
-  for (const clip of batClips.animations) {
-    clip.tracks = clip.tracks.filter((track) => boneNames.has(track.name.split(".")[0]));
-  }
   actions.batShoulder = mixer.clipAction(clipNamed(batClips.animations, "Bat_Shoulder"));
   actions.batHang = mixer.clipAction(clipNamed(batClips.animations, "Bat_Hang"));
   actions.batSwing = mixer.clipAction(clipNamed(batClips.animations, "Bat_Swing"));
@@ -328,7 +318,7 @@ export async function createPlayer() {
   actions.batShoulder.play();
   actions.batHang.play();
   actions.batSwing.play();
-  actions.punchJab = mixer.clipAction(clipOrEmpty(gltf.animations, "Punch_Jab"));
+  actions.punchJab = mixer.clipAction(clipNamed(gltf.animations, "Punch_Jab"));
   setWeight(actions.punchJab, 0);
   actions.punchJab.setLoop(LoopOnce, 1);
   actions.punchJab.clampWhenFinished = true;

@@ -18,6 +18,7 @@ import {
   isBulletWorldGroundHit,
   swingHitsCar,
 } from "./car-damage.js";
+import { damageDealt as playerDamageDealt } from "./player-health.js";
 import {
   GRAVITY,
   PUNCH_POSE,
@@ -131,8 +132,13 @@ export async function createPistol({
   blocked,
   stick = null,
 }) {
-  const hand = player.model.getObjectByName("RightHand");
+  const hand = player.model.getObjectByName("handr")
+    || player.model.getObjectByName("RightHand");
   if (!hand) throw new Error("The player is missing a right hand.");
+  // While HIGH, outgoing hits are stronger. Future guns should use dealt() too.
+  function dealt(amount) {
+    return playerDamageDealt(amount, player.high || 0);
+  }
   const loader = new GLTFLoader();
   const gunGltf = await loader.loadAsync(new URL("../assets/gun/Pistol_1.glb", import.meta.url).href);
   const grip = new Group();
@@ -816,7 +822,7 @@ export async function createPistol({
     let connected = false;
     for (const ped of pedestrians.targets()) {
       if (!batHits(from.x, from.z, dirX, dirZ, ped.x, ped.z)) continue;
-      const hurt = pedestrians.hurt(ped, ped.x - from.x, ped.z - from.z, BAT_DAMAGE);
+      const hurt = pedestrians.hurt(ped, ped.x - from.x, ped.z - from.z, dealt(BAT_DAMAGE));
       if (!hurt) continue;
       killed = true;
       connected = true;
@@ -825,7 +831,7 @@ export async function createPistol({
     if (traffic && traffic.cars && traffic.hit) {
       for (const car of traffic.cars()) {
         if (!swingHitsCar(from.x, from.z, dirX, dirZ, car, BAT_REACH, BAT_SIDE)) continue;
-        const result = traffic.hit(car, BAT_CAR_DAMAGE, "melee");
+        const result = traffic.hit(car, dealt(BAT_CAR_DAMAGE), "melee");
         if (result && result.damaged) connected = true;
       }
     }
@@ -853,7 +859,7 @@ export async function createPistol({
     let connected = false;
     for (const ped of pedestrians.targets()) {
       if (!punchHits(from.x, from.z, dirX, dirZ, ped.x, ped.z)) continue;
-      const hurt = pedestrians.hurt(ped, ped.x - from.x, ped.z - from.z, PUNCH_DAMAGE);
+      const hurt = pedestrians.hurt(ped, ped.x - from.x, ped.z - from.z, dealt(PUNCH_DAMAGE));
       if (!hurt) continue;
       connected = true;
       bleed(hurt);
@@ -884,10 +890,10 @@ export async function createPistol({
       if (pedHit || carHit || hitsWall(point) || flight.age >= flight.time) {
         if (pedHit) {
           const from = player.mesh.position;
-          const hurt = pedestrians.hurt(pedHit, pedHit.x - from.x, pedHit.z - from.z, BOTTLE_DAMAGE);
+          const hurt = pedestrians.hurt(pedHit, pedHit.x - from.x, pedHit.z - from.z, dealt(BOTTLE_DAMAGE));
           if (hurt) bleed(hurt);
         } else if (carHit && traffic.hit) {
-          traffic.hit(carHit, BOTTLE_CAR_DAMAGE, "melee");
+          traffic.hit(carHit, dealt(BOTTLE_CAR_DAMAGE), "melee");
         }
         breakBottle(flight, point);
         flights.splice(i, 1);
@@ -929,10 +935,10 @@ export async function createPistol({
     const carInRange = car && Math.hypot(car.x - player.mesh.position.x, car.z - player.mesh.position.z) <= PISTOL_RANGE;
     if (carInRange && !(hit && hit.t <= car.t)) {
       carHitAt(car.x, car.y, car.z);
-      if (traffic.bulletHit && car.car) traffic.bulletHit(car.car, PISTOL_CAR_DAMAGE, car.x, car.z);
+      if (traffic.bulletHit && car.car) traffic.bulletHit(car.car, dealt(PISTOL_CAR_DAMAGE), car.x, car.z);
     } else if (hit) {
       const from = player.mesh.position;
-      const hurt = pedestrians.hurt(hit.ped, hit.ped.x - from.x, hit.ped.z - from.z, PISTOL_DAMAGE);
+      const hurt = pedestrians.hurt(hit.ped, hit.ped.x - from.x, hit.ped.z - from.z, dealt(PISTOL_DAMAGE));
       if (hurt) bleed(hurt);
     } else if (traffic.playBulletWorldHitSound) {
       const world = nearestWorldHit();

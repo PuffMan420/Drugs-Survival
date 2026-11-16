@@ -15,6 +15,13 @@ test("legs and feet stay on the lower layer, and the gun arm stays on the upper"
   assert.equal(isLowerBone("RightForeArm"), false);
   assert.equal(isLowerBone("RightHand"), false);
   assert.equal(isLowerBone("Head"), false);
+  assert.equal(isLowerBone("hips"), true);
+  assert.equal(isLowerBone("upperlegl"), true);
+  assert.equal(isLowerBone("footr"), true);
+  assert.equal(isLowerBone("control-foot-rolll"), true);
+  assert.equal(isLowerBone("upperarml"), false);
+  assert.equal(isLowerBone("head"), false);
+  assert.equal(isLowerBone("chest"), false);
 });
 
 test("a shot while aiming plays the shoot pose, then aim returns", () => {

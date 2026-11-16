@@ -21,6 +21,21 @@ const LOWER_PREFIXES = [
   "RightFootIK",
   "RightFootRoll",
   "RightFootCtrl",
+  // GreenEye uses the Rig_Medium names. GLTFLoader strips dots, so
+  // upperleg.l arrives as upperlegl and foot.l arrives as footl.
+  "root",
+  "hips",
+  "upperleg",
+  "lowerleg",
+  "foot",
+  "toes",
+  "heelIK",
+  "IK-foot",
+  "IK-toe",
+  "control-foot-roll",
+  "control-heel-roll",
+  "control-toe-roll",
+  "kneeIK",
 ];
 
 const LEG_POSES = new Set(["pistolAim", "pistolShoot", "pistolReload"]);

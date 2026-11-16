@@ -50,6 +50,18 @@ import { createPhysics } from "./physics.js";
 import { createPhysicsScene } from "./physics-scene.js";
 import { buildCity, tileAt, tileCenter, updateChunks } from "./city.js";
 import { createPedestrians } from "./pedestrians.js";
+import { carContact, carVelocity } from "./car-strike.js";
+import {
+  CAR_HIT_MIN_SPEED,
+  DEBUG_HIGH_AMOUNT,
+  PISTOL_PLAYER_DAMAGE,
+  bindPlayerVitals,
+  carHitDamage,
+  createPlayerVitals,
+  healPlayer,
+  respawnPlayer,
+  stepPlayerVitals,
+} from "./player-health.js";
 import { createRats, ratsFast } from "./rats.js";
 import { createSidewalkIndex } from "./sidewalk-height.js";
 import { createGlow } from "./glow.js";
@@ -726,6 +738,9 @@ async function start() {
   const crashSounds = await createCarCrashSounds(driveFx.listener);
   if (traffic.useCrashSounds) traffic.useCrashSounds(crashSounds);
   if (drive.useCrashSounds) drive.useCrashSounds(crashSounds);
+  const vitals = createPlayerVitals();
+  // HUD reads player.health and player.high on this object (and the sprite).
+  bindPlayerVitals(playerSprite, vitals);
   const pistol = await createPistol({
     scene,
     player: playerSprite,
@@ -734,13 +749,16 @@ async function start() {
     listener: driveFx.listener,
     pedestrians,
     traffic,
-    blocked: () => buildMode.isOpen() || drive.driving,
+    blocked: () => buildMode.isOpen() || drive.driving || vitals.dead,
     stick,
   });
   bindPistolTouch(pistol);
   const origin = lookPreview ? lookStand(map) : tileCenter(map.spawn.x, map.spawn.z);
   const player = { x: origin.x, z: origin.z, y: 0.6 };
+  bindPlayerVitals(player, vitals);
   const half = PLAYER_SIZE / 2;
+  const carHist = new Map();
+  const carHits = new Set();
 
   const buildMode = await createBuildMode({
     scene,
@@ -786,6 +804,25 @@ async function start() {
   }
   session.map = map;
   session.player = player;
+  // Console helpers for Ted. F9 hurts, Shift+F9 heals, F10 adds HIGH.
+  // Avoided digits, Q, Tab, F, and G — those are reserved for the HUD/belt.
+  window.dsDebug = {
+    hurt(amount = PISTOL_PLAYER_DAMAGE, source = "debug") {
+      return player.takeDamage(amount, source);
+    },
+    high(amount = DEBUG_HIGH_AMOUNT) {
+      return player.addHigh(amount);
+    },
+    heal() {
+      return healPlayer(vitals);
+    },
+    get health() {
+      return player.health;
+    },
+    get high() {
+      return player.high;
+    },
+  };
   session.minimap = minimap;
   session.placeName = spawnPlaceName(map);
   placeEl.textContent = session.placeName;
@@ -797,6 +834,61 @@ async function start() {
     const roadY = traffic.roadHeight(player.x, player.z, player.y);
     const streetY = roadY == null ? 0.6 : roadY;
     return sidewalks.feetY(player.x, player.z, streetY);
+  }
+
+  function rememberCars(cars) {
+    const seen = new Set();
+    if (cars) {
+      for (let i = 0; i < cars.length; i += 1) {
+        const car = cars[i];
+        seen.add(car);
+        carHist.set(car, { x: car.x, z: car.z, angle: car.angle || 0 });
+      }
+    }
+    for (const car of carHist.keys()) {
+      if (!seen.has(car)) carHist.delete(car);
+    }
+  }
+
+  function hitPlayerWithCars(cars, driven, prevX, prevZ) {
+    if (vitals.dead || drive.driving) {
+      carHits.clear();
+      rememberCars(cars);
+      return;
+    }
+    const still = new Set();
+    if (cars) {
+      for (let i = 0; i < cars.length; i += 1) {
+        const car = cars[i];
+        const motion = carVelocity(car, driven);
+        if (!motion || motion.speed < CAR_HIT_MIN_SPEED) continue;
+        const was = carHist.get(car);
+        const jumped = was && Math.hypot(car.x - was.x, car.z - was.z) > 200;
+        const prev = was && !jumped
+          ? { x: was.x, z: was.z, angle: was.angle, pedX: prevX, pedZ: prevZ }
+          : null;
+        const contact = carContact(car, player.x, player.z, player.y, prev);
+        if (!contact) continue;
+        still.add(car);
+        if (!carHits.has(car)) {
+          const amount = carHitDamage(motion.speed);
+          if (amount > 0) player.takeDamage(amount, "car");
+        }
+      }
+    }
+    carHits.clear();
+    for (const car of still) carHits.add(car);
+    rememberCars(cars);
+  }
+
+  function respawnAtSpawn() {
+    respawnPlayer(vitals);
+    if (drive.driving) session.use();
+    const spawn = tileCenter(map.spawn.x, map.spawn.z);
+    player.x = spawn.x;
+    player.z = spawn.z;
+    player.y = footHeight();
+    playerSprite.halt();
   }
 
   session.use = () => {
@@ -812,6 +904,7 @@ async function start() {
       hintEl.textContent = hintWalk;
       return;
     }
+    if (vitals.dead) return;
     if (!drive.enter(traffic.cars(), player.x, player.z)) return;
     playerSprite.mesh.visible = false;
     session.driving = true;
@@ -831,7 +924,7 @@ async function start() {
     const previousX = player.x;
     const previousZ = player.z;
 
-    if (drive.driving) {
+    if (drive.driving && !vitals.dead) {
       drive.control({
         forward: held.has("KeyW"),
         brake: held.has("KeyS"),
@@ -846,7 +939,10 @@ async function start() {
     if (drive.mustExit) session.use();
 
     pistol.pre();
-    if (drive.driving) {
+    if (vitals.dead) {
+      if (drive.driving) session.use();
+      playerSprite.halt();
+    } else if (drive.driving) {
       const pose = drive.pose();
       if (pose) {
         player.x = pose.x;
@@ -911,6 +1007,10 @@ async function start() {
     playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ, player.y, dt);
     pistol.update(dt);
     pedestrians.runOver(traffic.cars(), drive.driving ? drive.sample() : null);
+    hitPlayerWithCars(traffic.cars(), drive.driving ? drive.sample() : null, previousX, previousZ);
+    const vitalStep = stepPlayerVitals(vitals, dt);
+    if (vitalStep.justDied && drive.driving) session.use();
+    if (vitalStep.readyToRespawn) respawnAtSpawn();
     pedestrians.update(dt, player.x, player.z, spanW, spanH);
     rats.update(dt, player.x, player.z, camX, camZ, halfW, halfH);
     camX = frameCenter(snappedX, halfW, city.mapW);
@@ -968,7 +1068,7 @@ function lookStand(map) {
 }
 
 function jumpTo(index) {
-  if (!session.ready || session.driving) return;
+  if (!session.ready || session.driving || session.player?.dead) return;
   const view = activeJumps()[index];
   if (!view) return;
   const point = tileCenter(view.x, view.z);
@@ -1018,6 +1118,18 @@ window.addEventListener("keydown", (event) => {
   }
   if (MOVE.has(event.code)) {
     held.add(event.code);
+    event.preventDefault();
+    return;
+  }
+  // F9 deals a pistol-sized hit, Shift+F9 heals to full, F10 adds 30 HIGH.
+  if (event.code === "F9") {
+    if (event.shiftKey) window.dsDebug?.heal();
+    else window.dsDebug?.hurt();
+    event.preventDefault();
+    return;
+  }
+  if (event.code === "F10") {
+    window.dsDebug?.high();
     event.preventDefault();
     return;
   }

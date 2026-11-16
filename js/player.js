@@ -19,6 +19,11 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { PLAYER_SPEED } from "./constants.js";
 import { isLowerBone, legsWhileAiming } from "./pose-layers.js";
 
+// Blue sedan footprint in js/cars.js (assets/cars3d/sedan.glb): 37 wide, 71 long.
+// He is fitted to a third of that length, times the same bump the old
+// figure and the pedestrians use, so he stands at their height.
+const SEDAN_LENGTH = 71;
+const SCALE_BUMP = 1.15 * 1.1 * 1.1 * 1.05;
 // Tires sit at this height. His soles use the same ground.
 const FEET_Y = 0.6;
 const SHADOW_Y = 0.35;
@@ -183,8 +188,12 @@ export async function createPlayer() {
 
   const model = gltf.scene;
   litMaterials(model);
-  // Authored size. The file is not fitted to the cars.
-  model.scale.setScalar(1);
+  // GreenEye is authored in meters (about 2.4 tall). The world is in car
+  // units, so fit his height to the cars like the old figure was.
+  model.updateMatrixWorld(true);
+  const bounds = new Box3().setFromObject(model);
+  const height = Math.max(0.001, bounds.max.y - bounds.min.y);
+  model.scale.setScalar((SEDAN_LENGTH / 3) * SCALE_BUMP / height);
   model.updateMatrixWorld(true);
   const fitted = new Box3().setFromObject(model);
   model.position.y -= fitted.min.y;
@@ -301,6 +310,13 @@ export async function createPlayer() {
   actions.swordAttack.clampWhenFinished = true;
   actions.swordIdle.play();
   actions.swordAttack.play();
+  // gubbe-bat.glb was made for the old rig. Keep only tracks whose bone this
+  // rig has, so three.js does not warn about every missing bone.
+  const boneNames = new Set();
+  model.traverse((obj) => boneNames.add(obj.name));
+  for (const clip of batClips.animations) {
+    clip.tracks = clip.tracks.filter((track) => boneNames.has(track.name.split(".")[0]));
+  }
   actions.batShoulder = mixer.clipAction(clipNamed(batClips.animations, "Bat_Shoulder"));
   actions.batHang = mixer.clipAction(clipNamed(batClips.animations, "Bat_Hang"));
   actions.batSwing = mixer.clipAction(clipNamed(batClips.animations, "Bat_Swing"));

@@ -136,6 +136,9 @@ const MSAA_SAMPLES = 4;
 // The drawing buffer follows devicePixelRatio up to this cap. 2x on a
 // high-DPI screen meant 4x the pixels through every post pass.
 const MAX_PIXEL_RATIO = 1.5;
+// Cap drawing at 100 FPS so fast monitors do not keep the GPU at full load.
+const MAX_FPS = 100;
+const FRAME_INTERVAL = 1000 / MAX_FPS;
 // Shadow map side. 4096 with VSM blur cost a 16M-texel render and blur every
 // frame; 2048 with half the blur radius keeps the same soft edge in the world.
 const SHADOW_MAP = 2048;
@@ -908,6 +911,7 @@ async function start() {
 
   let fps = 0;
   let last = performance.now();
+  let lastDraw = last;
 
   function footHeight() {
     const roadY = traffic.roadHeight(player.x, player.z, player.y);
@@ -1031,6 +1035,12 @@ async function start() {
       requestAnimationFrame(frame);
       return;
     }
+    const sinceDraw = now - lastDraw;
+    if (sinceDraw < FRAME_INTERVAL) {
+      requestAnimationFrame(frame);
+      return;
+    }
+    lastDraw = now - (sinceDraw % FRAME_INTERVAL);
     const frameDt = (now - last) / 1000;
     const dt = Math.min(frameDt, 0.05);
     last = now;

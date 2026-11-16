@@ -81,6 +81,17 @@ import {
   stepEconomy,
 } from "./economy.js";
 import { createSupplierMarker } from "./supplier-marker.js";
+import {
+  WANTED_DEAL_SEEN,
+  WANTED_SHOT,
+  addCrime,
+  createWanted,
+  dealSeen,
+  hitCrime,
+  resetWanted,
+  stepWanted,
+  wantedStars,
+} from "./wanted.js";
 import { createPlayer } from "./player.js";
 import { createPistol } from "./pistol.js";
 import { createBuildMode, loadNamedMap } from "./build-mode.js";
@@ -420,9 +431,9 @@ installDeeperShadows(MeshStandardMaterial);
 function createSun(scene, afternoon) {
   const hemi = afternoon
     ? new HemisphereLight(0xffe0c4, 0xc4b8a8, LAMBERT * 0.58)
-    : new HemisphereLight(0xfff2e4, 0xe6dfd4, LAMBERT * 0.7);
+    : new HemisphereLight(0xfff2e4, 0x7a6a58, LAMBERT * 0.55);
   scene.add(hemi);
-  const sun = new DirectionalLight(afternoon ? 0xffb15a : 0xffd4a6, LAMBERT * (afternoon ? 0.42 : 0.45));
+  const sun = new DirectionalLight(afternoon ? 0xffb15a : 0xffd4a6, LAMBERT * (afternoon ? 0.42 : 0.6));
   sun.castShadow = true;
   sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
   sun.shadow.bias = -0.0005;
@@ -770,6 +781,7 @@ async function start() {
     traffic,
     blocked: () => buildMode.isOpen() || drive.driving || vitals.dead,
     stick,
+    onShot: () => addCrime(wanted, WANTED_SHOT),
   });
   bindPistolTouch(pistol);
   const origin = lookPreview ? lookStand(map) : tileCenter(map.spawn.x, map.spawn.z);
@@ -783,6 +795,17 @@ async function start() {
   Object.defineProperty(player, "heat", { get: () => economy.heat, enumerable: true });
   player.maxStock = MAX_STOCK;
   session.economy = economy;
+  // Wanted stars. Every hit through pedestrians.hurt (punch, bat, bottle,
+  // pistol) counts; a kill counts more. Car run-overs are not counted yet.
+  const wanted = createWanted();
+  Object.defineProperty(player, "wanted", { get: () => wantedStars(wanted), enumerable: true });
+  session.wanted = wanted;
+  const hurtPed = pedestrians.hurt;
+  pedestrians.hurt = (ped, ...rest) => {
+    const impact = hurtPed(ped, ...rest);
+    if (impact) addCrime(wanted, hitCrime(ped.dead === true));
+    return impact;
+  };
   const half = PLAYER_SIZE / 2;
   const carHist = new Map();
   const carHits = new Set();
@@ -856,6 +879,9 @@ async function start() {
     get economy() {
       return economy;
     },
+    get wanted() {
+      return wanted;
+    },
   };
   session.minimap = minimap;
   session.placeName = spawnPlaceName(map);
@@ -917,6 +943,7 @@ async function start() {
 
   function respawnAtSpawn() {
     respawnPlayer(vitals);
+    resetWanted(wanted);
     const loss = loseOnDeath(economy);
     if (loss.lost > 0 || loss.stockLost > 0) hud.message(`-$${loss.lost}${loss.stockLost ? `, lost ${loss.stockLost} weed` : ""}`, 3);
     if (drive.driving) session.use();
@@ -941,6 +968,7 @@ async function start() {
     const result = sellWeed(economy, buyer);
     if (!result.ok) return false;
     hud.message(`+$${result.price}`);
+    if (dealSeen(player.x, player.z, pedestrians.targets(), buyer)) addCrime(wanted, WANTED_DEAL_SEEN);
     return true;
   }
 
@@ -1079,6 +1107,7 @@ async function start() {
     if (vitalStep.readyToRespawn) respawnAtSpawn();
     pedestrians.update(dt, player.x, player.z, spanW, spanH);
     stepEconomy(economy, dt);
+    stepWanted(wanted, dt);
     supplier.update(dt);
     hud.setPrompt(dealPrompt());
     rats.update(dt, player.x, player.z, camX, camZ, halfW, halfH);

@@ -4,7 +4,10 @@ import {
   Group,
   LinearFilter,
   LinearMipmapLinearFilter,
+  Mesh,
+  MeshBasicMaterial,
   Plane,
+  PlaneGeometry,
   Raycaster,
   RepeatWrapping,
   SRGBColorSpace,
@@ -35,6 +38,16 @@ import {
 } from "./signal-lamps.js";
 import { linkSignal, pedPhase, phaseAt } from "./signals.js";
 import { menuIsOpen } from "./start-menu.js";
+import {
+  PREFAB_STORE_KEY,
+  anchorFor,
+  boxFrom,
+  capturePrefab,
+  cleanPrefabs,
+  prefabFile,
+  rotatePrefab,
+  stampSpecs,
+} from "./prefabs.js";
 
 // One Kenney unit is the same 4-tile module as the road pieces.
 // Scale is uniform so a building keeps the height in the file.
@@ -100,6 +113,9 @@ const keys = {
   onR: () => {},
   onX: () => {},
   onF: () => {},
+  onP: () => {},
+  onUndo: () => {},
+  onEscape: () => false,
   onScale: () => {},
 };
 let searchInput = null;
@@ -120,6 +136,21 @@ window.addEventListener("keydown", (event) => {
     return;
   }
   if (!keys.enabled()) return;
+  // Prefabs: P saves one, Ctrl+Z takes back the last stamp, Esc cancels.
+  if (event.code === "KeyP" || (event.code === "KeyZ" && (event.ctrlKey || event.metaKey))) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (event.code === "KeyP") keys.onP();
+    else keys.onUndo();
+    return;
+  }
+  if (event.code === "Escape") {
+    if (keys.onEscape()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+    return;
+  }
   const direction = brushScale(event);
   if (event.code !== "KeyR" && event.code !== "KeyX" && event.code !== "KeyF" && direction === 0) return;
   event.preventDefault();
@@ -916,6 +947,12 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   let mapSaveTimer = 0;
   let mapSaveWriting = false;
   let mapSaveDirty = false;
+  let prefabs = readPrefabs();
+  let capture = null;
+  let stamp = null;
+  let stampToken = 0;
+  let boxMarker = null;
+  const stampHistory = [];
 
   function changed() {
     if (onPiecesChanged) onPiecesChanged(pieces);
@@ -927,7 +964,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   panel.hidden = true;
   const info = document.createElement("p");
   info.id = "build-info";
-  info.textContent = "BUILD MODE\nClick = place\nShift + click = place many\nClick a building or placed piece = move\nClick a piece onto ground = place on top\nX = remove\nR = rotate\nHold G = free move, wheel turns\n+ / 0 = bigger / smaller\nF = mirror\nWASD = walk\nSearch = type to find pieces\nMouse wheel = zoom";
+  info.textContent = "BUILD MODE\nClick = place\nShift + click = place many\nClick a building or placed piece = move\nClick a piece onto ground = place on top\nX = remove\nR = rotate\nHold G = free move, wheel turns\n+ / 0 = bigger / smaller\nF = mirror\nWASD = walk\nSearch = type to find pieces\nMouse wheel = zoom\nP = save prefab: click 2 corners\nPrefab: click = stamp, R = rotate\nCtrl+Z = undo last stamp\nEsc = stop prefab";
   const search = document.createElement("input");
   search.id = "build-search";
   search.type = "search";
@@ -942,7 +979,17 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   search.addEventListener("input", () => filterPieces());
   const list = document.createElement("div");
   list.id = "build-kits";
-  panel.append(info, search, list);
+  const prefabNote = document.createElement("p");
+  prefabNote.id = "build-prefab-note";
+  prefabNote.style.margin = "0 0 8px";
+  prefabNote.style.color = "#ffe14a";
+  prefabNote.style.whiteSpace = "pre-wrap";
+  prefabNote.hidden = true;
+  const prefabImport = document.createElement("input");
+  prefabImport.type = "file";
+  prefabImport.accept = ".json,application/json";
+  prefabImport.hidden = true;
+  panel.append(info, prefabNote, search, list, prefabImport);
   document.body.append(panel);
 
   const thumbs = new IntersectionObserver((entries) => {
@@ -1590,6 +1637,8 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
 
   function select(kit, file) {
     if (carrying) dropCarried(hover);
+    endCapture();
+    dropStamp();
     selection = { kit, file };
     for (const button of list.querySelectorAll("button")) {
       button.classList.toggle("is-selected", button.dataset.kit === kit && button.dataset.file === file);
@@ -1618,6 +1667,14 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
 
   function movePreview(cell) {
     hover = cell;
+    if (capture) {
+      if (cell) showBox(capture.first || cell, cell);
+      return;
+    }
+    if (stamp) {
+      moveStamp(cell);
+      return;
+    }
     if (carrying) moveCarried(cell);
     if (!preview) return;
     if (!cell || carrying) {
@@ -1777,6 +1834,8 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     if (enabled) canvas.style.cursor = "";
     panel.hidden = !enabled;
     if (!enabled) {
+      endCapture();
+      dropStamp();
       thumbs.disconnect();
       dropCarried(hover);
       dropPreview();
@@ -1854,6 +1913,11 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   }
 
   keys.onR = () => {
+    if (stamp) {
+      stamp.quarter = (stamp.quarter + 1) % 4;
+      buildStampGhost();
+      return;
+    }
     if (freeHeld && (carrying?.zone || (carrying && canFree(carrying.record.file)) || (!carrying && selection && canFree(selection.file)))) {
       spinBy(Math.PI / 2);
       return;
@@ -1945,6 +2009,14 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     }
     if (event.button !== 0) return;
     const cell = cellAt(event);
+    if (capture) {
+      pickCorner(cell);
+      return;
+    }
+    if (stamp) {
+      stampAt(cell);
+      return;
+    }
     if (carrying) {
       dropCarried(cell);
       return;
@@ -2054,6 +2126,261 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     removeAt(event);
   });
 
+  // ---- Prefabs: save a group of placed pieces, then stamp copies. ----
+
+  function readPrefabs() {
+    try {
+      return cleanPrefabs(JSON.parse(window.localStorage.getItem(PREFAB_STORE_KEY) || "[]"));
+    } catch {
+      return [];
+    }
+  }
+
+  function writePrefabs() {
+    try {
+      window.localStorage.setItem(PREFAB_STORE_KEY, JSON.stringify(prefabs));
+    } catch (error) {
+      console.warn("Prefabs could not be saved in this browser.", error);
+    }
+  }
+
+  function note(text) {
+    prefabNote.textContent = text || "";
+    prefabNote.hidden = !text;
+  }
+
+  function showBox(a, b) {
+    if (!boxMarker) {
+      boxMarker = new Mesh(
+        new PlaneGeometry(1, 1),
+        new MeshBasicMaterial({ color: 0xffe14a, transparent: true, opacity: 0.3, depthWrite: false }),
+      );
+      boxMarker.rotation.x = -Math.PI / 2;
+      boxMarker.layers.set(AO_SKIP_LAYER);
+      boxMarker.renderOrder = 3;
+    }
+    const box = boxFrom(a, b);
+    boxMarker.scale.set(box.w * TILE, box.d * TILE, 1);
+    boxMarker.position.set((box.x0 + box.w / 2) * TILE, GROUND_Y + 2, (box.z0 + box.d / 2) * TILE);
+    if (!boxMarker.parent) scene.add(boxMarker);
+  }
+
+  function startCapture() {
+    if (carrying) dropCarried(hover);
+    clearSelection();
+    dropStamp();
+    capture = { first: null };
+    note("Save prefab: click one corner,\nthen the opposite corner. Esc = cancel.");
+    if (hover) showBox(hover, hover);
+  }
+
+  function endCapture() {
+    if (!capture) return;
+    capture = null;
+    boxMarker?.removeFromParent();
+    note("");
+  }
+
+  function pickCorner(cell) {
+    if (!cell) return;
+    if (!capture.first) {
+      capture.first = cell;
+      showBox(cell, cell);
+      note("Now click the opposite corner.");
+      return;
+    }
+    const box = boxFrom(capture.first, cell);
+    const prefab = capturePrefab("", pieces, box);
+    endCapture();
+    if (!prefab) {
+      note("No pieces in that box. Press P to try again.");
+      return;
+    }
+    const answer = window.prompt("Prefab name", `House ${prefabs.length + 1}`);
+    if (answer === null) {
+      note("Prefab not saved.");
+      return;
+    }
+    prefab.name = answer.trim() || `House ${prefabs.length + 1}`;
+    prefabs.push(prefab);
+    writePrefabs();
+    renderPrefabs();
+    selectPrefab(prefabs.length - 1);
+  }
+
+  function dropStamp() {
+    if (!stamp) return;
+    if (stamp.ghost) disposeGhost(stamp.ghost);
+    stamp = null;
+    stampToken += 1;
+    for (const button of list.querySelectorAll("button[data-prefab-index]")) button.classList.remove("is-selected");
+    note("");
+  }
+
+  function selectPrefab(index) {
+    const prefab = prefabs[index];
+    if (!prefab) return;
+    if (carrying) dropCarried(hover);
+    endCapture();
+    clearSelection();
+    dropStamp();
+    stamp = { prefab, quarter: 0, ghost: null };
+    for (const button of list.querySelectorAll("button[data-prefab-index]")) {
+      button.classList.toggle("is-selected", Number(button.dataset.prefabIndex) === index);
+    }
+    note(`${prefab.name}: click = place, R = rotate,\nCtrl+Z = undo, Esc = stop.`);
+    buildStampGhost();
+  }
+
+  async function buildStampGhost() {
+    const current = stamp;
+    if (!current) return;
+    const token = (stampToken += 1);
+    const turned = rotatePrefab(current.prefab, current.quarter);
+    current.w = turned.w;
+    current.d = turned.d;
+    const loaded = await Promise.all(turned.pieces.map((piece) => (
+      loadTemplate(piece.kit, piece.file).catch(() => null)
+    )));
+    if (stamp !== current || token !== stampToken) return;
+    if (current.ghost) disposeGhost(current.ghost);
+    const root = new Group();
+    turned.pieces.forEach((piece, i) => {
+      if (!loaded[i]?.isObject3D) return;
+      root.add(wrapper(loaded[i], { ...piece, x: piece.dx, z: piece.dz }));
+    });
+    ghost(root);
+    current.ghost = root;
+    scene.add(root);
+    moveStamp(hover);
+  }
+
+  function moveStamp(cell) {
+    const shown = stamp?.ghost;
+    if (!shown) return;
+    if (!cell) {
+      shown.visible = false;
+      return;
+    }
+    const anchor = anchorFor(cell, stamp.w, stamp.d);
+    shown.position.set(anchor.x * TILE, 0, anchor.z * TILE);
+    shown.visible = true;
+  }
+
+  async function stampAt(cell) {
+    const current = stamp;
+    if (!current || !cell || !enabled) return;
+    const turned = rotatePrefab(current.prefab, current.quarter);
+    const specs = stampSpecs(current.prefab, current.quarter, anchorFor(cell, turned.w, turned.d))
+      .map((raw) => normalize(raw))
+      .filter(Boolean);
+    const loaded = await Promise.all(specs.map((spec) => loadTemplate(spec.kit, spec.file).catch(() => null)));
+    if (!enabled) return;
+    const added = [];
+    specs.forEach((spec, i) => {
+      const record = addPiece(spec, loaded[i]);
+      if (record) added.push(record);
+    });
+    if (added.length === 0) {
+      note("Nothing placed here (outside the map?).");
+      return;
+    }
+    batches.commit(pieces);
+    changed();
+    stampHistory.push(added);
+    if (stampHistory.length > 20) stampHistory.shift();
+    if (stamp === current) note(`${current.prefab.name}: placed ${added.length} pieces.\nClick = again, R = rotate, Ctrl+Z = undo, Esc = stop.`);
+  }
+
+  function undoStamp() {
+    const last = stampHistory.pop();
+    if (!last) {
+      note("Nothing to undo.");
+      return;
+    }
+    let removed = 0;
+    for (const record of last) if (removeRecord(record)) removed += 1;
+    note(`Undo: removed ${removed} pieces.`);
+  }
+
+  function exportPrefabs() {
+    const blob = new Blob([`${JSON.stringify(prefabFile(prefabs), null, 2)}\n`], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "prefabs.json";
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  }
+
+  prefabImport.addEventListener("change", async () => {
+    const file = prefabImport.files?.[0];
+    prefabImport.value = "";
+    if (!file) return;
+    try {
+      const added = cleanPrefabs(JSON.parse(await file.text()));
+      prefabs = prefabs.concat(added);
+      writePrefabs();
+      renderPrefabs();
+      note(`Imported ${added.length} prefabs.`);
+    } catch {
+      note("That file is not a prefab file.");
+    }
+  });
+
+  function prefabButton(text, onClick) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.prefab = "1";
+    button.textContent = text;
+    button.addEventListener("click", onClick);
+    return button;
+  }
+
+  function renderPrefabs() {
+    for (const old of list.querySelectorAll("[data-prefab]")) old.remove();
+    const heading = document.createElement("h2");
+    heading.dataset.prefab = "1";
+    heading.textContent = "Prefabs";
+    const items = [heading, prefabButton("+ Save prefab (P)", () => startCapture())];
+    prefabs.forEach((prefab, index) => {
+      const button = prefabButton(`${prefab.name} (${prefab.w}x${prefab.d}, ${prefab.pieces.length})`, (event) => {
+        if (event.shiftKey) {
+          if (!window.confirm(`Delete prefab "${prefab.name}"?`)) return;
+          if (stamp?.prefab === prefab) dropStamp();
+          prefabs.splice(index, 1);
+          writePrefabs();
+          renderPrefabs();
+          return;
+        }
+        selectPrefab(index);
+      });
+      button.dataset.prefabIndex = String(index);
+      button.title = "Click = use. Shift + click = delete.";
+      if (stamp?.prefab === prefab) button.classList.add("is-selected");
+      items.push(button);
+    });
+    if (prefabs.length > 0) items.push(prefabButton("Export prefabs (download)", () => exportPrefabs()));
+    items.push(prefabButton("Import prefabs", () => prefabImport.click()));
+    list.prepend(...items);
+  }
+
+  keys.onP = () => startCapture();
+  keys.onUndo = () => undoStamp();
+  keys.onEscape = () => {
+    if (capture) {
+      endCapture();
+      return true;
+    }
+    if (stamp) {
+      dropStamp();
+      return true;
+    }
+    return false;
+  };
+  renderPrefabs();
+
   await loadSaved();
   batches.commit(pieces);
   changed();
@@ -2061,6 +2388,13 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   status(enabled ? "Build mode." : "Press B for build mode.");
   return {
     pieceCount: () => pieces.length,
+    // Read-only peek for tests and the console.
+    debug: () => ({
+      pieces: pieces.map((record) => ({ kit: record.kit, file: record.file, x: record.x, z: record.z, turn: record.turn })),
+      prefabs,
+      stamping: stamp ? { name: stamp.prefab.name, quarter: stamp.quarter } : null,
+      capturing: Boolean(capture),
+    }),
     isOpen: () => enabled,
     updateRoads: (camX, camZ, viewScale, spanW, spanH) => {
       batches.update(camX, camZ, viewScale, spanW, spanH);

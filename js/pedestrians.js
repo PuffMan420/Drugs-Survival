@@ -1,45 +1,47 @@
 import {
   AnimationMixer,
-  Box3,
-  CanvasTexture,
   Color,
   DoubleSide,
   Group,
-  LinearFilter,
   LoopOnce,
-  LinearMipmapLinearFilter,
   MeshLambertMaterial,
-  NoColorSpace,
   Quaternion,
-  SRGBColorSpace,
   Vector3,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { carContact, carVelocity } from "./car-strike.js";
+import {
+  COP_MODEL,
+  PED_MODELS,
+  fitCharacter,
+  matteMaterials,
+  mergeFigure,
+  modelUrl,
+} from "./characters.js";
 import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
 import { createRagdolls } from "./ped-ragdoll.js";
 import { GROUND_H, GROUND_W, PLAYER_SPEED, TILE } from "./constants.js";
 import { PED_LOOK_HEX, pedLookIndex } from "./ped-looks.js";
 import { walkableCells } from "./pedestrian-walk.js";
 
-// Same height fit as the player, including both extra 10% bumps and another 5%, so these figures stand with him.
-const SEDAN_LENGTH = 71;
-const SCALE_BUMP = 1.15 * 1.1 * 1.1 * 1.05;
+// Same height fit as the player (fitCharacter), so these figures stand with him.
 const FEET_Y = 0.6;
 const FADE = 0.12;
 // Capsules, parent before child so a bone is written after the one it hangs from.
+// UAL bone names. The skeleton has no bone past the head, so the head
+// capsule runs neck to head and swings the head with it.
 const RAGDOLL_BONES = [
-  ["torso", "Hips", "UpperChest"],
-  ["head", "Head", "Head_end"],
-  ["leftArm", "LeftArm", "LeftForeArm"],
-  ["leftFore", "LeftForeArm", "LeftHand"],
-  ["rightArm", "RightArm", "RightForeArm"],
-  ["rightFore", "RightForeArm", "RightHand"],
-  ["leftThigh", "LeftUpLeg", "LeftLeg"],
-  ["leftShin", "LeftLeg", "LeftFoot"],
-  ["rightThigh", "RightUpLeg", "RightLeg"],
-  ["rightShin", "RightLeg", "RightFoot"],
+  ["torso", "pelvis", "spine_03"],
+  ["head", "neck_01", "Head"],
+  ["leftArm", "upperarm_l", "lowerarm_l"],
+  ["leftFore", "lowerarm_l", "hand_l"],
+  ["rightArm", "upperarm_r", "lowerarm_r"],
+  ["rightFore", "lowerarm_r", "hand_r"],
+  ["leftThigh", "thigh_l", "calf_l"],
+  ["leftShin", "calf_l", "foot_l"],
+  ["rightThigh", "thigh_r", "calf_r"],
+  ["rightShin", "calf_r", "foot_r"],
 ];
 // The clips are in-place. Ground speed is the same reference the player uses
 // for that clip, and playback is ground / reference, so the feet do not slide.
@@ -73,8 +75,8 @@ const PANIC_TIME = 6;
 const RUNOVER_SPEED = 40;
 
 // The camera sits close to straight down, so the crown and the outfit are
-// what separate a person from the player. These looks replace his hair bun,
-// his head texture, and his clothes.
+// what separate a person from the player. These looks recolor the shirt,
+// pants, shoes, hair and skin parts of the Modular figures.
 const PED_LOOKS = PED_LOOK_HEX.map((row) => ({
   shirt: new Color(row.shirt),
   pants: new Color(row.pants),
@@ -92,45 +94,27 @@ const COP_LOOK = {
   skin: new Color(0xd7a67a),
 };
 let copSalt = 50000;
+// prototypes[] index of the cop body (COP_MODEL in js/characters.js).
+const COP_PROTO = PED_MODELS.length;
 
-// One atlas, one material. These bones own the shirt, pants, and shoe islands.
-const SHIRT_BONES = new Set([
-  "Chest", "UpperChest", "Spine",
-  "LeftArm", "RightArm", "LeftShoulder", "RightShoulder",
-  "LeftForeArm", "RightForeArm",
-]);
-const PANTS_BONES = new Set([
-  "Hips", "LeftUpLeg", "RightUpLeg", "LeftLeg", "RightLeg",
-]);
-const SHOE_BONES = new Set([
-  "LeftFoot", "RightFoot", "LeftToes", "RightToes",
-]);
-const HAIR_BONES = new Set(["Head", "Head_end"]);
-
+// pedSlot (see mergeFigure): 0 shirt, 1 pants, 2 shoes, 3 skin, 4 hair,
+// anything else keeps the file's own color.
 const CLOTH_UNIFORMS = `
+attribute float pedSlot;
 uniform vec3 pedShirtColor;
 uniform vec3 pedPantsColor;
 uniform vec3 pedShoeColor;
 uniform vec3 pedHairColor;
 uniform vec3 pedSkinColor;
-uniform sampler2D pedClothMask;
 `;
 const CLOTH_TINT = `
-{
-  vec3 pedMask = texture2D(pedClothMask, vMapUv).rgb;
-  float pedHair = pedMask.r * pedMask.g * (1.0 - pedMask.b);
-  float pedShirt = pedMask.r * (1.0 - pedMask.g) * (1.0 - pedMask.b);
-  float pedPants = pedMask.g * (1.0 - pedMask.r) * (1.0 - pedMask.b);
-  float pedShoes = pedMask.b * (1.0 - pedMask.r) * (1.0 - pedMask.g);
-  float pedLuma = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-  float pedShade = clamp(pedLuma / 0.45, 0.35, 1.25);
-  vec3 pedTint = pedShirtColor * pedShirt + pedPantsColor * pedPants + pedShoeColor * pedShoes;
-  float pedCloth = clamp(pedShirt + pedPants + pedShoes, 0.0, 1.0);
-  float pedBare = clamp(1.0 - pedCloth - pedHair, 0.0, 1.0);
-  diffuseColor.rgb = mix(diffuseColor.rgb, pedTint * pedShade, pedCloth);
-  diffuseColor.rgb = mix(diffuseColor.rgb, pedHairColor * pedShade, pedHair);
-  diffuseColor.rgb = mix(diffuseColor.rgb, pedSkinColor * pedShade, pedBare);
-}
+#ifdef USE_COLOR
+  if (pedSlot < 0.5) vColor.rgb = pedShirtColor;
+  else if (pedSlot < 1.5) vColor.rgb = pedPantsColor;
+  else if (pedSlot < 2.5) vColor.rgb = pedShoeColor;
+  else if (pedSlot < 3.5) vColor.rgb = pedSkinColor;
+  else if (pedSlot < 4.5) vColor.rgb = pedHairColor;
+#endif
 `;
 
 const DIRS = [
@@ -147,84 +131,15 @@ function unitHash(n) {
   return (h >>> 0) / 4294967296;
 }
 
-function boneGroup(name) {
-  if (HAIR_BONES.has(name)) return 4;
-  if (SHIRT_BONES.has(name)) return 0;
-  if (PANTS_BONES.has(name)) return 1;
-  if (SHOE_BONES.has(name)) return 2;
-  return 3;
-}
-
 function bodyMesh(root) {
-  let found = null;
-  root.traverse((obj) => {
-    if (!obj.isSkinnedMesh || obj.name.startsWith("Bun")) return;
-    if (!found) found = obj;
-  });
+  const found = root.getObjectByName("figure");
   if (!found) throw new Error("The pedestrian is missing a body.");
   return found;
 }
 
-function clothMask(root) {
-  const mesh = bodyMesh(root);
-  const geometry = mesh.geometry;
-  const uv = geometry.attributes.uv;
-  const skinIndex = geometry.attributes.skinIndex;
-  const skinWeight = geometry.attributes.skinWeight;
-  const index = geometry.index;
-  const bones = mesh.skeleton.bones;
-  const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-  const image = source.map.image;
-  const canvas = document.createElement("canvas");
-  canvas.width = image.width;
-  canvas.height = image.height;
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const fills = ["rgb(255,0,0)", "rgb(0,255,0)", "rgb(0,0,255)", null, "rgb(255,255,0)"];
-  const width = canvas.width;
-  const height = canvas.height;
-  for (let triangle = 0; triangle < index.count; triangle += 3) {
-    const score = [0, 0, 0, 0, 0];
-    const points = [];
-    for (let corner = 0; corner < 3; corner += 1) {
-      const vertex = index.getX(triangle + corner);
-      let bestChannel = 0;
-      for (let channel = 1; channel < 4; channel += 1) {
-        if (skinWeight.getComponent(vertex, channel) > skinWeight.getComponent(vertex, bestChannel)) {
-          bestChannel = channel;
-        }
-      }
-      const bone = bones[Math.round(skinIndex.getComponent(vertex, bestChannel))];
-      score[boneGroup(bone.name)] += skinWeight.getComponent(vertex, bestChannel);
-      points.push([
-        uv.getX(vertex) * width,
-        uv.getY(vertex) * height,
-      ]);
-    }
-    let group = 0;
-    for (let i = 1; i < score.length; i += 1) if (score[i] > score[group]) group = i;
-    if (!fills[group] || score[group] <= 0) continue;
-    ctx.fillStyle = fills[group];
-    ctx.beginPath();
-    ctx.moveTo(points[0][0], points[0][1]);
-    ctx.lineTo(points[1][0], points[1][1]);
-    ctx.lineTo(points[2][0], points[2][1]);
-    ctx.closePath();
-    ctx.fill();
-  }
-  const texture = new CanvasTexture(canvas);
-  texture.colorSpace = NoColorSpace;
-  texture.flipY = false;
-  texture.magFilter = LinearFilter;
-  texture.minFilter = LinearFilter;
-  texture.generateMipmaps = false;
-  texture.needsUpdate = true;
-  return texture;
-}
-
 const clothMaterials = new Map();
 
-function sharedClothMaterial(base, mask, worn) {
+function sharedClothMaterial(base, worn) {
   const key = [
     base.uuid,
     worn.shirt.getHexString(),
@@ -245,23 +160,14 @@ function sharedClothMaterial(base, mask, worn) {
     shader.uniforms.pedShoeColor = { value: cloth.shoes };
     shader.uniforms.pedHairColor = { value: cloth.hair };
     shader.uniforms.pedSkinColor = { value: cloth.skin };
-    shader.uniforms.pedClothMask = { value: mask };
-    shader.fragmentShader = CLOTH_UNIFORMS + shader.fragmentShader.replace(
-      "#include <map_fragment>",
-      `#include <map_fragment>\n${CLOTH_TINT}`,
+    shader.vertexShader = CLOTH_UNIFORMS + shader.vertexShader.replace(
+      "#include <color_vertex>",
+      `#include <color_vertex>\n${CLOTH_TINT}`,
     );
   };
-  material.customProgramCacheKey = () => `ped-cloth-${key}|deeper-cast-shadow`;
+  material.customProgramCacheKey = () => "ped-cloth-slots|deeper-cast-shadow";
   clothMaterials.set(key, material);
   return material;
-}
-
-function hideBuns(model) {
-  model.traverse((obj) => {
-    if (!obj.isSkinnedMesh || !obj.name.startsWith("Bun")) return;
-    obj.visible = false;
-    obj.castShadow = false;
-  });
 }
 
 function bindActions(mixer, clips) {
@@ -355,57 +261,27 @@ function crowdTiles(cells, neighbors) {
   return chosen;
 }
 
-function litMaterials(model) {
-  const swapped = new Map();
-  model.traverse((obj) => {
-    if (!obj.isMesh) return;
-    const sources = Array.isArray(obj.material) ? obj.material : [obj.material];
-    const next = sources.map((source) => {
-      if (swapped.has(source)) return swapped.get(source);
-      const map = source.map ?? null;
-      if (map) {
-        map.colorSpace = SRGBColorSpace;
-        map.magFilter = LinearFilter;
-        map.minFilter = LinearMipmapLinearFilter;
-        map.generateMipmaps = true;
-        map.needsUpdate = true;
-      }
-      const lit = new MeshLambertMaterial({
-        map,
-        color: 0xffffff,
-        toneMapped: false,
-        fog: false,
-        side: source.side ?? DoubleSide,
-      });
-      swapped.set(source, lit);
-      source.dispose();
-      return lit;
-    });
-    obj.material = next.length === 1 ? next[0] : next;
-    obj.frustumCulled = false;
-    obj.castShadow = true;
-    obj.receiveShadow = true;
+function figureMaterial() {
+  // Lambert has no shine, so the figures stay matte. Colors are per vertex.
+  return new MeshLambertMaterial({
+    color: 0xffffff,
+    vertexColors: true,
+    toneMapped: false,
+    fog: false,
+    side: DoubleSide,
   });
 }
 
-function fitModel(model) {
-  // Same root-scale measurement as the player. This is his rig.
-  // v15's root is 1.0. Measure at 1.05/1.134, as he does, so the restored
-  // scale lands on his height.
-  const root = model.getObjectByName("Root");
-  const fileScale = root ? root.scale.x : 1;
-  if (root) root.scale.setScalar(1.05 / 1.134);
-  model.updateMatrixWorld(true);
-  const bounds = new Box3().setFromObject(model);
-  const height = Math.max(0.001, bounds.max.y - bounds.min.y);
-  const scale = (SEDAN_LENGTH / 3) * SCALE_BUMP / height;
-  model.scale.setScalar(scale);
-  if (root) root.scale.setScalar(fileScale);
-  model.updateMatrixWorld(true);
-  const fitted = new Box3().setFromObject(model);
-  model.position.y -= fitted.min.y;
+function prepareTemplate(gltf) {
+  const model = gltf.scene;
+  matteMaterials(model);
+  const figure = mergeFigure(model, figureMaterial());
+  figure.castShadow = true;
+  figure.receiveShadow = true;
+  fitCharacter(model);
   // Same order as the player: the height fit has already run.
   shrinkHead(model);
+  return model;
 }
 
 function sidewalkGraph(map, pieces) {
@@ -492,36 +368,41 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     ? createRagdolls(rig.physics, { limit: rig.mobile ? 4 : 8, near: 800 })
     : null;
   const { span } = graph;
-  let gltf;
+  // Crowd bodies first (man, woman), the cop body last. The player's file is
+  // the first one, so the browser fetches it once.
+  const paths = [...PED_MODELS, COP_MODEL];
+  const unique = [...new Set(paths)];
+  let loaded;
   try {
-    gltf = await loader.loadAsync(new URL("../06 Player Character/gubbe.glb", import.meta.url).href);
+    loaded = await Promise.all(unique.map((path) => loader.loadAsync(modelUrl(path))));
   } catch {
     throw new Error("The pedestrian rig failed to load.");
   }
+  const files = paths.map((path) => loaded[unique.indexOf(path)]);
+  // Every file is on the UAL skeleton with the same bone names, so one set of
+  // clips drives them all.
   const clips = {};
   for (const [key, name] of Object.entries(CLIP_NAMES)) {
-    clips[key] = clipNamed(gltf.animations, name);
+    clips[key] = clipNamed(files[0].animations, name);
   }
   // Head.scale is a rest hold at 1, and the mixer would write it back
   // over the smaller head.
   dropHeadScaleTracks(clips);
-  const template = gltf.scene;
-  const mask = clothMask(template);
-  litMaterials(template);
-  fitModel(template);
-  hideBuns(template);
-  const prototypes = [{
-    template,
-    clips,
-    mask,
-    material: bodyMesh(template).material,
-  }];
+  // A file listed twice (the cop is the crowd man for now) is prepared once
+  // and shared; each prototype still has its own pool.
+  const prepared = new Map();
+  const prototypes = files.map((gltf) => {
+    if (!prepared.has(gltf)) prepared.set(gltf, prepareTemplate(gltf));
+    const template = prepared.get(gltf);
+    return { template, clips, material: bodyMesh(template).material };
+  });
+  const crowdKinds = PED_MODELS.length;
 
   const tiles = crowdTiles(graph.cells, graph.neighbors);
   const people = [];
   const pools = prototypes.map(() => []);
   for (let index = 0; index < tiles.length; index += 1) {
-    const proto = index % prototypes.length;
+    const proto = Math.floor(unitHash(index + 41) * crowdKinds);
     const [tx, tz] = tiles[index];
     const open = graph.neighbors(tx, tz);
     const preferred = open[Math.floor(unitHash(index + 7) * open.length)] || [0, 0];
@@ -562,11 +443,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
       live.actions = bindActions(live.mixer, prototype.clips);
     }
     const mesh = bodyMesh(live.model);
-    mesh.material = sharedClothMaterial(
-      prototype.material,
-      prototype.mask,
-      ped.look,
-    );
+    mesh.material = sharedClothMaterial(prototype.material, ped.look);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     for (const name of GAITS) {
@@ -1028,7 +905,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     spawnCop(x, z, hp = PED_HP) {
       copSalt += 1;
       const ped = {
-        proto: 0,
+        proto: COP_PROTO,
         look: COP_LOOK,
         vary: 1,
         salt: copSalt,

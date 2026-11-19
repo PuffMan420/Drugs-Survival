@@ -1,0 +1,11 @@
+Characters: Quaternius "Ultimate Modular Men" and "Ultimate Modular Women" packs.
+License: CC0 1.0 (public domain), free to use and modify.
+  https://quaternius.com/packs/ultimatemodularcharacters.html
+  https://quaternius.com/packs/ultimatemodularwomen.html
+Animations: Quaternius "Universal Animation Library" (UAL1 Standard, CC0).
+  https://quaternius.com/packs/universalanimationlibrary.html
+
+Blenda moved each body onto the UAL skeleton in Blender and exported:
+  men_Casual_Hoodie_UAL.glb  player, crowd man, and cops for now (COP_MODEL in js/characters.js)
+  women_Casual_UAL.glb       crowd woman
+  ual-bat.glb                Bat_Shoulder, Bat_Hang, Bat_Swing on the UAL skeleton (clips only)

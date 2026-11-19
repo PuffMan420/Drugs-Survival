@@ -3,8 +3,12 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { isLowerBone } from "../js/pose-layers.js";
 
-// Player and every pedestrian load this one rig. The bind pose is the T-pose.
-const GLB = new URL("../06 Player Character/gubbe.glb", import.meta.url);
+// Player and pedestrians load the Modular figures on the UAL skeleton.
+const FILES = [
+  "men_Casual_Hoodie_UAL.glb",
+  "women_Casual_UAL.glb",
+].map((name) => new URL(`../06 Player Character/Modular/${name}`, import.meta.url));
+const BAT = new URL("../06 Player Character/Modular/ual-bat.glb", import.meta.url);
 
 function parseGlb(path) {
   const data = readFileSync(path);
@@ -78,37 +82,66 @@ function direction(world, from, to) {
   return { x: d.x / len, y: d.y / len, z: d.z / len };
 }
 
-test("both hands keep the file's T-pose, thumbs toward the front", () => {
-  const doc = parseGlb(GLB);
-  assert.equal(doc.animations.length, 42);
-  const { world, byName } = bindWorld(doc);
-  for (const name of [
-    "LeftHand",
-    "RightHand",
-    "LeftHandThumb3",
-    "RightHandThumb3",
-    "LeftHandThumb3_end",
-    "RightHandThumb3_end",
-  ]) {
-    assert.ok(byName.has(name), name);
-  }
-  for (const node of doc.nodes) {
-    for (const axis of node.scale || []) {
-      assert.ok(axis > 0, node.name);
+// The clips the game plays by name (player.js, pedestrians.js, intro.js).
+const USED_CLIPS = [
+  "Idle_Loop", "Walk_Loop", "Jog_Fwd_Loop", "Sprint_Loop", "Driving_Loop",
+  "Pistol_Idle_Loop", "Pistol_Aim_Neutral", "Pistol_Shoot", "Pistol_Reload",
+  "Punch_Cross", "Punch_Jab", "Sword_Idle", "Sword_Attack",
+  "Hit_Chest", "Hit_Head", "Death01",
+];
+
+function inHandFrame(world, hand, point) {
+  const h = world(hand);
+  const p = world(point).t;
+  const d = { x: p.x - h.t.x, y: p.y - h.t.y, z: p.z - h.t.z };
+  const inv = { x: -h.q.x, y: -h.q.y, z: -h.q.z, w: h.q.w };
+  const local = quatRot(inv, d);
+  const len = Math.hypot(local.x, local.y, local.z) || 1;
+  return { x: local.x / len, y: local.y / len, z: local.z / len };
+}
+
+for (const file of FILES) {
+  const name = file.pathname.split("/").pop();
+  test(`${name}: UAL skeleton, the clips the game uses, and the right-hand frame`, () => {
+    const doc = parseGlb(file);
+    const clips = new Set(doc.animations.map((clip) => clip.name));
+    for (const clip of USED_CLIPS) assert.ok(clips.has(clip), `${name} ${clip}`);
+    const { world, byName } = bindWorld(doc);
+    for (const bone of ["root", "pelvis", "Head", "neck_01", "hand_r", "hand_l", "thigh_l", "calf_r", "foot_l", "spine_03"]) {
+      assert.ok(byName.has(bone), `${name} ${bone}`);
     }
-  }
-  const left = direction(world, "LeftHandThumb1", "LeftHandThumb3_end");
-  const right = direction(world, "RightHandThumb1", "RightHandThumb3_end");
-  // The figure faces +Z. A thumb that has been mirrored sits under the palm,
-  // pointing down, instead of out and toward the front.
-  assert.ok(left.x > 0.5, `left thumb ${JSON.stringify(left)}`);
-  assert.ok(right.x < -0.5, `right thumb ${JSON.stringify(right)}`);
-  assert.ok(left.z > 0.4 && right.z > 0.4);
-  assert.ok(left.y > -0.25 && right.y > -0.25);
-  assert.ok(Math.abs(left.x + right.x) < 1e-3);
-  assert.ok(Math.abs(left.y - right.y) < 1e-3);
-  assert.ok(Math.abs(left.z - right.z) < 1e-3);
-  for (const name of ["LeftHandThumb3", "RightHandThumb3", "LeftHandMiddle1", "RightHandPinky3"]) {
-    assert.equal(isLowerBone(name), false, name);
+    for (const node of doc.nodes) {
+      for (const axis of node.scale || []) assert.ok(axis > 0, node.name);
+    }
+    // characters.js handSocket: fingers run +Y in hand_r, the pinky sits -Z.
+    const fingers = inHandFrame(world, "hand_r", "middle_01_r");
+    assert.ok(fingers.y > 0.95, `fingers ${JSON.stringify(fingers)}`);
+    const index = world("index_01_r").t;
+    const pinky = world("pinky_01_r").t;
+    const h = world("hand_r");
+    const across = quatRot({ x: -h.q.x, y: -h.q.y, z: -h.q.z, w: h.q.w }, {
+      x: pinky.x - index.x, y: pinky.y - index.y, z: pinky.z - index.z,
+    });
+    const len = Math.hypot(across.x, across.y, across.z);
+    assert.ok(across.z / len < -0.9, `pinky ${JSON.stringify(across)}`);
+    for (const bone of ["thumb_03_r", "upperarm_l", "lowerarm_r", "hand_l", "spine_02", "Head"]) {
+      assert.equal(isLowerBone(bone), false, bone);
+    }
+    for (const bone of ["pelvis", "thigh_l", "calf_r", "foot_l", "ball_r", "root"]) {
+      assert.equal(isLowerBone(bone), true, bone);
+    }
+  });
+}
+
+test("ual-bat.glb has the three bat clips on UAL bones", () => {
+  const doc = parseGlb(BAT);
+  const names = doc.animations.map((clip) => clip.name).sort();
+  assert.deepEqual(names, ["Bat_Hang", "Bat_Shoulder", "Bat_Swing"]);
+  const nodes = doc.nodes.map((node) => node.name);
+  for (const clip of doc.animations) {
+    const bones = new Set(clip.channels.map((channel) => nodes[channel.target.node]));
+    for (const bone of ["pelvis", "upperarm_r", "lowerarm_r", "hand_r", "hand_l"]) {
+      assert.ok(bones.has(bone), `${clip.name} ${bone}`);
+    }
   }
 });

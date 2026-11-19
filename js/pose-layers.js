@@ -36,6 +36,12 @@ const LOWER_PREFIXES = [
   "control-heel-roll",
   "control-toe-roll",
   "kneeIK",
+  // UAL skeleton (Modular characters): root, pelvis, thigh_l, calf_l,
+  // foot_l, ball_l and the right side. "root" and "foot" are listed above.
+  "pelvis",
+  "thigh",
+  "calf",
+  "ball",
 ];
 
 const LEG_POSES = new Set(["pistolAim", "pistolShoot", "pistolReload"]);

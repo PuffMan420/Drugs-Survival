@@ -1,3 +1,4 @@
+import { handSocket } from "./characters.js";
 import {
   BAT_EULER,
   BAT_HAND,
@@ -133,8 +134,8 @@ export async function createPistol({
   stick = null,
   onShot = null,
 }) {
-  const hand = player.model.getObjectByName("handr")
-    || player.model.getObjectByName("RightHand");
+  // The socket keeps the old hand frame, so the offsets below still fit.
+  const hand = handSocket(player.model);
   if (!hand) throw new Error("The player is missing a right hand.");
   // While HIGH, outgoing hits are stronger. Future guns should use dealt() too.
   function dealt(amount) {

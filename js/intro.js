@@ -1,6 +1,7 @@
 // Staged opening clip. The car move is timed by hand.
 // It does not use the city, the driving physics, or the combat code.
 
+import { PLAYER_MODEL, RIGHT_HAND, matteMaterials, modelUrl } from "./characters.js";
 import {
   AnimationMixer,
   Box3,
@@ -451,9 +452,9 @@ async function loadCar() {
 }
 
 async function loadPlayer() {
-  const url = new URL("../06 Player Character/gubbe.glb", import.meta.url).href;
-  const gltf = await loadGltf(url, "gubbe.glb");
+  const gltf = await loadGltf(modelUrl(PLAYER_MODEL), "player model");
   if (!gltf) return null;
+  matteMaterials(gltf.scene);
   const player = preparePlayer(gltf);
   if (!player || menuRevealed() || !looping) return player;
   scene.add(player.group);
@@ -677,7 +678,7 @@ function stepShoot() {
   const show = state.time > 0.06 && state.time < 0.24;
   if (state.muzzle) {
     state.muzzle.visible = show;
-    const hand = state.player.model.getObjectByName("RightHand");
+    const hand = state.player.model.getObjectByName(RIGHT_HAND);
     if (hand) hand.getWorldPosition(handPoint);
     else handPoint.set(state.player.group.position.x, 1.35, state.player.group.position.z + 0.4);
     handPoint.z += 0.35;

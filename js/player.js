@@ -3,7 +3,6 @@ import {
   AnimationMixer,
   Audio,
   AudioLoader,
-  Box3,
   CanvasTexture,
   DoubleSide,
   Group,
@@ -12,21 +11,24 @@ import {
   LoopOnce,
   MeshLambertMaterial,
   PlaneGeometry,
-  Quaternion,
   SRGBColorSpace,
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import {
+  BAT_CLIPS_MODEL,
+  PLAYER_MODEL,
+  fitCharacter,
+  isArmBone,
+  matteMaterials,
+  mergeFigure,
+  modelUrl,
+} from "./characters.js";
 import { PLAYER_SPEED } from "./constants.js";
 import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
 import { isLowerBone, legsWhileAiming, moveDirection } from "./pose-layers.js";
 
-// Blue sedan footprint in js/cars.js (assets/cars3d/sedan.glb): 37 wide, 71 long.
-// A real height is a third of that length. He is drawn a bit larger than that
-// so he reads clearly beside the cars, then another 10%, another 10% on
-// top of that, and another 5%. Pedestrians use this same bump, so they stand at his height.
-// Shoulders stay inside the sedan's width.
-const SEDAN_LENGTH = 71;
-const SCALE_BUMP = 1.15 * 1.1 * 1.1 * 1.05;
+// His height is CHARACTER_HEIGHT in js/characters.js (car units). Pedestrians
+// use the same fit, so they stand at his height.
 // Tires sit at this height. His soles use the same ground.
 const FEET_Y = 0.6;
 const SHADOW_Y = 0.35;
@@ -36,29 +38,8 @@ const PLACE_STEP = 240;
 const FADE = 0.25;
 // Aim and shoot keep a relaxed left arm. 0.7 is Idle_Loop, the rest is the pistol clip.
 const LEFT_ARM_IDLE = 0.7;
-const RIGHT_GRIP_POSE = {
-  RightHandThumb1: [0.0768, 0.8103, -0.4474, -0.3706],
-  RightHandThumb2: [-0.3985, -0.1105, -0.2049, 0.8871],
-  RightHandThumb3: [0, 0, 0, 1],
-  RightHandIndex1: [-0.0612, -0.0749, 0.0446, 0.9943],
-  RightHandIndex2: [-0.015, 0.0767, -0.0003, 0.9969],
-  RightHandIndex3: [-0.005, -0.0282, -0.0003, 0.9996],
-  RightHandMiddle1: [-0.6692, -0.06, -0.049, 0.739],
-  RightHandMiddle2: [-0.2129, 0.0681, 0.0139, 0.9746],
-  RightHandMiddle3: [-0.3474, -0.0294, -0.0109, 0.9372],
-  RightHandRing1: [-0.7047, -0.0322, -0.0834, 0.7038],
-  RightHandRing2: [-0.1145, 0.0623, 0.0066, 0.9914],
-  RightHandRing3: [-0.1048, -0.0338, -0.0034, 0.9939],
-  RightHandPinky1: [-0.6294, -0.0124, -0.1215, 0.7674],
-  RightHandPinky2: [-0.1146, 0.0531, 0.0061, 0.992],
-  RightHandPinky3: [-0.1047, -0.0367, -0.0035, 0.9938],
-};
-
 function isLeftArmBone(name) {
-  return name.startsWith("LeftShoulder")
-    || name.startsWith("LeftArm")
-    || name.startsWith("LeftForeArm")
-    || name.startsWith("LeftHand");
+  return isArmBone(name, "l");
 }
 
 function clipWithout(clip, drop) {
@@ -124,30 +105,14 @@ function shadowTexture() {
   return texture;
 }
 
-function litMaterials(model) {
-  // The sun lights the city with Lambert. The same material shades the figure.
-  const swapped = new Map();
-  model.traverse((obj) => {
-    if (!obj.isMesh) return;
-    const sources = Array.isArray(obj.material) ? obj.material : [obj.material];
-    const next = sources.map((source) => {
-      if (swapped.has(source)) return swapped.get(source);
-      const map = source.map ?? null;
-      if (map) map.colorSpace = SRGBColorSpace;
-      const lit = new MeshLambertMaterial({
-        map,
-        color: 0xffffff,
-        fog: false,
-        side: source.side ?? DoubleSide,
-      });
-      swapped.set(source, lit);
-      source.dispose();
-      return lit;
-    });
-    obj.material = next.length === 1 ? next[0] : next;
-    obj.frustumCulled = false;
-    obj.castShadow = true;
-    obj.receiveShadow = true;
+function figureMaterial() {
+  // The sun lights the city with Lambert, which has no shine, so the figure
+  // is matte. Each part's color is a vertex color (see mergeFigure).
+  return new MeshLambertMaterial({
+    color: 0xffffff,
+    vertexColors: true,
+    fog: false,
+    side: DoubleSide,
   });
 }
 
@@ -164,8 +129,8 @@ function maskedClip(clip, lower) {
 
 export async function createPlayer() {
   const loader = new GLTFLoader();
-  const url = new URL("../06 Player Character/gubbe.glb", import.meta.url).href;
-  const batUrl = new URL("../06 Player Character/gubbe-bat.glb", import.meta.url).href;
+  const url = modelUrl(PLAYER_MODEL);
+  const batUrl = modelUrl(BAT_CLIPS_MODEL);
   let gltf;
   let batClips;
   try {
@@ -175,28 +140,18 @@ export async function createPlayer() {
   }
 
   const model = gltf.scene;
-  litMaterials(model);
+  matteMaterials(model);
+  const figure = mergeFigure(model, figureMaterial());
+  figure.castShadow = true;
+  figure.receiveShadow = true;
   // The figure faces +Z. atan2(east, south) turns that axis toward travel.
-  // The sedan fit divides out the file's root scale. v13 was root 1.05, so
-  // measure there and put this file's scale back. 1.134 / 1.05 is the 8%.
-  // v14 stored that 1.134 on Root. v15's root is 1.0, so measure at
-  // 1.05 / 1.134 and the restored scale still lands on the same height.
-  const root = model.getObjectByName("Root");
-  const fileScale = root ? root.scale.x : 1;
-  if (root) root.scale.setScalar(1.05 / 1.134);
-  model.updateMatrixWorld(true);
-  const bounds = new Box3().setFromObject(model);
-  const height = Math.max(0.001, bounds.max.y - bounds.min.y);
-  const scale = (SEDAN_LENGTH / 3) * SCALE_BUMP / height;
-  model.scale.setScalar(scale);
-  if (root) root.scale.setScalar(fileScale);
-  model.updateMatrixWorld(true);
-  const fitted = new Box3().setFromObject(model);
-  model.position.y -= fitted.min.y;
-  // After the height fit, so SCALE_BUMP still measures the full body.
+  // Standing height is CHARACTER_HEIGHT car units, the old player's height.
+  fitCharacter(model);
+  // After the height fit, so the fit still measures the full body.
   // The clips' Head.scale tracks are a constant 1 and would undo this.
   shrinkHead(model);
   dropHeadScaleTracks(gltf.animations);
+  dropHeadScaleTracks(batClips.animations);
 
   const holder = new Group();
   holder.frustumCulled = false;
@@ -345,13 +300,6 @@ export async function createPlayer() {
   upperActions.punchJab.clampWhenFinished = true;
   upperActions.batSwing.setLoop(LoopOnce, 1);
   upperActions.batSwing.clampWhenFinished = true;
-  const rightGrip = [];
-  for (const [name, value] of Object.entries(RIGHT_GRIP_POSE)) {
-    const bone = model.getObjectByName(name);
-    if (!bone) continue;
-    rightGrip.push([bone, new Quaternion(value[0], value[1], value[2], value[3])]);
-  }
-  let pistolHeld = false;
   // Bones are still the bind T until the mixer writes. Do that before the
   // first paint, while idle is the only action with weight.
   mixer.update(0);
@@ -501,11 +449,8 @@ export async function createPlayer() {
     },
     model,
     useListener,
-    // True while the pistol is in his hand. The finger pose is applied after
-    // the mixer, so the clip cannot open the grip.
-    holdPistol(on) {
-      pistolHeld = Boolean(on);
-    },
+    // The UAL pistol clips close the fingers themselves, so nothing to add.
+    holdPistol() {},
     // Wish is a unit direction. Gait is walk, jog, sprint, or idle. Boost is
     // the build-mode pace. Speed and facing ease. They do not snap.
     forcePose(name) {
@@ -629,11 +574,6 @@ export async function createPlayer() {
       leftAim.setEffectiveTimeScale(0);
       leftShoot.setEffectiveTimeScale(0);
       mixer.update(step);
-      if (pistolHeld) {
-        for (let i = 0; i < rightGrip.length; i += 1) {
-          rightGrip[i][0].quaternion.copy(rightGrip[i][1]);
-        }
-      }
       // The mesh is hidden in a car. A map jump is a huge step, not a footfall.
       // Clip time moves with the playback rate, so a faster gait steps sooner.
       // While aiming, the feet follow the gait even though the arms play the pistol.

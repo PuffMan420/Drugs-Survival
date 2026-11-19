@@ -82,12 +82,12 @@ function glbTrackNames(path, clipName) {
   return clip.channels.map((channel) => `${nodes[channel.target.node]}.${channel.target.path}`);
 }
 
-test("the gubbe walk and aim clips both have legs and arms to split", () => {
+test("the player's walk and aim clips both have legs and arms to split", () => {
   for (const clipName of ["Walk_Loop", "Jog_Fwd_Loop", "Sprint_Loop", "Pistol_Aim_Neutral", "Pistol_Shoot", "Punch_Cross", "Punch_Jab"]) {
-    const names = glbTrackNames(new URL("../06 Player Character/gubbe.glb", import.meta.url), clipName);
+    const names = glbTrackNames(new URL("../06 Player Character/Modular/men_Casual_Hoodie_UAL.glb", import.meta.url), clipName);
     const split = splitTrackNames(names);
-    assert.ok(split.lower.some((name) => name.startsWith("LeftUpLeg.")), clipName);
-    assert.ok(split.upper.some((name) => name.startsWith("RightForeArm.")), clipName);
+    assert.ok(split.lower.some((name) => name.startsWith("thigh_l.")), clipName);
+    assert.ok(split.upper.some((name) => name.startsWith("lowerarm_r.")), clipName);
     assert.equal(split.lower.length + split.upper.length, names.length, clipName);
   }
 });

@@ -7,10 +7,15 @@
 
 import { PLAYER_SPEED } from "./constants.js";
 
-// Ground speed while chasing. The player jogs at PLAYER_SPEED and sprints at 1.4x.
-export const COP_SPEED = PLAYER_SPEED * 1.25;
+// Ground speed while chasing. Equal to the player's jog (PLAYER_SPEED);
+// player sprint is 1.4x, so the player can outrun cops on foot.
+export const COP_SPEED = PLAYER_SPEED * 1.0;
 export const COP_LEAVE_SPEED = PLAYER_SPEED * 0.5;
 export const COP_DAMAGE = 8;
+// Chase uses the same jog clip as pedestrians, played at native speed.
+export const COP_CHASE_GAIT = "jog";
+// Wanted decay only runs when no living cop is within this range (6 tiles of 48).
+export const COP_SIGHT = 288;
 // Seconds between one cop's punches.
 export const COP_PUNCH_COOLDOWN = 1;
 export const MAX_COPS = 4;
@@ -28,6 +33,15 @@ export const BUST_HEALTH = 30;
 export const BUST_CASH_LOSS = 0.5;
 // Spawn and despawn distance past the visible half-diagonal.
 export const OFFSCREEN_MARGIN = 80;
+
+// True when any living cop is within range of (px, pz). Dead cops do not count.
+export function copInSight(cops, px, pz, range = COP_SIGHT) {
+  for (const cop of cops || []) {
+    if (cop.dead) continue;
+    if (Math.hypot(cop.x - px, cop.z - pz) <= range) return true;
+  }
+  return false;
+}
 
 export function desiredCops(level) {
   const stars = Math.max(0, Math.floor(Number(level) || 0));
@@ -128,7 +142,7 @@ export function createPolice({ pedestrians, player, wanted, economy, onBusted })
         const stepLen = Math.min(COP_SPEED * dt, dist - COP_REACH * 0.8);
         ped.x += ped.dx * stepLen;
         ped.z += ped.dz * stepLen;
-        ped.copGait = "sprint";
+        ped.copGait = COP_CHASE_GAIT;
         continue;
       }
       ped.copGait = "idle";
@@ -158,6 +172,7 @@ export function createPolice({ pedestrians, player, wanted, economy, onBusted })
     update,
     clear,
     cops: () => cops.map((c) => c.ped),
+    inSight: () => copInSight(cops.map((c) => c.ped), player.x, player.z),
     get bustTimer() {
       return bustTimer;
     },

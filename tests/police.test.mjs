@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { desiredCops, stepBust, applyBust, MAX_COPS, BUST_TIME, BUST_HEALTH } from "../js/police.js";
+import { PLAYER_SPEED } from "../js/constants.js";
+import {
+  desiredCops, stepBust, applyBust, copInSight,
+  MAX_COPS, BUST_TIME, BUST_HEALTH, COP_SPEED, COP_SIGHT, COP_CHASE_GAIT,
+} from "../js/police.js";
 
 assert.equal(desiredCops(0), 0);
 assert.equal(desiredCops(0.5), 0);
@@ -23,4 +27,12 @@ const loss = applyBust(econ);
 assert.deepEqual(loss, { lost: 75, stockLost: 3 });
 assert.equal(econ.cash, 76);
 assert.equal(econ.stock, 0);
+assert.equal(COP_SPEED, PLAYER_SPEED * 1.0);
+assert.equal(COP_CHASE_GAIT, "jog");
+assert.equal(COP_SIGHT, 288);
+assert.equal(copInSight([{ x: 0, z: 0 }], 0, 0), true);
+assert.equal(copInSight([{ x: COP_SIGHT, z: 0 }], 0, 0), true);
+assert.equal(copInSight([{ x: COP_SIGHT + 1, z: 0 }], 0, 0), false);
+assert.equal(copInSight([{ x: 0, z: 0, dead: true }], 0, 0), false);
+assert.equal(copInSight([], 0, 0), false);
 console.log("police tests passed");

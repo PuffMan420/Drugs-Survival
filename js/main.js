@@ -817,7 +817,7 @@ async function start() {
   const hurtPed = pedestrians.hurt;
   pedestrians.hurt = (ped, ...rest) => {
     const impact = hurtPed(ped, ...rest);
-    if (impact) addCrime(wanted, hitCrime(ped.dead === true));
+    if (impact) addCrime(wanted, hitCrime(ped.dead === true, ped.cop === true));
     return impact;
   };
   const half = PLAYER_SIZE / 2;
@@ -1135,7 +1135,7 @@ async function start() {
     const vitalStep = stepPlayerVitals(vitals, dt);
     if (vitalStep.justDied && drive.driving) session.use();
     if (vitalStep.readyToRespawn) respawnAtSpawn();
-    stepWanted(wanted, dt);
+    stepWanted(wanted, dt, police.inSight());
     police.update(dt, halfW, halfH);
     pedestrians.update(dt, player.x, player.z, spanW, spanH);
     stepEconomy(economy, dt);

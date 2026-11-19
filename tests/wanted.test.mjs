@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   createWanted, addCrime, stepWanted, resetWanted, wantedStars, dealSeen, hitCrime,
   MAX_WANTED, WANTED_DECAY_DELAY, WITNESS_RANGE, WANTED_KILL, WANTED_HIT,
+  WANTED_HIT_COP, WANTED_KILL_COP,
 } from "../js/wanted.js";
 
 const w = createWanted();
@@ -35,4 +36,35 @@ assert.equal(dealSeen(0, 0, [buyer], buyer), false);
 assert.equal(dealSeen(0, 0, [buyer, { x: WITNESS_RANGE - 1, z: 0 }], buyer), true);
 assert.equal(dealSeen(0, 0, [buyer, { x: WITNESS_RANGE + 1, z: 0 }], buyer), false);
 assert.equal(dealSeen(0, 0, [{ x: 1, z: 0, dead: true }]), false);
+// Cop crimes use fractional heat; stars on the HUD are still whole (floor).
+assert.equal(hitCrime(false, true), WANTED_HIT_COP);
+assert.equal(hitCrime(true, true), WANTED_KILL_COP);
+assert.equal(WANTED_HIT_COP, 1.5);
+assert.equal(WANTED_KILL_COP, 3);
+const copHit = createWanted();
+addCrime(copHit, hitCrime(false, true));
+assert.equal(copHit.level, 1.5);
+assert.equal(wantedStars(copHit), 1);
+addCrime(copHit, hitCrime(true, true));
+assert.equal(copHit.level, 1.5 + 3);
+assert.equal(wantedStars(copHit), 4);
+const clamped = createWanted();
+addCrime(clamped, 4);
+addCrime(clamped, hitCrime(true, true));
+assert.equal(clamped.level, MAX_WANTED);
+
+// Decay pauses (quiet resets) while a cop is in sight, and resumes when clear.
+const decay = createWanted();
+addCrime(decay, 3);
+stepWanted(decay, WANTED_DECAY_DELAY - 1, false);
+assert.equal(decay.level, 3);
+assert.ok(decay.quiet > 0);
+stepWanted(decay, 1, true);
+assert.equal(decay.level, 3);
+assert.equal(decay.quiet, 0);
+stepWanted(decay, WANTED_DECAY_DELAY - 1, false);
+assert.equal(decay.level, 3);
+stepWanted(decay, 1.01, false);
+assert.equal(decay.level, 2);
+
 console.log("wanted tests passed");

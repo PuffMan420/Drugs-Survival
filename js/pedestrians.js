@@ -1101,6 +1101,11 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
           const gait = ped.copGait || "idle";
           if (ped.dx !== 0 || ped.dz !== 0) ped.live.holder.rotation.y = Math.atan2(ped.dx, ped.dz);
           showClip(ped, gait);
+          // Cops jog at native Jog_Fwd_Loop speed (timeScale 1), same gait as
+          // a pedestrian jog, so the feet match COP_SPEED (= PLAYER_SPEED).
+          if (!REACTIONS.includes(gait)) {
+            ped.live.actions[gait].setEffectiveTimeScale(1);
+          }
           ped.live.mixer.update(step);
           ped.live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);
           continue;

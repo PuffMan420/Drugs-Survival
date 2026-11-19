@@ -51,11 +51,11 @@ There is **no in-game way to gain HIGH yet**. Only the debug key **F10** (and `d
 | REGEN_PER_SECOND | 5 | js/player-health.js | Health gained per second while regenerating. From 0, that is 6 seconds to reach 30. |
 | HIGH_DRAIN_PER_SECOND | 2 | js/player-health.js | HIGH lost per second. A full 100 HIGH would drain in 50 seconds. |
 | HIGH_DAMAGE_TAKEN | 0.8 | js/player-health.js | While any HIGH is left, hits on the player are multiplied by this (20% less). Overdose damage is not reduced. |
-| HIGH_DAMAGE_DEALT | 1.25 | js/player-health.js | While any HIGH is left, the player's punches, bat, bottle and pistol hit 25% harder. |
+| HIGH_DAMAGE_DEALT | 1.25 | js/player-health.js | While any HIGH is left, the player's punches, bat, bottle, pistol, scorpion and shotgun hit 25% harder. |
 | OVERDOSE_HIGH | 80 | js/player-health.js | Above this HIGH, health also starts to drain. |
 | OVERDOSE_HP_PER_SECOND | 3 | js/player-health.js | Health lost per second while HIGH is above 80. |
 | DEATH_RESPAWN_DELAY | 2 | js/player-health.js | Seconds of no control after health reaches 0, then you respawn. |
-| DEBUG_HIGH_AMOUNT | 30 | js/player-health.js | How much HIGH F10 / `dsDebug.high()` adds each time. |
+| DEBUG_HIGH_AMOUNT | 30 | js/player-health.js | How much HIGH F10 / `dsDebug.addHigh()` adds each time. |
 
 ---
 
@@ -77,8 +77,42 @@ Damage numbers to *people* live in `js/pistol.js` (even for the bat and bottle).
 | CROSS_POSE | 1 | js/punch.js | How long the cross pose lasts, in seconds. |
 | BAT_REACH | 48 | js/bat.js | How far a bat swing can reach (one tile). |
 | BAT_SIDE | 18 | js/bat.js | How wide the bat hit box is. |
-| BAT_HIT | 0.5 | js/bat.js | Seconds into the swing when the bat actually lands. |
-| BAT_SWING | 1.5 | js/bat.js | Length of the whole bat swing, in seconds. |
+| BAT_HIT | 0.5 | js/bat.js | Old bat-clip hit time, in seconds. The sword swings use the fractions below. |
+| BAT_SWING | 1.5 | js/bat.js | Old bat-clip length, in seconds. A sword swing lasts as long as its clip. |
+| BAT_COMBO_RESET | 0.8 | js/bat.js | Seconds after a light bat click before the combo starts again at swing A. |
+| BAT_HEAVY_HOLD | 0.4 | js/bat.js | Hold the bat button this long, then let go, to do the heavy swing. |
+| BAT_HEAVY_DAMAGE_MULT | 2 | js/bat.js | Heavy swing damage is bat damage times this. |
+| BAT_HEAVY_REACH | 60 | js/bat.js | How far the heavy swing can reach. |
+| BAT_HIT_A | 0.5 | js/bat.js | Fraction of sword swing A when the bat lands. |
+| BAT_HIT_B | 0.5 | js/bat.js | Fraction of sword swing B when the bat lands. |
+| BAT_HIT_C | 0.5 | js/bat.js | Fraction of sword swing C when the bat lands. |
+| BAT_HIT_HEAVY | 0.5 | js/bat.js | Fraction of the heavy swing when the bat lands. |
+| HOOK_HIT | 0.2 | js/punch.js | Seconds into the hook when the fist lands. |
+| HOOK_POSE | 0.4667 | js/punch.js | How long the hook pose lasts, in seconds (14 frames at 30 fps). |
+| HOOK_DAMAGE_MULT | 2 | js/punch.js | Every 3rd punch is a hook and deals punch damage times this. |
+| BOTTLE_RELEASE | 0.45 | js/bottle.js | Fraction of the overhand throw when the bottle leaves the hand. |
+| SMG_DAMAGE | 1 | js/smg.js | Damage of one scorpion bullet to a person. |
+| SMG_RANGE | 200 | js/smg.js | How far a scorpion bullet can hit. |
+| SMG_FIRE_RATE | 12 | js/smg.js | Scorpion shots per second while the fire button is held. |
+| SMG_MAG | 20 | js/smg.js | Scorpion shots before a reload. |
+| SMG_SPREAD_DEG | 6 | js/smg.js | Widest angle a scorpion bullet can leave the aim line, in degrees. |
+| SMG_SCALE | 0.22 | js/smg.js | Size of the scorpion in the hand. |
+| SMG_HAND | 0, 0.12, -0.04 | js/smg.js | Where the scorpion sits in the hand. |
+| SMG_EULER | 90, 180, 0 deg | js/smg.js | Turn of the scorpion in the hand. Change this if it points the wrong way. |
+| SMG_MUZZLE | 0, 0.15, 2.1 | js/smg.js | Where the scorpion flash sits, in the gun's own axes. |
+| SHOTGUN_PELLETS | 5 | js/shotgun.js | Pellets in one shotgun blast. |
+| SHOTGUN_PELLET_DAMAGE | 1 | js/shotgun.js | Damage of one pellet. A close person is hit by more than one. |
+| SHOTGUN_RANGE | 144 | js/shotgun.js | How far a pellet can hit (three tiles). |
+| SHOTGUN_SPREAD_DEG | 20 | js/shotgun.js | Widest angle a pellet can leave the aim line, in degrees. |
+| SHOTGUN_FIRE_DELAY | 1.0 | js/shotgun.js | Seconds before the shotgun can fire again. |
+| SHOTGUN_MAG | 6 | js/shotgun.js | Shells before a reload. |
+| SHOTGUN_KICK_BACK | 0.15 | js/shotgun.js | How far the shotgun kicks back toward the wrist. |
+| SHOTGUN_KICK_UP_DEG | 12 | js/shotgun.js | How far the barrel kicks up, in degrees. |
+| SHOTGUN_KICK_RETURN | 0.25 | js/shotgun.js | Seconds for the kick to ease back. |
+| SHOTGUN_SCALE | 0.32 | js/shotgun.js | Size of the shotgun in the hand. |
+| SHOTGUN_HAND | 0, 0.1, -0.03 | js/shotgun.js | Where the shotgun sits in the hand. |
+| SHOTGUN_EULER | 0, -90, 90 deg | js/shotgun.js | Turn of the shotgun in the hand. Change this if it points the wrong way. |
+| SHOTGUN_MUZZLE | 2.15, 0.02, 0 | js/shotgun.js | Where the shotgun flash sits, in the gun's own axes. |
 | THROW_REACH | 144 | js/bottle.js | How far a bottle flies along the ground (three tiles). |
 | MIN_REACH | 18 | js/bottle.js | Shortest throw; closer than this the bottle still leaves the hand at this distance. |
 | GRAVITY | -180 | js/bottle.js | Downward pull on a thrown bottle, in units per second squared. |
@@ -208,6 +242,42 @@ The car you drive has **no named top-speed constant**. The arcade code is scaled
 | BRAKE | 180 | js/routes.js | How fast traffic and junction stops brake, in units per second squared. |
 | STOP_GAP | 34 | js/routes.js | Distance (units) traffic tries to keep when stopped behind another car. |
 | SLOW_GAP | 118 | js/routes.js | Distance (units) at which traffic starts to ease off behind a car ahead. |
+
+---
+
+## City Pack
+
+New cars use the same driving as the car they match. Change one footprint if a City Pack car looks the wrong size. `CITYPACK_STEER_MAX` is how far the front wheels pivot. `CITYPACK_STEER_SIGN` and `CITYPACK_ROLL_SIGN` are `-1` or `1` if the wheels steer or roll the wrong way. Van and bus have no separate wheels, so those signs do nothing for them.
+
+Props in build mode use `CITYPACK_METER` when the file is in meters. Billboard and the hydrant are not meters.
+
+| Name | Value | File | What it does |
+|---|---|---|---|
+| CITYPACK_CAR_W | 37 | js/cars.js | Width of the first City Pack car. Same footprint as the blue sedan. |
+| CITYPACK_CAR_H | 71 | js/cars.js | Length of the first City Pack car. Same footprint as the blue sedan. |
+| CITYPACK_CAR2_W | 36 | js/cars.js | Width of the second City Pack car. Same footprint as the junker. |
+| CITYPACK_CAR2_H | 67 | js/cars.js | Length of the second City Pack car. Same footprint as the junker. |
+| CITYPACK_SUV_W | 40 | js/cars.js | Width of the City Pack SUV. Same footprint as the SWAT van. |
+| CITYPACK_SUV_H | 77 | js/cars.js | Length of the City Pack SUV. Same footprint as the SWAT van. |
+| CITYPACK_PICKUP_W | 36 | js/cars.js | Width of the City Pack pickup. Same footprint as the pickup. |
+| CITYPACK_PICKUP_H | 66 | js/cars.js | Length of the City Pack pickup. Same footprint as the pickup. |
+| CITYPACK_SPORTS_W | 35 | js/cars.js | Width of the first City Pack sports car. Same footprint as the red coupe. |
+| CITYPACK_SPORTS_H | 68 | js/cars.js | Length of the first City Pack sports car. Same footprint as the red coupe. |
+| CITYPACK_SPORTS2_W | 39 | js/cars.js | Width of the second City Pack sports car. Same footprint as the supercar. |
+| CITYPACK_SPORTS2_H | 68 | js/cars.js | Length of the second City Pack sports car. Same footprint as the supercar. |
+| CITYPACK_POLICE_W | 35 | js/cars.js | Width of the City Pack police car. Same footprint as the old police car. It does not change the cops. |
+| CITYPACK_POLICE_H | 69 | js/cars.js | Length of the City Pack police car. Same footprint as the old police car. |
+| CITYPACK_VAN_W | 40 | js/cars.js | Width of the City Pack van. Same footprint as the ice cream van. No turning wheels. |
+| CITYPACK_VAN_H | 68 | js/cars.js | Length of the City Pack van. Same footprint as the ice cream van. |
+| CITYPACK_BUS_W | 41 | js/cars.js | Width of the City Pack bus. Same footprint as the fire truck. No turning wheels. |
+| CITYPACK_BUS_H | 79 | js/cars.js | Length of the City Pack bus. Same footprint as the fire truck. Raise this if the bus looks too short. |
+| CITYPACK_STEER_MAX | 0.55 | js/cars.js | Biggest front-wheel pivot on a City Pack car, in radians. |
+| CITYPACK_STEER_GAIN | 0.35 | js/cars.js | How strongly a turn pivots those front wheels. |
+| CITYPACK_STEER_SIGN | -1 | js/cars.js | Set to 1 if the front wheels steer the wrong way. |
+| CITYPACK_ROLL_SIGN | -1 | js/cars.js | Set to 1 if the wheels roll backwards. |
+| CITYPACK_METER | 18.37 | js/citypack-pieces.js | World units per meter for City Pack buildings, fences, the ATM, and the fire exit. |
+| CITYPACK_BILLBOARD_UNIT | 0.12 | js/citypack-pieces.js | Scale for the billboard. It is not in meters. |
+| CITYPACK_HYDRANT_UNIT | 0.071 | js/citypack-pieces.js | Scale for the fire hydrant. It is not in meters. |
 
 ---
 

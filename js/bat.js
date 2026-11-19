@@ -9,6 +9,37 @@ export const BAT_HAND = [0, 0.12, -0.05];
 export const BAT_EULER = [0, 0, 0];
 export const BAT_HIT = 0.5;
 export const BAT_SWING = 1.5;
+// Sword swings. A click with no click for this long starts again at A.
+export const BAT_COMBO_RESET = 0.8;
+// Hold the button at least this long, then let go, for the heavy swing.
+export const BAT_HEAVY_HOLD = 0.4;
+export const BAT_HEAVY_DAMAGE_MULT = 2;
+export const BAT_HEAVY_REACH = 60;
+// Hit moment as a fraction of that clip. 0.5 is halfway through.
+export const BAT_HIT_A = 0.5;
+export const BAT_HIT_B = 0.5;
+export const BAT_HIT_C = 0.5;
+export const BAT_HIT_HEAVY = 0.5;
+
+const LIGHT_SWINGS = ["swordRegularA", "swordRegularB", "swordRegularC"];
+
+// step is 0, 1, 2 for A, B, C. sinceClick is seconds since the last light click.
+export function batComboIndex(step, sinceClick, reset = BAT_COMBO_RESET) {
+  if (!(sinceClick >= 0) || sinceClick > reset) return 0;
+  const index = Number(step) || 0;
+  return ((index % 3) + 3) % 3;
+}
+
+export function batSwingName(index) {
+  return LIGHT_SWINGS[batComboIndex(index, 0)];
+}
+
+export function batHitFraction(name) {
+  if (name === "swordRegularB") return BAT_HIT_B;
+  if (name === "swordRegularC") return BAT_HIT_C;
+  if (name === "swordHeavy") return BAT_HIT_HEAVY;
+  return BAT_HIT_A;
+}
 // One tile forward, and a narrow gate so a ped beside him is not in front.
 export const BAT_REACH = 48;
 export const BAT_SIDE = 18;

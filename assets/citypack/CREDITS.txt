@@ -1,0 +1,41 @@
+City Pack models from Poly Pizza
+https://poly.pizza/bundle/City-Pack-kJqRAIGsw0
+
+The zip has no license file. These lines are from the Poly Pizza pages for the same model names.
+
+CC0 means public domain. You do not have to credit these.
+CC-BY means Creative Commons Attribution. You do have to credit the author.
+
+Cars (CC0, Quaternius)
+car.glb — Car — https://poly.pizza/m/Cz6yDaUcM9 — Public Domain (CC0)
+car-2.glb — Car — https://poly.pizza/m/unqqkULtRU — Public Domain (CC0)
+suv.glb — SUV — https://poly.pizza/m/xsMtZhBkxL — Public Domain (CC0)
+pickup-truck.glb — Pickup Truck — https://poly.pizza/m/qn4grQgHm8 — Public Domain (CC0)
+sports-car.glb — Sports Car — https://poly.pizza/m/1mkmFkAz5v — Public Domain (CC0)
+sports-car-2.glb — Sports Car — https://poly.pizza/m/Gzj704DXdr — Public Domain (CC0)
+police-car.glb — Police Car — https://poly.pizza/m/BwwnUrWGmV — Public Domain (CC0)
+
+Cars (CC-BY, Poly by Google)
+van.glb — Van — https://poly.pizza/m/akcsFuPMt3b — Creative Commons Attribution
+bus.glb — Bus — https://poly.pizza/m/4CPpvEmrMoF — Creative Commons Attribution
+
+Props and buildings (CC0, Quaternius)
+big-building.glb — Big Building — https://poly.pizza/m/AVCS8jUd2l — Public Domain (CC0)
+
+Props and buildings (CC-BY, Poly by Google)
+billboard.glb — Billboard — https://poly.pizza/m/70eZ1ed42Zy — Creative Commons Attribution
+fire-hydrant.glb — Fire hydrant — https://poly.pizza/m/eNPaSEPrst8 — Creative Commons Attribution
+
+Props and buildings (CC-BY, J-Toastie)
+atm.glb — ATM — https://poly.pizza/m/p4U0tSF5WN — Creative Commons Attribution
+fire-exit.glb — Fire Exit — https://poly.pizza/m/ugX9DZ0wlI — Creative Commons Attribution
+fence.glb — Fence — https://poly.pizza/m/ZSQMyIqPTz — Creative Commons Attribution
+fence-piece.glb — Fence Piece — https://poly.pizza/m/Y6D3Sbc85w — Creative Commons Attribution
+fence-end.glb — Fence End — https://poly.pizza/m/tQ5zhPd5UC — Creative Commons Attribution
+brown-building.glb — Brown Building — https://poly.pizza/m/fGKIlWGDNH — Creative Commons Attribution
+building-green.glb — Building Green — https://poly.pizza/m/FmjsfA1eHY — Creative Commons Attribution
+building-red.glb — Building Red — https://poly.pizza/m/lbNz2dClar — Creative Commons Attribution
+building-red-corner.glb — Building Red Corner — https://poly.pizza/m/9JuFwnivP0 — Creative Commons Attribution
+
+Poly Pizza does not print a 3.0 or 4.0 on these pages. It only says "Creative Commons Attribution".
+The old Google Poly models were CC BY 3.0.

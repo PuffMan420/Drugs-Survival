@@ -1,70 +1,43 @@
-# Agent rules
+# Agent rules for Drugs Survival
 
-## Read and plan first
+Read this at the start of every chat. These rules always apply, even if a prompt forgets them.
 
-- Continue the existing project; do not start over.
-- Read the relevant project files and documentation first. Explain briefly what exists, what is unclear, and which instructions may be outdated or conflicting. Do not assume old plans still apply.
-- Reading supplied or accessible files is allowed. During planning, wait for explicit approval before running commands, changing code, installing dependencies, or deleting files. Propose one small, clear step at a time.
-- Review the relevant code and proposed changes before building or running checks. Do not claim something works without testing it; state what was tested and what remains unverified.
-- Keep documentation about existing behavior separate from creative goals. Confirm behavior before changing factual descriptions.
+## Where and how we work
 
-## Working with Ted
+- We build Drugs Survival locally. All files are in `C:\Drugs Survival Dev`. Look there first.
+- Continue the existing project; never start over.
+- Stay on `main`. Never create branches (no `cursor/` branches), never open pull requests, never rebase or rewrite Git history, never force-push.
+- Do not commit or push unless Ted says so in this chat. Ted tests first.
+- Use one agent per task. Do not start helper or parallel agents unless Ted asks.
+- If an approach fails twice, stop and tell Ted what failed.
+- Never delete files, move asset folders, or install paid tools without Ted's OK. Keep original assets intact and save edited versions as new files.
+- Read-only folders: `06 Player Character\Kaykit all i need` and `assets\new stuff`.
+- Every file that committed code imports must also be committed.
 
-- Use simple language and plain text. Ted is a beginner.
-- Ask one question at a time. Refer to visible buttons rather than keyboard shortcuts when guiding Ted through the interface.
-- Write prompts in English.
-- Use a single agent per task. Do not start parallel or helper agents unless Ted asks.
-- Keep tasks and PRs small and scoped to one change.
-- Never merge. Ted merges.
-- Include zoomed screenshots in PRs for visual changes, not unrelated documentation or nonvisual work.
-- Do not rebase or rewrite Git history without explicit permission. There is no blanket requirement to rebase before reporting.
-- Do not use NearestFilter or render at low resolution and upscale.
+## Talking to Ted
+
+- English only, in replies, code comments and docs.
+- Ted is a beginner and dyslexic. Use short, simple sentences. Never ask him to edit a line himself; give finished text or do it.
+- Ask one question at a time, with options A, B, C and Other.
+- Separate clearly what you tested, what you assume and what you do not know. Never claim something works without testing it.
+- Every visual choice (how characters, cops, cars, colors, HUD look) is Ted's decision. Ask before it goes in the game.
+
+## Game facts
+
+- Browser game in JavaScript, Three.js 0.180 and Rapier. Top-down rotating 3D view inspired by GTA: Chinatown Wars, adults only.
+- Sizes are in car units, never meters. Characters are `CHARACTER_HEIGHT = 37.35` (see `js/characters.js`).
+- All characters are Quaternius Ultimate Modular Men/Women on the Quaternius Universal Animation Library (UAL1 + UAL2) skeleton. Never KayKit. Never swap the character model or skeleton unless Ted asks.
+- Every tuning number is a named exported constant and is listed in `docs/balance.md`. Do not change numbers Ted did not ask about.
+- The live site https://drugs-survival.pages.dev/ updates automatically from `main` on GitHub.
+
+## Testing
+
+- Test in the local game from the normal gameplay camera. Check that walking, weapons, driving, the map and the start menu still work, with no errors in the browser console.
+- Do not ask Ted to measure FPS.
 
 ## Graphics
 
-- Nothing enters the game below the GPU's max anisotropy. The shared helper is `installMaxAnisotropy` in `js/anisotropy.js`. It runs on every texture created after the renderer exists.
-- Do not cap anisotropy.
-- Do not turn mipmaps off, and do not use NearestFilter, to get around this.
-- Skip only textures where anisotropy has no effect: no mipmaps, NearestFilter, render targets, and shadow maps. Leave their filters unchanged.
-
-## Creative direction
-
-- Browser-based JavaScript and Three.js game with a dynamic, rotating top-down 3D perspective inspired by GTA: Chinatown Wars, but with a unique identity, more detailed graphics, and a cohesive visual style.
-- Adults-only creative goals: vulgar humor, strong language, sexual themes involving consenting adults, drugs and drug use, drug-related crime, and violence. These are goals, not claims about implemented features. Clarify intensity and level of detail before implementing.
-- Character models and animations may be reconsidered in an approved plan. This document does not authorize modifying or deleting assets.
-
-## Local development
-
-- The local project folder is `C:\Drugs Survival Dev`.
-- Do not assume tools or dependencies from a cloud environment are installed locally. Check the relevant setup with approval before running commands or installing anything.
-- Local saves do not update GitHub. Changes must be committed and pushed; branch changes reach `main` when Ted merges the PR.
-- The previous README says merging into `main` deploys to https://drugs-survival.pages.dev/. Verify the deployment setup before relying on it.
-
-## Cursor Cloud setup (previously documented; verify in that environment)
-
-This section applies only to Cursor Cloud, not the local computer. The previous instructions say `.cursor/install.sh` preinstalls:
-
-- Blender 4.2.3; headless usage: `blender -b -P script.py`
-- `ffmpeg`
-- Python 3 with Pillow and numpy
-- Node and the dependencies in `tests/`; test command: `cd tests && npm test`
-- `gltf-transform`
-- Playwright Chromium
-
-The documented game server address is http://localhost:8080. Its availability has not been checked. Do not download Blender again when the documented installation is present; verify the environment first. These setup notes do not grant approval to run commands or install software.
-
-
-
-**Extra rules for Drugs Survival**
-
-When you need a decision, ask one question at a time with options A, B, C, and Other.
-
-Do not put explanations meant for me inside code blocks.
-
-Separate clearly what you verified, what you assume, and what you do not know. Check Three.js and Blender APIs against official documentation when it matters.
-
-Blender is installed on my PC. With my approval, you may run it in the background to inspect, repair, and prepare 3D models. Keep original assets intact and save edited versions as separate files. Do not move the assets folders.
-
-When I ask to save, create a new branch, commit, push it, and open a pull request against main, then give me the link. Before committing, check for files too large for GitHub and tell me about them.
-
-Test changes in the local game from the normal gameplay camera, and make sure walking, weapons, driving, and the map still work.
+- Nothing enters the game below the GPU's max anisotropy. Use `installMaxAnisotropy` in `js/anisotropy.js`. Do not cap it.
+- Never use `NearestFilter`, never turn mipmaps off, and never render at low resolution and upscale.
+- Skip anisotropy only where it has no effect: no mipmaps, render targets and shadow maps.
+- Blender is installed on Ted's PC. With his OK you may run it in the background to inspect or fix models.

@@ -10,9 +10,17 @@ export const BULKY_FILES = new Set([
   "van",
 ]);
 
+// City Pack bodies that drive like the heavy Kenney cars.
+const CITYPACK_BULKY = new Set([
+  "citypack-suv",
+  "citypack-pickup",
+  "citypack-van",
+  "citypack-bus",
+]);
+
 export function isBulkyCar(car) {
   if (!car) return false;
   if (car.bulky === true) return true;
-  if (car.file && BULKY_FILES.has(car.file)) return true;
+  if (car.file && (BULKY_FILES.has(car.file) || CITYPACK_BULKY.has(car.file))) return true;
   return false;
 }

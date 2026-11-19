@@ -878,7 +878,8 @@ async function start() {
     hurt(amount = PISTOL_PLAYER_DAMAGE, source = "debug") {
       return player.takeDamage(amount, source);
     },
-    high(amount = DEBUG_HIGH_AMOUNT) {
+    addHigh(amount = DEBUG_HIGH_AMOUNT) {
+      playerSprite.playConsume();
       return player.addHigh(amount);
     },
     heal() {
@@ -955,7 +956,10 @@ async function start() {
         still.add(car);
         if (!carHits.has(car)) {
           const amount = carHitDamage(motion.speed);
-          if (amount > 0) player.takeDamage(amount, "car");
+          if (amount > 0) {
+            const hit = player.takeDamage(amount, "car");
+            if (hit && hit.applied > 0) playerSprite.playKnockback();
+          }
         }
       }
     }
@@ -1250,7 +1254,7 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
     return;
   }
-  // F9 deals a pistol-sized hit, Shift+F9 heals to full, F10 adds 30 HIGH.
+  // F9 deals a pistol-sized hit, Shift+F9 heals to full, F10 adds 30 HIGH and plays Consume.
   if (event.code === "F9") {
     if (event.shiftKey) window.dsDebug?.heal();
     else window.dsDebug?.hurt();
@@ -1258,7 +1262,7 @@ window.addEventListener("keydown", (event) => {
     return;
   }
   if (event.code === "F10") {
-    window.dsDebug?.high();
+    window.dsDebug?.addHigh();
     event.preventDefault();
     return;
   }

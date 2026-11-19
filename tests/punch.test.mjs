@@ -4,6 +4,10 @@ import {
   CROSS,
   CROSS_HIT,
   CROSS_POSE,
+  HOOK,
+  HOOK_DAMAGE_MULT,
+  HOOK_HIT,
+  HOOK_POSE,
   JAB,
   JAB_HIT,
   JAB_POSE,
@@ -14,11 +18,14 @@ import {
   punchTiming,
 } from "../js/punch.js";
 
-test("punches alternate, jab first", () => {
+test("punches go jab, cross, hook, then jab", () => {
   assert.equal(nextPunch(""), JAB);
   assert.equal(nextPunch(JAB), CROSS);
-  assert.equal(nextPunch(CROSS), JAB);
-  assert.equal(nextPunch(nextPunch(JAB)), JAB);
+  assert.equal(nextPunch(CROSS), HOOK);
+  assert.equal(nextPunch(HOOK), JAB);
+  assert.equal(HOOK_DAMAGE_MULT, 2);
+  assert.ok(HOOK_HIT < HOOK_POSE);
+  assert.deepEqual(punchTiming(HOOK), { hit: HOOK_HIT, pose: HOOK_POSE });
 });
 
 test("the hit is the arm's extension, and it lands before the clip ends", () => {

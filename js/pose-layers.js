@@ -1,5 +1,3 @@
-import { PLAYER_SPEED } from "./constants.js";
-
 // Pistol clips are full-body stands. While he walks, the legs stay on the
 // gait and the pistol owns the spine, head, and arms. Hips stay with the
 // legs so the stride still reaches the spine.
@@ -62,18 +60,37 @@ export function splitTrackNames(names) {
 
 // Shoot wins over the held aim so the recoil plays, and the aim pose returns
 // when the shot window ends. Reload wins over both.
-export function pistolPose({ armed, busy, reloading, shooting, aiming, weapon = "pistol", punch = "", speed = 0 }) {
+const UPPER_BODY = new Set([
+  "punchCross",
+  "punchJab",
+  "meleeHook",
+  "overhandThrow",
+  "consume",
+  "swordIdle",
+  "swordRegularA",
+  "swordRegularB",
+  "swordRegularC",
+  "swordHeavy",
+]);
+
+export function pistolPose({
+  armed,
+  busy,
+  reloading,
+  shooting,
+  aiming,
+  weapon = "pistol",
+  punch = "",
+  swing = "",
+}) {
   if (busy) return "";
-  // Empty hands. The jab and the cross take the arms; the gait keeps the legs.
+  // Empty hands. The jab, the cross, and the hook take the arms. The gait keeps the legs.
   if (weapon === "hands") return shooting ? punch : "";
   if (!armed) return "";
-  if (weapon === "bottle") return shooting ? "punchCross" : "";
-  // One hand on the shoulder, or hanging, until the two-hand swing.
-  // Sprint is 1.4 times the jog. The hang starts past the middle of that gap.
-  if (weapon === "bat") {
-    if (shooting) return "batSwing";
-    return speed / PLAYER_SPEED >= 1.2 ? "batHang" : "batShoulder";
-  }
+  if (weapon === "bottle") return shooting ? "overhandThrow" : "";
+  // Sword idle until a light combo swing or the heavy swing.
+  if (weapon === "bat") return shooting ? (swing || "swordRegularA") : "swordIdle";
+  // Pistol, scorpion, and shotgun share the pistol poses.
   if (reloading) return "pistolReload";
   if (shooting) return "pistolShoot";
   if (aiming) return "pistolAim";
@@ -82,9 +99,8 @@ export function pistolPose({ armed, busy, reloading, shooting, aiming, weapon = 
 }
 
 export function legsWhileAiming(pose, moving) {
-  // The cross is the throw. Its legs never play; the gait does, including a stand.
-  if (pose === "punchCross" || pose === "punchJab") return true;
-  if (pose === "batShoulder" || pose === "batHang" || pose === "batSwing") return true;
+  // Upper-body clips keep the gait on the legs, including a stand.
+  if (UPPER_BODY.has(pose)) return true;
   return moving && LEG_POSES.has(pose);
 }
 

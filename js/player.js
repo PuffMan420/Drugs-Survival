@@ -15,8 +15,8 @@ import {
 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import {
-  BAT_CLIPS_MODEL,
   PLAYER_MODEL,
+  UAL2_CLIPS_MODEL,
   fitCharacter,
   isArmBone,
   matteMaterials,
@@ -130,11 +130,11 @@ function maskedClip(clip, lower) {
 export async function createPlayer() {
   const loader = new GLTFLoader();
   const url = modelUrl(PLAYER_MODEL);
-  const batUrl = modelUrl(BAT_CLIPS_MODEL);
+  const ual2Url = modelUrl(UAL2_CLIPS_MODEL);
   let gltf;
-  let batClips;
+  let ual2;
   try {
-    [gltf, batClips] = await Promise.all([loader.loadAsync(url), loader.loadAsync(batUrl)]);
+    [gltf, ual2] = await Promise.all([loader.loadAsync(url), loader.loadAsync(ual2Url)]);
   } catch {
     throw new Error("The player model failed to load.");
   }
@@ -151,7 +151,7 @@ export async function createPlayer() {
   // The clips' Head.scale tracks are a constant 1 and would undo this.
   shrinkHead(model);
   dropHeadScaleTracks(gltf.animations);
-  dropHeadScaleTracks(batClips.animations);
+  dropHeadScaleTracks(ual2.animations);
 
   const holder = new Group();
   holder.frustumCulled = false;
@@ -262,17 +262,23 @@ export async function createPlayer() {
   actions.swordAttack.clampWhenFinished = true;
   actions.swordIdle.play();
   actions.swordAttack.play();
-  actions.batShoulder = mixer.clipAction(clipNamed(batClips.animations, "Bat_Shoulder"));
-  actions.batHang = mixer.clipAction(clipNamed(batClips.animations, "Bat_Hang"));
-  actions.batSwing = mixer.clipAction(clipNamed(batClips.animations, "Bat_Swing"));
-  setWeight(actions.batShoulder, 0);
-  setWeight(actions.batHang, 0);
-  setWeight(actions.batSwing, 0);
-  actions.batSwing.setLoop(LoopOnce, 1);
-  actions.batSwing.clampWhenFinished = true;
-  actions.batShoulder.play();
-  actions.batHang.play();
-  actions.batSwing.play();
+  const ual2Clips = {
+    swordRegularA: "Sword_Regular_A",
+    swordRegularB: "Sword_Regular_B",
+    swordRegularC: "Sword_Regular_C",
+    swordHeavy: "Sword_Heavy_Combo",
+    consume: "Consume",
+    overhandThrow: "OverhandThrow",
+    meleeHook: "Melee_Hook",
+    hitKnockback: "Hit_Knockback",
+    idlePhone: "Idle_TalkingPhone_Loop",
+    idleFold: "Idle_FoldArms_Loop",
+  };
+  for (const key of Object.keys(ual2Clips)) {
+    actions[key] = mixer.clipAction(clipNamed(ual2.animations, ual2Clips[key]));
+    setWeight(actions[key], 0);
+    actions[key].play();
+  }
   actions.punchJab = mixer.clipAction(clipNamed(gltf.animations, "Punch_Jab"));
   setWeight(actions.punchJab, 0);
   actions.punchJab.setLoop(LoopOnce, 1);
@@ -284,22 +290,33 @@ export async function createPlayer() {
     setWeight(lowerActions[name], 0);
     lowerActions[name].play();
   }
+  const upperNames = [
+    "pistolAim", "pistolShoot", "pistolReload",
+    "punchCross", "punchJab", "meleeHook",
+    "overhandThrow", "consume",
+    "swordIdle", "swordRegularA", "swordRegularB", "swordRegularC", "swordHeavy",
+  ];
   const upperActions = {};
-  for (const name of ["pistolAim", "pistolShoot", "pistolReload", "punchCross", "punchJab", "batShoulder", "batHang", "batSwing"]) {
+  for (const name of upperNames) {
     upperActions[name] = mixer.clipAction(maskedClip(actions[name].getClip(), false));
     setWeight(upperActions[name], 0);
     upperActions[name].play();
   }
-  upperActions.pistolShoot.setLoop(LoopOnce, 1);
-  upperActions.pistolShoot.clampWhenFinished = true;
-  upperActions.pistolReload.setLoop(LoopOnce, 1);
-  upperActions.pistolReload.clampWhenFinished = true;
-  upperActions.punchCross.setLoop(LoopOnce, 1);
-  upperActions.punchCross.clampWhenFinished = true;
-  upperActions.punchJab.setLoop(LoopOnce, 1);
-  upperActions.punchJab.clampWhenFinished = true;
-  upperActions.batSwing.setLoop(LoopOnce, 1);
-  upperActions.batSwing.clampWhenFinished = true;
+  const oneShots = [
+    "pistolShoot", "pistolReload", "punchCross", "punchJab", "meleeHook",
+    "overhandThrow", "consume", "swordRegularA", "swordRegularB", "swordRegularC",
+    "swordHeavy", "hitKnockback", "swordAttack",
+  ];
+  for (const name of oneShots) {
+    const action = actions[name];
+    if (!action) continue;
+    action.setLoop(LoopOnce, 1);
+    action.clampWhenFinished = true;
+    const upper = upperActions[name];
+    if (!upper) continue;
+    upper.setLoop(LoopOnce, 1);
+    upper.clampWhenFinished = true;
+  }
   // Bones are still the bind T until the mixer writes. Do that before the
   // first paint, while idle is the only action with weight.
   mixer.update(0);
@@ -319,6 +336,15 @@ export async function createPlayer() {
   let layered = false;
   let legGait = "idle";
   let kick = "";
+  // One-shot that owns the arms (consume) or the whole body (car hit).
+  let upperCue = "";
+  let bodyCue = "";
+  const FULL_ONESHOT = new Set(["pistolShoot", "swordAttack", "hitKnockback"]);
+  const UPPER_FAST = new Set([
+    "pistolShoot", "punchCross", "punchJab", "meleeHook",
+    "overhandThrow", "consume",
+    "swordRegularA", "swordRegularB", "swordRegularC", "swordHeavy",
+  ]);
   const buffers = [null, null];
   let stepsReady = false;
 
@@ -377,13 +403,13 @@ export async function createPlayer() {
 
   function show(name) {
     if (name === playing) return;
-    if (name === "pistolShoot" || name === "swordAttack" || name === "batSwing") {
+    if (FULL_ONESHOT.has(name)) {
       for (const key of Object.keys(actions)) setWeight(actions[key], key === name ? 1 : 0);
       actions[name].reset().play();
       playing = name;
       return;
     }
-    const fade = playing === "pistolShoot" || playing === "swordAttack" || playing === "batSwing" ? 0.08 : FADE;
+    const fade = FULL_ONESHOT.has(playing) ? 0.08 : FADE;
     crossFade(actions[playing], actions[name], fade);
     playing = name;
     cycle = 0;
@@ -462,6 +488,23 @@ export async function createPlayer() {
       // on the arms for the update that is about to run.
       if (kick) forced = kick;
     },
+    clipDuration(name) {
+      const action = actions[name];
+      return action ? action.getClip().duration : 0;
+    },
+    // Upper-body one-shot. Drug keys can call this later. F10 calls it now.
+    playConsume() {
+      upperCue = "consume";
+      kick = "consume";
+      forced = "consume";
+    },
+    // Full-body one-shot. A car hit calls this. Small hits do not.
+    playKnockback() {
+      bodyCue = "hitKnockback";
+      upperCue = "";
+      kick = "hitKnockback";
+      forced = "hitKnockback";
+    },
     aimAt(x, z) {
       aim = { x, z };
     },
@@ -502,6 +545,17 @@ export async function createPlayer() {
       const moved = dist > 0.001 && dist < PLACE_STEP;
       const ground = moved && step > 0 ? dist / step : 0;
       const gait = gaitForSpeed(ground);
+      if (bodyCue) {
+        const clip = actions[bodyCue];
+        const done = kick !== bodyCue && clip.time >= clip.getClip().duration - 0.001;
+        if (done) bodyCue = "";
+        else forced = bodyCue;
+      } else if (upperCue) {
+        const clip = upperActions[upperCue];
+        const done = kick !== upperCue && clip.time >= clip.getClip().duration - 0.001;
+        if (done) upperCue = "";
+        else forced = upperCue;
+      }
       const split = legsWhileAiming(forced, gait !== "idle");
       if (holder.visible && dist < PLACE_STEP) {
         const tau = Math.max(step, 1 / 120);
@@ -518,7 +572,7 @@ export async function createPlayer() {
           layered = true;
           for (const key of Object.keys(actions)) glide(actions[key], 0, tau, 0.1);
           for (const key of Object.keys(lowerActions)) glide(lowerActions[key], key === gait ? 1 : 0, tau, 0.1);
-          const fast = forced === "pistolShoot" || forced === "punchCross" || forced === "punchJab" || forced === "batSwing";
+          const fast = UPPER_FAST.has(forced);
           for (const key of Object.keys(upperActions)) {
             glide(upperActions[key], key === forced ? 1 : 0, tau, fast ? 0.04 : 0.1);
           }

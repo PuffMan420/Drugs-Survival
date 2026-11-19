@@ -1,8 +1,10 @@
-// Throw math and the hands -> pistol -> bottle -> bat cycle. The punch clip's
-// RightForeArm is furthest from rest at 0.375s, which is when the bottle leaves the hand.
+// Throw math and the weapon wheel. One notch walks this list, then back to hands.
+// RELEASE is the old punch-cross moment. The overhand throw uses BOTTLE_RELEASE.
 
-export const WEAPONS = ["hands", "pistol", "bottle", "bat"];
+export const WEAPONS = ["hands", "pistol", "scorpion", "shotgun", "bottle", "bat"];
 export const RELEASE = 0.375;
+// Fraction of OverhandThrow when the bottle leaves the hand.
+export const BOTTLE_RELEASE = 0.45;
 export const PUNCH_POSE = 0.72;
 // Three ground tiles. A phone has no cursor, so the lob uses this reach.
 export const THROW_REACH = 144;

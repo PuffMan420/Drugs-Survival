@@ -4,20 +4,30 @@
 
 export const JAB = "punchJab";
 export const CROSS = "punchCross";
+export const HOOK = "meleeHook";
 export const JAB_HIT = 0.208;
 export const CROSS_HIT = 0.292;
 export const JAB_POSE = 0.833;
 export const CROSS_POSE = 1;
+// Melee_Hook is 14 frames at 30 fps. The fist is out just before the middle.
+export const HOOK_HIT = 0.2;
+export const HOOK_POSE = 14 / 30;
+export const HOOK_DAMAGE_MULT = 2;
 // Arm's length, not a tile. A ped beside him or behind him is out of the fist.
 export const PUNCH_REACH = 36;
 export const PUNCH_SIDE = 14;
 
+const PUNCH_ORDER = [JAB, CROSS, HOOK];
+
+// Jab, cross, then a hook, then jab again.
 export function nextPunch(current) {
-  return current === JAB ? CROSS : JAB;
+  const index = PUNCH_ORDER.indexOf(current);
+  return PUNCH_ORDER[(index + 1) % PUNCH_ORDER.length];
 }
 
 export function punchTiming(name) {
   if (name === CROSS) return { hit: CROSS_HIT, pose: CROSS_POSE };
+  if (name === HOOK) return { hit: HOOK_HIT, pose: HOOK_POSE };
   return { hit: JAB_HIT, pose: JAB_POSE };
 }
 

@@ -4,6 +4,7 @@ import {
   BOTTLES,
   GRAVITY,
   PUNCH_POSE,
+  BOTTLE_RELEASE,
   RELEASE,
   THROW_REACH,
   aimTarget,
@@ -17,9 +18,11 @@ import {
   throwVelocity,
 } from "../js/bottle.js";
 
-test("the wheel walks hands, pistol, bottle, bat, then hands", () => {
+test("the wheel walks hands, pistol, scorpion, shotgun, bottle, bat, then hands", () => {
   assert.equal(nextWeapon("hands"), "pistol");
-  assert.equal(nextWeapon("pistol"), "bottle");
+  assert.equal(nextWeapon("pistol"), "scorpion");
+  assert.equal(nextWeapon("scorpion"), "shotgun");
+  assert.equal(nextWeapon("shotgun"), "bottle");
   assert.equal(nextWeapon("bottle"), "bat");
   assert.equal(nextWeapon("bat"), "hands");
   assert.equal(nextWeapon("nope"), "pistol");
@@ -35,8 +38,9 @@ test("each bottle keeps its own splash set", () => {
   assert.equal(pickBottle(() => 0.99).id, "oil");
 });
 
-test("the bottle leaves the hand when the cross extends", () => {
+test("the bottle leaves the hand part way through the overhand throw", () => {
   assert.ok(RELEASE > 0.3 && RELEASE < 0.5);
+  assert.equal(BOTTLE_RELEASE, 0.45);
   assert.ok(PUNCH_POSE > RELEASE);
   assert.equal(THROW_REACH, 144);
 });

@@ -5,6 +5,7 @@ import {
   InstancedBufferAttribute,
   InstancedMesh,
   LoadingManager,
+  Matrix4,
   Mesh,
   MeshStandardMaterial,
   Object3D,
@@ -30,6 +31,34 @@ import { foldHeadlightGeometry } from "./headlights.js";
 import { pushOutOfCars } from "./car-push.js";
 import { createSim, headingAngle, planCars, settleParked } from "./routes.js";
 import { signalNow } from "./signals.js";
+
+// Footprints in the same car units as the CARS list below.
+export const CITYPACK_CAR_W = 37;
+export const CITYPACK_CAR_H = 71;
+export const CITYPACK_CAR2_W = 36;
+export const CITYPACK_CAR2_H = 67;
+export const CITYPACK_SUV_W = 40;
+export const CITYPACK_SUV_H = 77;
+export const CITYPACK_PICKUP_W = 36;
+export const CITYPACK_PICKUP_H = 66;
+export const CITYPACK_SPORTS_W = 35;
+export const CITYPACK_SPORTS_H = 68;
+export const CITYPACK_SPORTS2_W = 39;
+export const CITYPACK_SPORTS2_H = 68;
+export const CITYPACK_POLICE_W = 35;
+export const CITYPACK_POLICE_H = 69;
+export const CITYPACK_VAN_W = 40;
+export const CITYPACK_VAN_H = 68;
+export const CITYPACK_BUS_W = 41;
+export const CITYPACK_BUS_H = 79;
+// How far the front wheels can pivot, in radians.
+export const CITYPACK_STEER_MAX = 0.55;
+// Yaw rate (radians per second) times this becomes the wheel angle.
+export const CITYPACK_STEER_GAIN = 0.35;
+// Flip if the front wheels steer the wrong way.
+export const CITYPACK_STEER_SIGN = -1;
+// Flip if the wheels roll backwards.
+export const CITYPACK_ROLL_SIGN = -1;
 
 // Kenney Car Kit models (CC0), from https://kenney.nl/assets/car-kit.
 // The old sprite names stay, so spawn weights and the rare set do not move.
@@ -63,9 +92,20 @@ const CARS = [
   { name: "kaykit_wagon", file: "kaykit-wagon", w: 37, h: 71, url: "assets/buildings/kaykit/props/car_stationwagon.glb" },
   { name: "kaykit_taxi", file: "kaykit-taxi", w: 36, h: 69, url: "assets/buildings/kaykit/props/car_taxi.glb" },
   { name: "kaykit_police", file: "kaykit-police", w: 35, h: 69, url: "assets/buildings/kaykit/props/car_police.glb" },
+  // City Pack. Same footprints as the closest car already in the list.
+  // rollWheels turns the separate wheel meshes. Van and bus have none.
+  { name: "city_car", file: "citypack-car", w: CITYPACK_CAR_W, h: CITYPACK_CAR_H, rollWheels: true },
+  { name: "city_car_2", file: "citypack-car-2", w: CITYPACK_CAR2_W, h: CITYPACK_CAR2_H, rollWheels: true },
+  { name: "city_suv", file: "citypack-suv", w: CITYPACK_SUV_W, h: CITYPACK_SUV_H, rollWheels: true },
+  { name: "city_pickup", file: "citypack-pickup", w: CITYPACK_PICKUP_W, h: CITYPACK_PICKUP_H, rollWheels: true },
+  { name: "city_sports", file: "citypack-sports", w: CITYPACK_SPORTS_W, h: CITYPACK_SPORTS_H, rollWheels: true },
+  { name: "city_sports_2", file: "citypack-sports-2", w: CITYPACK_SPORTS2_W, h: CITYPACK_SPORTS2_H, rollWheels: true },
+  { name: "city_police", file: "citypack-police", w: CITYPACK_POLICE_W, h: CITYPACK_POLICE_H, rollWheels: true },
+  { name: "city_van", file: "citypack-van", w: CITYPACK_VAN_W, h: CITYPACK_VAN_H },
+  { name: "city_bus", file: "citypack-bus", w: CITYPACK_BUS_W, h: CITYPACK_BUS_H },
 ];
 
-const RARE = new Set(["police", "ambulance", "fire_truck"]);
+const RARE = new Set(["police", "ambulance", "fire_truck", "city_police"]);
 // Job and service liveries stay on the colours baked into the weathered model.
 const SERVICE = new Set([
   "ambulance",
@@ -75,6 +115,7 @@ const SERVICE = new Set([
   "garbage_truck",
   "icecream_van",
   "police",
+  "city_police",
   "school_bus",
   "swat_van",
   "taco_truck",
@@ -139,6 +180,64 @@ const CELL_SMALL = 13 + 16;
 
 function isWheel(obj) {
   return obj.name.startsWith("wheel") || (obj.parent && obj.parent.name.startsWith("wheel"));
+}
+
+const wheelLocal = new Matrix4();
+const wheelWorld = new Matrix4();
+const wheelSpinM = new Matrix4();
+const wheelSteerM = new Matrix4();
+const wheelToAxle = new Matrix4();
+const wheelFromAxle = new Matrix4();
+
+function wheelMatrix(carMatrix, part, travel, steer, scaleY) {
+  const radius = Math.max(0.05, part.radius * scaleY);
+  const spin = CITYPACK_ROLL_SIGN * travel / radius;
+  const yaw = part.front ? steer : 0;
+  const ax = part.axle[0];
+  const ay = part.axle[1];
+  const az = part.axle[2];
+  wheelFromAxle.makeTranslation(-ax, -ay, -az);
+  wheelSpinM.makeRotationX(spin);
+  wheelSteerM.makeRotationY(yaw);
+  wheelToAxle.makeTranslation(ax, ay, az);
+  wheelLocal.copy(wheelFromAxle);
+  wheelLocal.premultiply(wheelSpinM);
+  wheelLocal.premultiply(wheelSteerM);
+  wheelLocal.premultiply(wheelToAxle);
+  wheelWorld.multiplyMatrices(carMatrix, wheelLocal);
+  return wheelWorld;
+}
+
+function trackRoll(car, model, dt) {
+  if (!model || !model.rollWheels) return;
+  const prevX = car.rollX;
+  const prevZ = car.rollZ;
+  car.rollX = car.x;
+  car.rollZ = car.z;
+  if (prevX == null) {
+    car.rollTravel = 0;
+    car.rollSteer = 0;
+    car.rollAngle = car.angle || 0;
+    return;
+  }
+  const dx = car.x - prevX;
+  const dz = car.z - prevZ;
+  const dist = Math.hypot(dx, dz);
+  const fx = -Math.sin(car.angle || 0);
+  const fz = -Math.cos(car.angle || 0);
+  const signed = dist < 0.04 ? 0 : Math.sign(dx * fx + dz * fz) * dist;
+  car.rollTravel = (car.rollTravel || 0) + signed;
+  let delta = (car.angle || 0) - (car.rollAngle || 0);
+  car.rollAngle = car.angle || 0;
+  while (delta > Math.PI) delta -= Math.PI * 2;
+  while (delta < -Math.PI) delta += Math.PI * 2;
+  if (dt > 0 && dist > 0.2) {
+    const yaw = delta / dt;
+    const steer = yaw * CITYPACK_STEER_GAIN * CITYPACK_STEER_SIGN;
+    car.rollSteer = Math.max(-CITYPACK_STEER_MAX, Math.min(CITYPACK_STEER_MAX, steer));
+  } else {
+    car.rollSteer = 0;
+  }
 }
 
 function colourIndex(salt) {
@@ -457,7 +556,14 @@ function bakeLevel(scene, catalog) {
     if (material) material.toneMapped = false;
     if (obj.name === "trash") shadeBedRocks(geometry, material);
     if (paintable) installPaintShader(material, averagePaintLuma(material, geometry));
-    parts.push({ name: obj.name, geometry, material, paintable });
+    parts.push({
+      name: obj.name,
+      geometry,
+      material,
+      paintable,
+      wheel,
+      front: wheel && obj.name.startsWith("wheel-front"),
+    });
   });
   let minX = Infinity;
   let maxX = -Infinity;
@@ -516,6 +622,16 @@ function bakeLevel(scene, catalog) {
     if (part.paintable) continue;
     part.geometry.computeBoundingBox();
     part.geometry.computeBoundingSphere();
+  }
+  for (const part of parts) {
+    if (!part.wheel || !part.geometry.boundingBox) continue;
+    const box = part.geometry.boundingBox;
+    part.axle = [
+      (box.min.x + box.max.x) / 2,
+      (box.min.y + box.max.y) / 2,
+      (box.min.z + box.max.z) / 2,
+    ];
+    part.radius = Math.max(0.001, box.max.y - box.min.y, box.max.z - box.min.z) / 2;
   }
   let low = Infinity;
   let high = -Infinity;
@@ -795,7 +911,15 @@ export async function createTraffic(scene, map, pieces = []) {
           mesh.instanceColor = new InstancedBufferAttribute(new Float32Array(capacity * 3).fill(1), 3);
         }
         scene.add(mesh);
-        partDraws.push({ mesh, recolor, paintable: part.paintable });
+        partDraws.push({
+          mesh,
+          recolor,
+          paintable: part.paintable,
+          wheel: part.wheel,
+          front: part.front,
+          axle: part.axle,
+          radius: part.radius,
+        });
       }
       groups.push({
         parts: partDraws,
@@ -850,7 +974,11 @@ export async function createTraffic(scene, map, pieces = []) {
     const tint = car.wrecked ? wreckTint : (civilian ? PALETTE[colourIndex(salt)] : WHITE);
     const rec = car.wrecked ? 1 : (civilian ? 1 : 0);
     for (const part of group.parts) {
-      part.mesh.setMatrixAt(count, matrix);
+      const rolling = group.model.rollWheels && part.wheel && part.axle;
+      const drawn = rolling
+        ? wheelMatrix(matrix, part, car.rollTravel || 0, car.rollSteer || 0, group.model.scaleY)
+        : matrix;
+      part.mesh.setMatrixAt(count, drawn);
       if (!part.paintable) continue;
       part.recolor.setX(count, rec);
       part.mesh.setColorAt(count, tint);
@@ -988,6 +1116,7 @@ export async function createTraffic(scene, map, pieces = []) {
       }
       syncParked();
       const all = parked.concat(sim.drivers);
+      for (const car of all) trackRoll(car, models[car.model], dt);
       for (const car of all) {
         if (car.wrecked && !car.blew) finishWreck(car);
       }

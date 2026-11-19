@@ -19,6 +19,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { AO_SKIP_LAYER, TILE } from "./constants.js";
 import { KITS } from "./kenney-city-catalog.js";
 import { FENCE_KIT } from "./fence-pieces.js";
+import { CITYPACK_KIT } from "./citypack-pieces.js";
 import { createGroundTemplate, GROUND_KIT, groundQuarter, isGroundFile } from "./ground-pieces.js";
 import { PARTS_KIT } from "./part-pieces.js";
 import { isBuildingFile, setModelBounds } from "./model-shell.js";
@@ -60,7 +61,7 @@ function kitsWithParts(kits) {
   next.splice(kaykitAt < 0 ? next.length : kaykitAt, 0, PARTS_KIT);
   return next;
 }
-const BUILD_KITS = kitsWithParts([GROUND_KIT, FENCE_KIT, ...KITS]);
+const BUILD_KITS = kitsWithParts([GROUND_KIT, FENCE_KIT, CITYPACK_KIT, ...KITS]);
 const GROUND_Y = 0.2;
 // The pole foot's top is the same height as the curb top, so the two fight.
 // This drops the foot just under that surface. It is not a shadow bias.
@@ -1135,7 +1136,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       for (const variant of gableDoorVariants.get(scene) || []) if (variant !== scene) linearize(variant);
       if (isSignalFile(file)) prepareSignal(scene);
       if (kit.startsWith("kaykit-")) seatOnGround(scene);
-      if (kit === "fences" || kit === "parts") seatFence(scene);
+      if (kit === "fences" || kit === "parts" || kit === "citypack") seatFence(scene);
       if (isBuildingFile(file)) rememberBounds(kit, file, scene);
       templates.set(key, scene);
       return scene;

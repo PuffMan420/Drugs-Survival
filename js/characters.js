@@ -22,6 +22,7 @@ export const PED_MODELS = [
 export const COP_MODEL = "../06 Player Character/Modular/men_Casual_Hoodie_UAL.glb";
 // Bat_Shoulder, Bat_Hang and Bat_Swing on the UAL skeleton (clips only).
 export const BAT_CLIPS_MODEL = "../06 Player Character/Modular/ual-bat.glb";
+export const UAL2_CLIPS_MODEL = "../assets/player/ual2-clips.glb";
 
 export function modelUrl(path) {
   return new URL(path, import.meta.url).href;

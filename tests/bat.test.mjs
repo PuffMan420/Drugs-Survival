@@ -4,6 +4,7 @@ import test from "node:test";
 import { createHash } from "node:crypto";
 import {
   BAT_BLOOD_HOLD,
+  BAT_COMBO_RESET,
   BAT_EULER,
   BAT_GRIME_FADE,
   BAT_HAND,
@@ -13,8 +14,11 @@ import {
   BAT_SIDE,
   BAT_SWING,
   batBarrelAxis,
+  batComboIndex,
   batEaseIn,
+  batHitFraction,
   batHits,
+  batSwingName,
   freshBatWear,
   meleePlaybackRate,
   stepBatWear,
@@ -116,6 +120,17 @@ test("the melee hit sound is the darker clip", () => {
   assert.equal(data.subarray(0, 4).toString("utf8"), "OggS");
   assert.equal(createHash("sha256").update(data).digest("hex"),
     "6a8cca996d54163ea47e29a16e8eca35ea17455a689514844e095bf2a624fef6");
+});
+
+test("a late click starts the bat combo at A, and the next two are B then C", () => {
+  assert.equal(BAT_COMBO_RESET, 0.8);
+  assert.equal(batComboIndex(2, 2), 0);
+  assert.equal(batComboIndex(1, 0.5), 1);
+  assert.equal(batSwingName(0), "swordRegularA");
+  assert.equal(batSwingName(1), "swordRegularB");
+  assert.equal(batSwingName(2), "swordRegularC");
+  assert.equal(batHitFraction("swordRegularA"), 0.5);
+  assert.equal(batHitFraction("swordHeavy"), 0.5);
 });
 
 test("the three bat textures are 512 square", () => {

@@ -42,7 +42,7 @@ export const OVERDOSE_HP_PER_SECOND = 3;
 // point with full health and HIGH cleared (so an overdose cannot loop).
 export const DEATH_RESPAWN_DELAY = 2;
 
-// Debug: F10 and dsDebug.high() add this much HIGH.
+// Debug: F10 and dsDebug.addHigh() add this much HIGH.
 export const DEBUG_HIGH_AMOUNT = 30;
 
 function clamp(value, lo, hi) {

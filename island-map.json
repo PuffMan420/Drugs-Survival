@@ -2000,7 +2000,7 @@
       "kit": "roads",
       "file": "road-intersection-3.glb",
       "x": 66,
-      "z": 218,
+      "z": 217,
       "turn": 3,
       "scale": 1,
       "mirror": false
@@ -4412,15 +4412,6 @@
       "kit": "roads",
       "file": "road-straight-stop.glb",
       "x": 318,
-      "z": 90,
-      "turn": 0,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "roads",
-      "file": "road-crossroad-3.glb",
-      "x": 322,
       "z": 90,
       "turn": 0,
       "scale": 1,
@@ -10407,15 +10398,6 @@
       "file": "road-straight-7.glb",
       "x": 82,
       "z": 226,
-      "turn": 1,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "roads",
-      "file": "road-straight-7.glb",
-      "x": 82,
-      "z": 238,
       "turn": 1,
       "scale": 1,
       "mirror": false
@@ -19756,24 +19738,6 @@
     },
     {
       "kit": "roads",
-      "file": "road-bend-square-3.glb",
-      "x": 66,
-      "z": 250,
-      "turn": 2,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "roads",
-      "file": "road-bend-square-2.glb",
-      "x": 82,
-      "z": 250,
-      "turn": 3,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "roads",
       "file": "road-straight-4.glb",
       "x": 82,
       "z": 246,
@@ -20075,15 +20039,6 @@
       "x": 72,
       "z": 246,
       "turn": 1,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "asphalt-worn.glb",
-      "x": 71,
-      "z": 246,
-      "turn": 0,
       "scale": 1,
       "mirror": false
     },
@@ -20441,60 +20396,6 @@
     {
       "kit": "ground",
       "file": "tiny-grass-12.glb",
-      "x": 71,
-      "z": 244,
-      "turn": 0,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 71,
-      "z": 243,
-      "turn": 1,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 77,
-      "z": 244,
-      "turn": 2,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 77,
-      "z": 243,
-      "turn": 3,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 77,
-      "z": 242,
-      "turn": 1,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-04.glb",
-      "x": 73,
-      "z": 244,
-      "turn": 0,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
       "x": 72,
       "z": 244,
       "turn": 0,
@@ -20505,15 +20406,6 @@
       "kit": "ground",
       "file": "tiny-grass-12.glb",
       "x": 73,
-      "z": 243,
-      "turn": 0,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 73,
       "z": 242,
       "turn": 0,
       "scale": 1,
@@ -20525,33 +20417,6 @@
       "x": 75,
       "z": 242,
       "turn": 2,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 75,
-      "z": 243,
-      "turn": 0,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-04.glb",
-      "x": 75,
-      "z": 244,
-      "turn": 1,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-03.glb",
-      "x": 71,
-      "z": 242,
-      "turn": 3,
       "scale": 1,
       "mirror": false
     },
@@ -20729,8 +20594,8 @@
     {
       "kit": "ground",
       "file": "asphalt-worn.glb",
-      "x": 79,
-      "z": 242,
+      "x": 78,
+      "z": 243,
       "turn": 0,
       "scale": 1,
       "mirror": false
@@ -20811,15 +20676,6 @@
       "kit": "ground",
       "file": "tiny-grass-12.glb",
       "x": 79,
-      "z": 241,
-      "turn": 3,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 79,
       "z": 240,
       "turn": 1,
       "scale": 1,
@@ -20828,45 +20684,9 @@
     {
       "kit": "ground",
       "file": "tiny-grass-12.glb",
-      "x": 79,
-      "z": 238,
+      "x": 78,
+      "z": 240,
       "turn": 2,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 79,
-      "z": 237,
-      "turn": 1,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-12.glb",
-      "x": 79,
-      "z": 235,
-      "turn": 2,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-03.glb",
-      "x": 79,
-      "z": 236,
-      "turn": 0,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-04.glb",
-      "x": 79,
-      "z": 239,
-      "turn": 0,
       "scale": 1,
       "mirror": false
     },
@@ -20945,8 +20765,8 @@
     {
       "kit": "ground",
       "file": "tiny-grass-03.glb",
-      "x": 78,
-      "z": 240,
+      "x": 79,
+      "z": 238,
       "turn": 3,
       "scale": 1,
       "mirror": false
@@ -21056,15 +20876,6 @@
       "x": 74,
       "z": 241,
       "turn": 0,
-      "scale": 1,
-      "mirror": false
-    },
-    {
-      "kit": "ground",
-      "file": "tiny-grass-03.glb",
-      "x": 78,
-      "z": 241,
-      "turn": 1,
       "scale": 1,
       "mirror": false
     },
@@ -21685,7 +21496,7 @@
       "file": "asphalt-oil.glb",
       "x": 77,
       "z": 245,
-      "turn": 0,
+      "turn": 2,
       "scale": 1,
       "mirror": false
     },
@@ -21705,6 +21516,10028 @@
       "z": 245,
       "turn": 0,
       "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 77,
+      "z": 243,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 77,
+      "z": 244,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 75,
+      "z": 244,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 75,
+      "z": 243,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 71,
+      "z": 244,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 71,
+      "z": 243,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 73,
+      "z": 245,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 73,
+      "z": 244,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 73,
+      "z": 243,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "fences",
+      "file": "gate.glb",
+      "x": 69,
+      "z": 245,
+      "turn": 0,
+      "scale": 1.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 71,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend-3.glb",
+      "x": 82,
+      "z": 250,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-bend-2.glb",
+      "x": 66,
+      "z": 250,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-crossroad-path-2.glb",
+      "x": 322,
+      "z": 90,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "traffic-light-2.glb",
+      "x": 324,
+      "z": 88,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "traffic-light-2.glb",
+      "x": 320,
+      "z": 88,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "traffic-light-hanging-2.glb",
+      "x": 320,
+      "z": 92,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "traffic-light-hanging-2.glb",
+      "x": 324,
+      "z": 92,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 74,
+      "z": 242,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 77,
+      "z": 242,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 78,
+      "z": 242,
+      "turn": 0,
+      "scale": 1,
+      "mirror": true
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 79,
+      "z": 242,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.168,
+      "z": 241.481,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 78.489,
+      "z": 241.48,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 0
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 76.836,
+      "z": 241.498,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 76.514,
+      "z": 241.825,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.491,
+      "z": 239.145,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.491,
+      "z": 237.793,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.503,
+      "z": 235.529,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.491,
+      "z": 238.465,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.506,
+      "z": 234.847,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fire-hydrant.glb",
+      "x": 79.801,
+      "z": 247.661,
+      "turn": 1,
+      "scale": 1.75,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 77,
+      "z": 236,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 77,
+      "z": 240,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-straight-4.glb",
+      "x": 82,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "box_B.glb",
+      "x": 78.589,
+      "z": 242.573,
+      "turn": 1,
+      "scale": 0.5,
+      "mirror": true
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "trash_A.glb",
+      "x": 78,
+      "z": 242,
+      "turn": 1,
+      "scale": 0.5,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "trash_B.glb",
+      "x": 77.327,
+      "z": 242.203,
+      "turn": 1,
+      "scale": 0.5,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "dumpster.glb",
+      "x": 77.627,
+      "z": 242.422,
+      "turn": 2,
+      "scale": 0.5,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.499,
+      "z": 236.184,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "road-sign-street.glb",
+      "x": 80,
+      "z": 234,
+      "turn": 0,
+      "scale": 0.75,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.152,
+      "z": 238.139,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 78.479,
+      "z": 238.135,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 77.805,
+      "z": 238.126,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 77.131,
+      "z": 238.12,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 76.457,
+      "z": 238.118,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.778,
+      "z": 238.119,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.461,
+      "z": 238.46,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.455,
+      "z": 239.132,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.456,
+      "z": 239.788,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.457,
+      "z": 237.772,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.471,
+      "z": 237.109,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.488,
+      "z": 236.428,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.507,
+      "z": 235.767,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.53,
+      "z": 234.864,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.875,
+      "z": 234.518,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 0
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 76.558,
+      "z": 234.514,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 77.248,
+      "z": 234.499,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 77.918,
+      "z": 234.494,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 79,
+      "z": 236,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 79,
+      "z": 235,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_hatchback.glb",
+      "x": 78.947,
+      "z": 235.115,
+      "turn": 0,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 0.267
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 79,
+      "z": 241,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 78,
+      "z": 241,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 79,
+      "z": 237,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 79,
+      "z": 239,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_stationwagon.glb",
+      "x": 78.736,
+      "z": 240.917,
+      "turn": 1,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 1.571
+    },
+    {
+      "kit": "retro",
+      "file": "detail-bench.glb",
+      "x": 86,
+      "z": 240,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 71,
+      "z": 240,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 71,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 70,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 69,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 70,
+      "z": 236,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 72,
+      "z": 238,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 72,
+      "z": 237,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 71,
+      "z": 236,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 70,
+      "z": 237,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 72,
+      "z": 235,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 69,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 72,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 71,
+      "z": 237,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 71,
+      "z": 235,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.832,
+      "z": 234.519,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 69.511,
+      "z": 234.52,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 71.164,
+      "z": 234.502,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.509,
+      "z": 236.855,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.509,
+      "z": 238.207,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.509,
+      "z": 237.535,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 71,
+      "z": 240,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 71,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.501,
+      "z": 239.816,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.848,
+      "z": 237.861,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 69.521,
+      "z": 237.865,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 70.195,
+      "z": 237.874,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 70.869,
+      "z": 237.88,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 71.543,
+      "z": 237.882,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.222,
+      "z": 237.881,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.493,
+      "z": 240.233,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.47,
+      "z": 241.136,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.125,
+      "z": 241.482,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 71.442,
+      "z": 241.486,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 69,
+      "z": 240,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 69,
+      "z": 241,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_hatchback.glb",
+      "x": 69.053,
+      "z": 240.885,
+      "turn": 2,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 3.409
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 69,
+      "z": 235,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 70,
+      "z": 235,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 69,
+      "z": 239,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 69,
+      "z": 237,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_stationwagon.glb",
+      "x": 69.264,
+      "z": 235.083,
+      "turn": 3,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 4.713
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 71,
+      "z": 223,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 71,
+      "z": 221,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 70,
+      "z": 221,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 69,
+      "z": 219,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 70,
+      "z": 219,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 72,
+      "z": 221,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 72,
+      "z": 220,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 71,
+      "z": 219,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 70,
+      "z": 220,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 72,
+      "z": 218,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 69,
+      "z": 221,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 72,
+      "z": 219,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 71,
+      "z": 220,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 71,
+      "z": 218,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.832,
+      "z": 217.519,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 69.511,
+      "z": 217.52,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 71.164,
+      "z": 217.502,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.509,
+      "z": 219.855,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.509,
+      "z": 221.207,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.509,
+      "z": 220.535,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 71,
+      "z": 223,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 71,
+      "z": 219,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.501,
+      "z": 222.816,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.848,
+      "z": 220.861,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 69.521,
+      "z": 220.865,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 70.195,
+      "z": 220.874,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 70.869,
+      "z": 220.88,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 71.543,
+      "z": 220.882,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.222,
+      "z": 220.881,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.493,
+      "z": 223.233,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.47,
+      "z": 224.136,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.125,
+      "z": 224.482,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 71.442,
+      "z": 224.486,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 69,
+      "z": 223,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 69,
+      "z": 224,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 69,
+      "z": 218,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 70,
+      "z": 218,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 69,
+      "z": 222,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 69,
+      "z": 220,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 71,
+      "z": 216,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 71,
+      "z": 214,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 70,
+      "z": 214,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 69,
+      "z": 212,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 70,
+      "z": 212,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 72,
+      "z": 214,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 72,
+      "z": 213,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 71,
+      "z": 212,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 70,
+      "z": 213,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 72,
+      "z": 211,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 69,
+      "z": 214,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 72,
+      "z": 212,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 71,
+      "z": 213,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 71,
+      "z": 211,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.832,
+      "z": 210.519,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 69.511,
+      "z": 210.52,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 71.164,
+      "z": 210.502,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.509,
+      "z": 212.855,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.509,
+      "z": 214.207,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.509,
+      "z": 213.535,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 71,
+      "z": 216,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 71,
+      "z": 212,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.501,
+      "z": 215.816,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.848,
+      "z": 213.861,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 69.521,
+      "z": 213.865,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 70.195,
+      "z": 213.874,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 70.869,
+      "z": 213.88,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 71.543,
+      "z": 213.882,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.222,
+      "z": 213.881,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.493,
+      "z": 216.233,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.47,
+      "z": 217.136,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.125,
+      "z": 217.482,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 71.442,
+      "z": 217.486,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 69,
+      "z": 216,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 69,
+      "z": 217,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_hatchback.glb",
+      "x": 69.053,
+      "z": 216.885,
+      "turn": 2,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 3.409
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 69,
+      "z": 211,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 70,
+      "z": 211,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 69,
+      "z": 215,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 69,
+      "z": 213,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_stationwagon.glb",
+      "x": 69.264,
+      "z": 212.774,
+      "turn": 3,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 6.848
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 72,
+      "z": 209,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 72,
+      "z": 207,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 71,
+      "z": 207,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 70,
+      "z": 206,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 71,
+      "z": 205,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 73,
+      "z": 207,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 73,
+      "z": 206,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 72,
+      "z": 205,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 71,
+      "z": 206,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 73,
+      "z": 204,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 69,
+      "z": 207,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 73,
+      "z": 205,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 72,
+      "z": 206,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 72,
+      "z": 204,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 69.832,
+      "z": 203.519,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 70.511,
+      "z": 203.52,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.164,
+      "z": 203.502,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.517,
+      "z": 205.783,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.516,
+      "z": 207.172,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.515,
+      "z": 206.476,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 72,
+      "z": 205,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.559,
+      "z": 208.953,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 69.848,
+      "z": 206.861,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 68.883,
+      "z": 206.828,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 71.195,
+      "z": 206.874,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 71.869,
+      "z": 206.88,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.543,
+      "z": 206.882,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 73.222,
+      "z": 206.881,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 73.493,
+      "z": 209.233,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 73.47,
+      "z": 210.136,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 73.125,
+      "z": 210.482,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 72.442,
+      "z": 210.486,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 70,
+      "z": 210,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 69,
+      "z": 206,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 71,
+      "z": 204,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 70,
+      "z": 208,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 70,
+      "z": 207,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 77,
+      "z": 206,
+      "turn": 0,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 77,
+      "z": 208,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 78,
+      "z": 208,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 79,
+      "z": 210,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 78,
+      "z": 210,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 76,
+      "z": 208,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 76,
+      "z": 209,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 77,
+      "z": 210,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 78,
+      "z": 209,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 76,
+      "z": 211,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 79,
+      "z": 208,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 76,
+      "z": 210,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 77,
+      "z": 209,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 77,
+      "z": 211,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.168,
+      "z": 211.481,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 78.489,
+      "z": 211.48,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 0
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 76.836,
+      "z": 211.498,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.491,
+      "z": 209.145,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.491,
+      "z": 207.793,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.491,
+      "z": 208.465,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 77,
+      "z": 206,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 76.949,
+      "z": 209.607,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.499,
+      "z": 206.184,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.152,
+      "z": 208.139,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 78.479,
+      "z": 208.135,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 77.805,
+      "z": 208.126,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 77.131,
+      "z": 208.12,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 76.457,
+      "z": 208.118,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.778,
+      "z": 208.119,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.507,
+      "z": 205.767,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.53,
+      "z": 204.864,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.875,
+      "z": 204.518,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 0
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 76.558,
+      "z": 204.514,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 79,
+      "z": 206,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 79,
+      "z": 205,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 79,
+      "z": 211,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 78,
+      "z": 211,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 79,
+      "z": 207,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 79,
+      "z": 209,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_stationwagon.glb",
+      "x": 78.736,
+      "z": 210.917,
+      "turn": 1,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 1.571
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 77,
+      "z": 213,
+      "turn": 0,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 77,
+      "z": 215,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 78,
+      "z": 215,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 79,
+      "z": 217,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 78,
+      "z": 217,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 76,
+      "z": 215,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 76,
+      "z": 216,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 77,
+      "z": 217,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 78,
+      "z": 216,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 76,
+      "z": 218,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 79,
+      "z": 215,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 76,
+      "z": 217,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 77,
+      "z": 216,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 77,
+      "z": 218,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.168,
+      "z": 218.481,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 78.489,
+      "z": 218.48,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 0
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 76.836,
+      "z": 218.498,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.491,
+      "z": 216.145,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.491,
+      "z": 214.793,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.491,
+      "z": 215.465,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 77,
+      "z": 213,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 77.021,
+      "z": 216.59,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.499,
+      "z": 213.184,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.152,
+      "z": 215.139,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 78.479,
+      "z": 215.135,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 77.805,
+      "z": 215.126,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 77.131,
+      "z": 215.12,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 76.457,
+      "z": 215.118,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.778,
+      "z": 215.119,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.507,
+      "z": 212.767,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.53,
+      "z": 211.864,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.875,
+      "z": 211.518,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 0
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 76.558,
+      "z": 211.514,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 79,
+      "z": 213,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 79,
+      "z": 212,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_hatchback.glb",
+      "x": 78.947,
+      "z": 212.115,
+      "turn": 0,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 0.267
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 79,
+      "z": 218,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 78,
+      "z": 218,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 79,
+      "z": 214,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 79,
+      "z": 216,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 77,
+      "z": 220,
+      "turn": 0,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 77,
+      "z": 222,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 78,
+      "z": 222,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 79,
+      "z": 224,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 78,
+      "z": 224,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 76,
+      "z": 222,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 76,
+      "z": 223,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 77,
+      "z": 224,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 78,
+      "z": 223,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 76,
+      "z": 225,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 79,
+      "z": 222,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 76,
+      "z": 224,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 77,
+      "z": 223,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 77,
+      "z": 225,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.168,
+      "z": 225.481,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 78.489,
+      "z": 225.48,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 0
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 76.836,
+      "z": 225.498,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.491,
+      "z": 223.145,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.491,
+      "z": 221.793,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.491,
+      "z": 222.465,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 77,
+      "z": 220,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 76.996,
+      "z": 223.614,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.499,
+      "z": 220.184,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 79.152,
+      "z": 222.139,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 78.479,
+      "z": 222.135,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 77.805,
+      "z": 222.126,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 77.131,
+      "z": 222.12,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 76.457,
+      "z": 222.118,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.778,
+      "z": 222.119,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.507,
+      "z": 219.767,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.53,
+      "z": 218.864,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 75.875,
+      "z": 218.518,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 0
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 76.558,
+      "z": 218.514,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 79,
+      "z": 220,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 79,
+      "z": 219,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 79,
+      "z": 225,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 78,
+      "z": 225,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 79,
+      "z": 221,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 79,
+      "z": 223,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_stationwagon.glb",
+      "x": 78.736,
+      "z": 224.917,
+      "turn": 1,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 1.571
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 87,
+      "z": 226,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 87,
+      "z": 224,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 86,
+      "z": 224,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 85,
+      "z": 222,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 86,
+      "z": 222,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 88,
+      "z": 224,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 88,
+      "z": 223,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 87,
+      "z": 222,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 86,
+      "z": 223,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 88,
+      "z": 221,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 85,
+      "z": 224,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 88,
+      "z": 222,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 87,
+      "z": 223,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 87,
+      "z": 221,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.832,
+      "z": 220.519,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 85.511,
+      "z": 220.52,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 87.164,
+      "z": 220.502,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.509,
+      "z": 222.855,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.509,
+      "z": 224.207,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.509,
+      "z": 223.535,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 87,
+      "z": 226,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 87,
+      "z": 222,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.501,
+      "z": 225.816,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.848,
+      "z": 223.861,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 85.521,
+      "z": 223.865,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 86.195,
+      "z": 223.874,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 86.869,
+      "z": 223.88,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 87.543,
+      "z": 223.882,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.222,
+      "z": 223.881,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.493,
+      "z": 226.233,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.47,
+      "z": 227.136,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.125,
+      "z": 227.482,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 87.442,
+      "z": 227.486,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 85,
+      "z": 221,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 86,
+      "z": 221,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 85,
+      "z": 225,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 85,
+      "z": 223,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_stationwagon.glb",
+      "x": 85.264,
+      "z": 221.083,
+      "turn": 3,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 4.713
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 87,
+      "z": 233,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 87,
+      "z": 231,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 86,
+      "z": 231,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 85,
+      "z": 229,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 86,
+      "z": 229,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 88,
+      "z": 231,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 88,
+      "z": 230,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 87,
+      "z": 229,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 86,
+      "z": 230,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 88,
+      "z": 228,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 85,
+      "z": 231,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 88,
+      "z": 229,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 87,
+      "z": 230,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 87,
+      "z": 228,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.832,
+      "z": 227.519,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 85.511,
+      "z": 227.52,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 87.164,
+      "z": 227.502,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.509,
+      "z": 229.855,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.509,
+      "z": 231.207,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.509,
+      "z": 230.535,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 87,
+      "z": 233,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 87,
+      "z": 229,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.501,
+      "z": 232.816,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.848,
+      "z": 230.861,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 85.521,
+      "z": 230.865,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 86.195,
+      "z": 230.874,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 86.869,
+      "z": 230.88,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 87.543,
+      "z": 230.882,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.222,
+      "z": 230.881,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.493,
+      "z": 233.233,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.47,
+      "z": 234.136,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.125,
+      "z": 234.482,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 87.442,
+      "z": 234.486,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 85,
+      "z": 228,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 86,
+      "z": 228,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 85,
+      "z": 232,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 85,
+      "z": 230,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_stationwagon.glb",
+      "x": 85.264,
+      "z": 228.083,
+      "turn": 3,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 4.713
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 87,
+      "z": 240,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 87,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 86,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 85,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 86,
+      "z": 236,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 88,
+      "z": 238,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 88,
+      "z": 237,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 87,
+      "z": 236,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 86,
+      "z": 237,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 88,
+      "z": 235,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 85,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 88,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 87,
+      "z": 237,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 87,
+      "z": 235,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.832,
+      "z": 234.519,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 85.511,
+      "z": 234.52,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 87.164,
+      "z": 234.502,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.509,
+      "z": 236.855,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.509,
+      "z": 238.207,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.509,
+      "z": 237.535,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 87,
+      "z": 240,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 87,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.501,
+      "z": 239.816,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 84.848,
+      "z": 237.861,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 85.521,
+      "z": 237.865,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 86.195,
+      "z": 237.874,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 86.869,
+      "z": 237.88,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 87.543,
+      "z": 237.882,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.222,
+      "z": 237.881,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.493,
+      "z": 240.233,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.47,
+      "z": 241.136,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.125,
+      "z": 241.482,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 87.442,
+      "z": 241.486,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 85,
+      "z": 235,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 86,
+      "z": 235,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 85,
+      "z": 239,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 85,
+      "z": 237,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_stationwagon.glb",
+      "x": 85.264,
+      "z": 235.083,
+      "turn": 3,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 4.713
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 88,
+      "z": 247,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 88,
+      "z": 245,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 87,
+      "z": 245,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 86,
+      "z": 243,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 87,
+      "z": 243,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 89,
+      "z": 245,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 89,
+      "z": 244,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 88,
+      "z": 243,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 87,
+      "z": 244,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 86,
+      "z": 242,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 86,
+      "z": 245,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 87,
+      "z": 242,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 88,
+      "z": 244,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 88,
+      "z": 242,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 85.832,
+      "z": 241.519,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 86.511,
+      "z": 241.52,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.164,
+      "z": 241.502,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 85.509,
+      "z": 245.207,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 85.509,
+      "z": 244.535,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 85.848,
+      "z": 244.861,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 86.521,
+      "z": 244.865,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 87.195,
+      "z": 244.874,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 87.869,
+      "z": 244.88,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.543,
+      "z": 244.882,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 89.222,
+      "z": 244.881,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 89.557,
+      "z": 244.542,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 89.562,
+      "z": 245.213,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 89.125,
+      "z": 248.482,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 88.442,
+      "z": 248.486,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 86,
+      "z": 246,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 86,
+      "z": 244,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 94,
+      "z": 249,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 94,
+      "z": 247,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 93,
+      "z": 247,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 92,
+      "z": 245,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 93,
+      "z": 245,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 95,
+      "z": 247,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 95,
+      "z": 246,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 94,
+      "z": 245,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 93,
+      "z": 246,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 95,
+      "z": 244,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 92,
+      "z": 247,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 95,
+      "z": 245,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 94,
+      "z": 246,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 94,
+      "z": 244,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.832,
+      "z": 243.519,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 92.511,
+      "z": 243.52,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 94.164,
+      "z": 243.502,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.509,
+      "z": 245.855,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.509,
+      "z": 247.207,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.509,
+      "z": 246.535,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 94,
+      "z": 249,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 94,
+      "z": 245,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.501,
+      "z": 248.816,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.848,
+      "z": 246.861,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 92.521,
+      "z": 246.865,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 93.195,
+      "z": 246.874,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 93.869,
+      "z": 246.88,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 94.543,
+      "z": 246.882,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.222,
+      "z": 246.881,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.493,
+      "z": 249.233,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.47,
+      "z": 250.136,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.125,
+      "z": 250.482,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 94.442,
+      "z": 250.486,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 92,
+      "z": 249,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 92,
+      "z": 250,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_hatchback.glb",
+      "x": 91.949,
+      "z": 249.884,
+      "turn": 3,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 2.844
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 92,
+      "z": 248,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 92,
+      "z": 246,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 93,
+      "z": 238,
+      "turn": 0,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 93,
+      "z": 240,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 94,
+      "z": 240,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 95,
+      "z": 242,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 94,
+      "z": 242,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 92,
+      "z": 240,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 92,
+      "z": 241,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 93,
+      "z": 242,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 94,
+      "z": 241,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 92,
+      "z": 243,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 95,
+      "z": 240,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 92,
+      "z": 242,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 93,
+      "z": 241,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 93,
+      "z": 243,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.168,
+      "z": 243.481,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 94.489,
+      "z": 243.48,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 0
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 92.836,
+      "z": 243.498,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.491,
+      "z": 241.145,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.491,
+      "z": 239.793,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.491,
+      "z": 240.465,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 93,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 93.293,
+      "z": 241.619,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.499,
+      "z": 238.184,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.152,
+      "z": 240.139,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 94.479,
+      "z": 240.135,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 93.805,
+      "z": 240.126,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 93.131,
+      "z": 240.12,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 92.457,
+      "z": 240.118,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.778,
+      "z": 240.119,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.507,
+      "z": 237.767,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.53,
+      "z": 236.864,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.875,
+      "z": 236.518,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 0
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 92.558,
+      "z": 236.514,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 95,
+      "z": 238,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 95,
+      "z": 237,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_hatchback.glb",
+      "x": 95.184,
+      "z": 237.25,
+      "turn": 0,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": -0.801
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 95,
+      "z": 239,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 95,
+      "z": 241,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 93,
+      "z": 222,
+      "turn": 0,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 93,
+      "z": 224,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 94,
+      "z": 224,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 95,
+      "z": 226,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 94,
+      "z": 226,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 92,
+      "z": 224,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 92,
+      "z": 225,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 93,
+      "z": 226,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 94,
+      "z": 225,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 92,
+      "z": 227,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 95,
+      "z": 224,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 92,
+      "z": 226,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 93,
+      "z": 225,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 93,
+      "z": 227,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.168,
+      "z": 227.481,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 94.489,
+      "z": 227.48,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 0
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 92.836,
+      "z": 227.498,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.491,
+      "z": 225.145,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.491,
+      "z": 223.793,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.491,
+      "z": 224.465,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 93,
+      "z": 222,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 93.178,
+      "z": 225.608,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.499,
+      "z": 222.184,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.152,
+      "z": 224.139,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 94.479,
+      "z": 224.135,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 93.805,
+      "z": 224.126,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 93.131,
+      "z": 224.12,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 92.457,
+      "z": 224.118,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.778,
+      "z": 224.119,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.507,
+      "z": 221.767,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.53,
+      "z": 220.864,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.875,
+      "z": 220.518,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 0
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 92.558,
+      "z": 220.514,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 95,
+      "z": 223,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 95,
+      "z": 225,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 93,
+      "z": 229,
+      "turn": 0,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 93,
+      "z": 231,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 94,
+      "z": 231,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 95,
+      "z": 233,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 94,
+      "z": 233,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 92,
+      "z": 231,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 92,
+      "z": 232,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 93,
+      "z": 233,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 94,
+      "z": 232,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 92,
+      "z": 234,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 95,
+      "z": 231,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 92,
+      "z": 233,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 93,
+      "z": 232,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 93,
+      "z": 234,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.168,
+      "z": 234.481,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 94.489,
+      "z": 234.48,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 0
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 92.836,
+      "z": 234.498,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.491,
+      "z": 232.145,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.491,
+      "z": 230.793,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.491,
+      "z": 231.465,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 93,
+      "z": 229,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 93.137,
+      "z": 232.589,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.499,
+      "z": 229.184,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 95.152,
+      "z": 231.139,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 94.479,
+      "z": 231.135,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 93.805,
+      "z": 231.126,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 93.131,
+      "z": 231.12,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 92.457,
+      "z": 231.118,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.778,
+      "z": 231.119,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.507,
+      "z": 228.767,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.53,
+      "z": 227.864,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.602
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 91.875,
+      "z": 227.518,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 0
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 92.558,
+      "z": 227.514,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 95,
+      "z": 234,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 94,
+      "z": 234,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 95,
+      "z": 230,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 95,
+      "z": 232,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_stationwagon.glb",
+      "x": 94.736,
+      "z": 233.917,
+      "turn": 1,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 1.571
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 103,
+      "z": 250,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 103,
+      "z": 248,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 102,
+      "z": 248,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 101,
+      "z": 246,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 102,
+      "z": 246,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 104,
+      "z": 248,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 104,
+      "z": 247,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 103,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 102,
+      "z": 247,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 104,
+      "z": 245,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 101,
+      "z": 248,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 104,
+      "z": 246,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 103,
+      "z": 247,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 103,
+      "z": 245,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 100.832,
+      "z": 244.519,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 101.511,
+      "z": 244.52,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 103.164,
+      "z": 244.502,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 100.509,
+      "z": 246.855,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 100.509,
+      "z": 248.207,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 100.509,
+      "z": 247.535,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 103,
+      "z": 250,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 103,
+      "z": 246,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 100.501,
+      "z": 249.816,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 100.848,
+      "z": 247.861,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 101.521,
+      "z": 247.865,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 102.195,
+      "z": 247.874,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 102.869,
+      "z": 247.88,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 103.543,
+      "z": 247.882,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 104.222,
+      "z": 247.881,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 104.493,
+      "z": 250.233,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 104.47,
+      "z": 251.136,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 104.125,
+      "z": 251.482,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 103.442,
+      "z": 251.486,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 101,
+      "z": 250,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 101,
+      "z": 251,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_hatchback.glb",
+      "x": 101.053,
+      "z": 250.885,
+      "turn": 2,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 3.409
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 101,
+      "z": 245,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 102,
+      "z": 245,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 101,
+      "z": 249,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 101,
+      "z": 247,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 103,
+      "z": 242,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 103,
+      "z": 240,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 102,
+      "z": 240,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 101,
+      "z": 238,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 102,
+      "z": 238,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 104,
+      "z": 240,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 104,
+      "z": 239,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 103,
+      "z": 238,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 102,
+      "z": 239,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 104,
+      "z": 237,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 101,
+      "z": 240,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 104,
+      "z": 238,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 103,
+      "z": 239,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 103,
+      "z": 237,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 100.832,
+      "z": 236.519,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 101.511,
+      "z": 236.52,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 103.164,
+      "z": 236.502,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 100.509,
+      "z": 238.855,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 100.509,
+      "z": 240.207,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 100.509,
+      "z": 239.535,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__busted-beige.glb",
+      "x": 103,
+      "z": 242,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 103,
+      "z": 238,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 100.501,
+      "z": 241.816,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 100.848,
+      "z": 239.861,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 101.521,
+      "z": 239.865,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 102.195,
+      "z": 239.874,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 102.869,
+      "z": 239.88,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 103.543,
+      "z": 239.882,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 104.222,
+      "z": 239.881,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 104.493,
+      "z": 242.233,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 104.47,
+      "z": 243.136,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 104.125,
+      "z": 243.482,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 103.442,
+      "z": 243.486,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 101,
+      "z": 242,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 101,
+      "z": 243,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 101,
+      "z": 237,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 102,
+      "z": 237,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 101,
+      "z": 241,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 101,
+      "z": 239,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_stationwagon.glb",
+      "x": 101.264,
+      "z": 237.083,
+      "turn": 3,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 4.713
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 107,
+      "z": 241,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 106,
+      "z": 243,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 105.493,
+      "z": 239.167,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 106.511,
+      "z": 239.52,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 108.164,
+      "z": 239.502,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 105.509,
+      "z": 241.855,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 105.509,
+      "z": 243.207,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 105.509,
+      "z": 242.535,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 105.501,
+      "z": 244.816,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 106.521,
+      "z": 242.865,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 105.498,
+      "z": 238.485,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 105.526,
+      "z": 237.138,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 108.543,
+      "z": 242.882,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 109.222,
+      "z": 242.881,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 109.493,
+      "z": 245.233,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 109.47,
+      "z": 246.136,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 109.125,
+      "z": 246.482,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 110,
+      "z": 242,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 107,
+      "z": 240,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 106,
+      "z": 242,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 106,
+      "z": 241,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 107,
+      "z": 241,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 108,
+      "z": 241,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-03.glb",
+      "x": 106,
+      "z": 243,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 105.832,
+      "z": 239.519,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 106.511,
+      "z": 239.52,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 108.164,
+      "z": 239.502,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 105.509,
+      "z": 241.855,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 105.509,
+      "z": 243.207,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 105.509,
+      "z": 242.535,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_1Story_GableRoof__pale-green-gray.glb",
+      "x": 107,
+      "z": 247,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 105.501,
+      "z": 244.816,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 105.848,
+      "z": 242.861,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 106.521,
+      "z": 242.865,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 105.513,
+      "z": 237.809,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 107.869,
+      "z": 242.88,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 108.543,
+      "z": 242.882,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 109.222,
+      "z": 242.881,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 109.493,
+      "z": 245.233,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 109.47,
+      "z": 246.136,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.54
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 109.125,
+      "z": 246.482,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 3.142
+    },
+    {
+      "kit": "citypack",
+      "file": "fence.glb",
+      "x": 108.442,
+      "z": 246.486,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 106,
+      "z": 240,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 107,
+      "z": 240,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 106,
+      "z": 242,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-low",
+      "file": "building_G_6f.glb",
+      "x": 111,
+      "z": 238,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-low",
+      "file": "building_E_8f.glb",
+      "x": 116,
+      "z": 238,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-low",
+      "file": "building_A.glb",
+      "x": 137,
+      "z": 241,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-low",
+      "file": "building_A.glb",
+      "x": 107,
+      "z": 238,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-low",
+      "file": "building_E.glb",
+      "x": 119,
+      "z": 238,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_2Story_GableRoof__stained-cream.glb",
+      "x": 87,
+      "z": 247,
+      "turn": 1,
+      "scale": 1.5,
+      "mirror": false
+    },
+    {
+      "kit": "textured-low",
+      "file": "building_2Story_GableRoof__tagged-pink.glb",
+      "x": 87,
+      "z": 243,
+      "turn": 3,
+      "scale": 1.5,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-patched.glb",
+      "x": 70,
+      "z": 242,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 71,
+      "z": 242,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 70,
+      "z": 243,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "detail-dumpster-open.glb",
+      "x": 70.645,
+      "z": 242.395,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "detail-bricks-type-b.glb",
+      "x": 69,
+      "z": 242,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "planks.glb",
+      "x": 71.228,
+      "z": 242.052,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": -1.068
+    },
+    {
+      "kit": "retro",
+      "file": "pallet-small.glb",
+      "x": 72,
+      "z": 242,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "dumpster.glb",
+      "x": 69.738,
+      "z": 242.368,
+      "turn": 1,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 3.172
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_sedan.glb",
+      "x": 79.018,
+      "z": 205.421,
+      "turn": 1,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": -0.031
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_sedan.glb",
+      "x": 79.244,
+      "z": 219.319,
+      "turn": 3,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 5.513
+    },
+    {
+      "kit": "kaykit-props",
+      "file": "car_sedan.glb",
+      "x": 69.007,
+      "z": 223.597,
+      "turn": 1,
+      "scale": 0.75,
+      "mirror": false,
+      "yaw": 2.905
+    },
+    {
+      "kit": "retro",
+      "file": "pallet-small.glb",
+      "x": 70,
+      "z": 209,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "pallet.glb",
+      "x": 70.206,
+      "z": 208.015,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 1.037
+    },
+    {
+      "kit": "retro",
+      "file": "detail-bricks-type-a.glb",
+      "x": 69.803,
+      "z": 208.539,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "detail-bricks-type-b.glb",
+      "x": 70.095,
+      "z": 207.481,
+      "turn": 2,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "construction-cone.glb",
+      "x": 68.7,
+      "z": 205.765,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "roads",
+      "file": "construction-cone.glb",
+      "x": 68.676,
+      "z": 206.473,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "truck-grey.glb",
+      "x": 69,
+      "z": 210,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "parts",
+      "file": "AC_Unit.glb",
+      "x": 71.136,
+      "z": 210.048,
+      "turn": 1,
+      "scale": 1.25,
+      "mirror": false,
+      "yaw": -0.267
+    },
+    {
+      "kit": "parts",
+      "file": "Bricks_Half.glb",
+      "x": 71.579,
+      "z": 210.018,
+      "turn": 0,
+      "scale": 1.75,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "planks.glb",
+      "x": 72.252,
+      "z": 210.167,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 69,
+      "z": 210,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 69,
+      "z": 205,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 70,
+      "z": 205,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 70,
+      "z": 209,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 69,
+      "z": 209,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 69,
+      "z": 208,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 74,
+      "z": 224,
+      "turn": 3,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-patched.glb",
+      "x": 90,
+      "z": 230,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 90,
+      "z": 227,
+      "turn": 1,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 212,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 90,
+      "z": 221,
+      "turn": 0,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 90,
+      "z": 233,
+      "turn": 2,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 90,
+      "z": 236,
+      "turn": 3,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 90,
+      "z": 239,
+      "turn": 3,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 90,
+      "z": 242,
+      "turn": 3,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 74,
+      "z": 221,
+      "turn": 1,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 74,
+      "z": 218,
+      "turn": 3,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 74,
+      "z": 215,
+      "turn": 3,
+      "scale": 3,
+      "mirror": true
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 74,
+      "z": 212,
+      "turn": 1,
+      "scale": 3,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 74,
+      "z": 210,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-patched.glb",
+      "x": 75,
+      "z": 210,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 75,
+      "z": 209,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 75,
+      "z": 208,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 75,
+      "z": 206,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 75,
+      "z": 205,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 75,
+      "z": 204,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 74,
+      "z": 204,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 74,
+      "z": 205,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 74,
+      "z": 207,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 74,
+      "z": 209,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 74,
+      "z": 208,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 76,
+      "z": 204,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 78,
+      "z": 204,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 204,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 206,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 205,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 208,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 212,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 213,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 217,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 219,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 220,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 224,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 225,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 221,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 222,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 220,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 225,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 227,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 228,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 229,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 232,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 234,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 235,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 236,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 239,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 241,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 85,
+      "z": 242,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 85,
+      "z": 246,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 85,
+      "z": 247,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 246,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 247,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 224,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 223,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 219,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 218,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 217,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 211,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 210,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 208,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 205,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 204,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 69,
+      "z": 204,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 68,
+      "z": 220,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 68,
+      "z": 209,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 79,
+      "z": 204,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 80,
+      "z": 216,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 80,
+      "z": 223,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 80,
+      "z": 209,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 84,
+      "z": 223,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 88,
+      "z": 220,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 84,
+      "z": 231,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 84,
+      "z": 242,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 96,
+      "z": 230,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 96,
+      "z": 236,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 92,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 96,
+      "z": 249,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 96,
+      "z": 252,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 96,
+      "z": 239,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 96,
+      "z": 242,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 96,
+      "z": 243,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 96,
+      "z": 245,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 96,
+      "z": 246,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 96,
+      "z": 247,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 96,
+      "z": 248,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 96,
+      "z": 234,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 96,
+      "z": 233,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 96,
+      "z": 228,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 96,
+      "z": 226,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 96,
+      "z": 227,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 95,
+      "z": 220,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 96,
+      "z": 220,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 96,
+      "z": 221,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 92,
+      "z": 220,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 93,
+      "z": 220,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 94,
+      "z": 220,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 222,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 223,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 224,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 225,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 229,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 231,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 232,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 235,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 95,
+      "z": 236,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 94,
+      "z": 236,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 93,
+      "z": 236,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 93,
+      "z": 235,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 244,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 241,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 240,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 238,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 237,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 250,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 96,
+      "z": 251,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 95,
+      "z": 252,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 95,
+      "z": 251,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 94,
+      "z": 251,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 94,
+      "z": 252,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 93,
+      "z": 252,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 93,
+      "z": 251,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 92,
+      "z": 251,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 92,
+      "z": 251,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 92,
+      "z": 252,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 91,
+      "z": 252,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 90,
+      "z": 251,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 91,
+      "z": 250,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 91,
+      "z": 250,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 91,
+      "z": 251,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 91,
+      "z": 251,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 90,
+      "z": 251,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 90,
+      "z": 250,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 90,
+      "z": 249,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 90,
+      "z": 248,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 90,
+      "z": 248,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 90,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 90,
+      "z": 245,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 91,
+      "z": 245,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 91,
+      "z": 246,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 91,
+      "z": 247,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 91,
+      "z": 244,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 84,
+      "z": 238,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 84,
+      "z": 237,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 84,
+      "z": 240,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 84,
+      "z": 233,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 84,
+      "z": 230,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 84,
+      "z": 226,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 84,
+      "z": 224,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 85,
+      "z": 220,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 86,
+      "z": 220,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 87,
+      "z": 220,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 100,
+      "z": 239,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 100,
+      "z": 240,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 100,
+      "z": 242,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 100,
+      "z": 247,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 100,
+      "z": 245,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 100,
+      "z": 246,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 100,
+      "z": 249,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 100,
+      "z": 251,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 100,
+      "z": 252,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 101,
+      "z": 252,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 100,
+      "z": 238,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 100,
+      "z": 237,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 100,
+      "z": 236,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 105,
+      "z": 237,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 105,
+      "z": 236,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 106,
+      "z": 236,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 107,
+      "z": 236,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 108,
+      "z": 236,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 111,
+      "z": 236,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 112,
+      "z": 236,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 113,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 116,
+      "z": 236,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 117,
+      "z": 236,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 118,
+      "z": 236,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 119,
+      "z": 236,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 119,
+      "z": 236,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 120,
+      "z": 236,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 115,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 114,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 110,
+      "z": 236,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 109,
+      "z": 236,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 109,
+      "z": 237,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 108,
+      "z": 237,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 110,
+      "z": 237,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 104,
+      "z": 236,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 103,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 102,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 101,
+      "z": 236,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 100,
+      "z": 241,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 100,
+      "z": 244,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 100,
+      "z": 243,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 101,
+      "z": 244,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 102,
+      "z": 244,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 103,
+      "z": 244,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 105,
+      "z": 244,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 104,
+      "z": 244,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 105,
+      "z": 242,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 105,
+      "z": 240,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 105,
+      "z": 247,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 105,
+      "z": 248,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 105,
+      "z": 251,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 100,
+      "z": 248,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 100,
+      "z": 250,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 105,
+      "z": 250,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 105,
+      "z": 249,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 105,
+      "z": 246,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 105,
+      "z": 245,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 105,
+      "z": 243,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 105,
+      "z": 241,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 95,
+      "z": 235,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 92,
+      "z": 235,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 94,
+      "z": 235,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 90,
+      "z": 244,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 90,
+      "z": 247,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 91,
+      "z": 248,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 91,
+      "z": 249,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 89,
+      "z": 249,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 88,
+      "z": 251,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 86,
+      "z": 251,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 86,
+      "z": 250,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 86,
+      "z": 250,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 85,
+      "z": 250,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 84,
+      "z": 251,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 85,
+      "z": 251,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 85,
+      "z": 251,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "concrete-dirty.glb",
+      "x": 87,
+      "z": 250,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 89,
+      "z": 250,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-oil.glb",
+      "x": 82,
+      "z": 252,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 88,
+      "z": 249,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 88,
+      "z": 250,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 87,
+      "z": 250,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 87,
+      "z": 251,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 87,
+      "z": 252,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 88,
+      "z": 252,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 89,
+      "z": 251,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 90,
+      "z": 251,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 90,
+      "z": 252,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 89,
+      "z": 252,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 89,
+      "z": 251,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 88,
+      "z": 250,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 87,
+      "z": 249,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 86,
+      "z": 249,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 85,
+      "z": 249,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 84,
+      "z": 249,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 84,
+      "z": 250,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 84,
+      "z": 250,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 83,
+      "z": 250,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 83,
+      "z": 251,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 83,
+      "z": 251,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 83,
+      "z": 251,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 82,
+      "z": 251,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 83,
+      "z": 252,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 84,
+      "z": 252,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 85,
+      "z": 252,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 86,
+      "z": 251,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 86,
+      "z": 252,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 84,
+      "z": 245,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 82,
+      "z": 244,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 85,
+      "z": 240,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 85,
+      "z": 241,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 85,
+      "z": 234,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 85,
+      "z": 233,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 95,
+      "z": 229,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 95,
+      "z": 228,
+      "turn": 1,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 95,
+      "z": 227,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 94,
+      "z": 227,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 95,
+      "z": 222,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "road-asphalt-center.glb",
+      "x": 95,
+      "z": 221,
+      "turn": 0,
+      "scale": 0.25,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-12.glb",
+      "x": 92,
+      "z": 244,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "tiny-grass-04.glb",
+      "x": 93,
+      "z": 244,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 222,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 80,
+      "z": 221,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 214,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 215,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 211,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 210,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 80,
+      "z": 207,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 72,
+      "z": 225,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 71,
+      "z": 225,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 70,
+      "z": 225,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 69,
+      "z": 225,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 225,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 222,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 221,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 75,
+      "z": 207,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 74,
+      "z": 206,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 77,
+      "z": 204,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 215,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-worn.glb",
+      "x": 68,
+      "z": 216,
+      "turn": 1,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 68,
+      "z": 214,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 68,
+      "z": 213,
+      "turn": 0,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 68,
+      "z": 207,
+      "turn": 3,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "ground",
+      "file": "asphalt-plain.glb",
+      "x": 68,
+      "z": 206,
+      "turn": 2,
+      "scale": 1,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "roof-metal-poles.glb",
+      "x": 72,
+      "z": 209,
+      "turn": 0,
+      "scale": 0.5,
+      "mirror": false
+    },
+    {
+      "kit": "retro",
+      "file": "truck-flat.glb",
+      "x": 69.295,
+      "z": 204.786,
+      "turn": 3,
+      "scale": 0.25,
+      "mirror": false,
+      "yaw": 5.513
+    },
+    {
+      "kit": "retro",
+      "file": "truck-grey-cargo.glb",
+      "x": 70,
+      "z": 206,
+      "turn": 3,
+      "scale": 0.25,
       "mirror": false
     }
   ],

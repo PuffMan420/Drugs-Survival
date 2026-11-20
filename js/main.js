@@ -33,6 +33,12 @@ import {
   AO_SKIP_LAYER,
   CAMERA_ANGLE,
   CAMERA_RADIUS,
+  CAMERA_TURN_HOLD,
+  CAMERA_TURN_MAX,
+  CAMERA_TURN_MOVE,
+  CAMERA_TURN_SAME,
+  CAMERA_TURN_SOFT,
+  CAMERA_TURN_SPEED,
   CAR_VIEW,
   FOOT_VIEW,
   GROUND_H,
@@ -41,7 +47,7 @@ import {
   PLAYER_SIZE,
   TILE,
 } from "./constants.js";
-import { createCarCrashSounds } from "./car-damage.js";
+import { createCarCrashSounds, playCarEnterSound, playCarExitSound } from "./car-damage.js";
 import { createTraffic } from "./cars.js";
 import { createDrive } from "./drive.js";
 import { createDriveEffects } from "./drive-effects.js";
@@ -102,7 +108,7 @@ import { placeSampleBuildings } from "./sample-buildings.js";
 import { placeTexturedTest } from "./textured-test.js";
 import { parseLookPreview, previewRadius, sunDirection, LOOK_CORNER } from "./look-preview.js";
 import { markMenuFailed, markMenuReady, menuIsOpen } from "./start-menu.js";
-import { bindPistolTouch, displayFrame, isTouchScreen, mountTouchUi } from "./touch-ui.js";
+import { bindPistolTouch, cameraWish, displayFrame, isTouchScreen, mountTouchUi } from "./touch-ui.js";
 
 const NEAR = 10;
 // Wide enough to see the far shore from a camera sitting over the near one.
@@ -227,6 +233,46 @@ function stepView(dt, driving) {
 function playView(camera) {
   const user = camera.userData.viewScale > 0 ? camera.userData.viewScale : 1;
   return user * (FOOT_VIEW + (CAR_VIEW - FOOT_VIEW) * viewBlend);
+}
+
+// Spherical theta. 0 keeps the camera south of the player, looking north.
+let cameraYaw = 0;
+// Current turn speed in radians per second. It ramps up and down so turns start and stop softly.
+let cameraTurnRate = 0;
+let wayYaw = 0;
+let wayHeld = 0;
+let waySet = false;
+
+function wrapAngle(rad) {
+  return Math.atan2(Math.sin(rad), Math.cos(rad));
+}
+
+// target null means hold: the turn slows down softly instead of stopping dead.
+function easeCamera(dt, target) {
+  const step = Math.max(0, dt);
+  let wish = 0;
+  if (target !== null) {
+    wish = wrapAngle(target - cameraYaw) * CAMERA_TURN_SPEED;
+    wish = Math.max(-CAMERA_TURN_MAX, Math.min(CAMERA_TURN_MAX, wish));
+  }
+  cameraTurnRate += (wish - cameraTurnRate) * (1 - Math.exp(-CAMERA_TURN_SOFT * step));
+  cameraYaw = wrapAngle(cameraYaw + cameraTurnRate * step);
+}
+
+// World half-extents of the view rectangle after it turns with the camera.
+// At yaw 0 this is the old axis-aligned frame, so nothing else gets wider.
+function frameCover(halfWide, halfTall, yaw) {
+  const c = Math.abs(Math.cos(yaw));
+  const s = Math.abs(Math.sin(yaw));
+  return {
+    x: halfWide * c + halfTall * s,
+    z: halfWide * s + halfTall * c,
+  };
+}
+
+// ix, iz are screen axes: +ix is right, +iz is down. W is (0, -1).
+function screenMove(ix, iz) {
+  return cameraWish(ix, iz, cameraYaw);
 }
 
 function lockPixelProjection(camera, viewFor) {
@@ -755,8 +801,9 @@ async function start() {
   const sun = createSun(scene, lookPreview?.afternoon === true);
   const minimap = createMinimap(map, ISLAND_JUMPS, savedLayout.pieces);
   const camera = new PerspectiveCamera(15, GROUND_W / GROUND_H, NEAR, FAR);
-  // Screen up stays north. Spherical phi is measured from +Y, so this up is
-  // perpendicular to a view aimed CAMERA_ANGLE off straight down.
+  // Screen up starts as north. Spherical phi is measured from +Y, so this up is
+  // perpendicular to a view aimed CAMERA_ANGLE off straight down. placeCamera
+  // turns that up with cameraYaw. Yaw 0 leaves it north.
   const lookPhi = lookPreview ? (lookPreview.degrees * Math.PI) / 180 : CAMERA_ANGLE;
   const lookRadius = lookPreview ? previewRadius(lookPhi, CAMERA_RADIUS, CAMERA_ANGLE) : CAMERA_RADIUS;
   const tiltUp = Math.sin(lookPhi);
@@ -764,9 +811,17 @@ async function start() {
   camera.up.set(0, tiltUp, -tiltNorth);
   lockPixelProjection(camera, () => playView(camera));
   shownCamera = camera;
-  // theta 0 is +Z, which is south. The camera does not orbit.
-  const cameraTheta = 0;
   const cameraTarget = new Vector3();
+  function placeCamera(x, z) {
+    const sin = Math.sin(cameraYaw);
+    const cos = Math.cos(cameraYaw);
+    camera.userData.yaw = cameraYaw;
+    camera.up.set(-Math.cos(lookPhi) * sin, Math.sin(lookPhi), -Math.cos(lookPhi) * cos);
+    camera.position.setFromSphericalCoords(lookRadius, lookPhi, cameraYaw);
+    cameraTarget.set(x, 0, z);
+    camera.position.add(cameraTarget);
+    camera.lookAt(cameraTarget);
+  }
   const driveFx = createDriveEffects(scene, camera);
   session.audio = driveFx.listener.context;
   playerSprite.useListener(driveFx.listener);
@@ -1023,6 +1078,7 @@ async function start() {
   session.use = () => {
     if (buildMode.isOpen()) return;
     if (drive.driving) {
+      const forced = drive.mustExit || vitals.dead;
       const spot = drive.exit((x, z) => footBlocked(map, x, z, half));
       if (!spot) return;
       player.x = clamp(spot.x, half, city.mapW - half);
@@ -1031,6 +1087,7 @@ async function start() {
       playerSprite.mesh.visible = true;
       session.driving = false;
       hintEl.textContent = hintWalk;
+      if (!forced) playCarExitSound(crashSounds);
       return;
     }
     if (vitals.dead) return;
@@ -1039,7 +1096,59 @@ async function start() {
     playerSprite.mesh.visible = false;
     session.driving = true;
     hintEl.textContent = "W drive · S brake, then reverse · A D steer · E exit";
+    playCarEnterSound(crashSounds);
   };
+
+  function holdCamera() {
+    waySet = false;
+    wayHeld = 0;
+  }
+
+  // On foot, follow the way he has been walking after a short steady moment.
+  // Aiming and standing still hold the view. In a car, follow the nose while
+  // it drives forward. Reverse holds the view.
+  function cameraTurnTarget(dt, movedX, movedZ) {
+    if (vitals.dead) {
+      holdCamera();
+      return null;
+    }
+    if (drive.driving) {
+      holdCamera();
+      const ride = drive.sample();
+      if (!ride) return null;
+      const noseX = -Math.sin(ride.yaw);
+      const noseZ = -Math.cos(ride.yaw);
+      const forward = ride.vx * noseX + ride.vz * noseZ;
+      // Reverse, or barely rolling, holds the view. Steering stays on the car.
+      if (!(forward > CAMERA_TURN_MOVE)) return null;
+      return ride.yaw;
+    }
+    if (pistol.aiming) {
+      holdCamera();
+      return null;
+    }
+    const travel = dt > 0 ? Math.hypot(movedX, movedZ) / dt : 0;
+    const wish = footWish();
+    if (Math.hypot(wish.x, wish.z) < 0.001 || !(travel > CAMERA_TURN_MOVE)) {
+      holdCamera();
+      return null;
+    }
+    const heading = Math.atan2(-movedX, -movedZ);
+    if (!waySet || Math.abs(wrapAngle(heading - wayYaw)) > CAMERA_TURN_SAME) {
+      wayYaw = heading;
+      waySet = true;
+      wayHeld = 0;
+      return null;
+    }
+    wayYaw = heading;
+    wayHeld += dt;
+    if (wayHeld < CAMERA_TURN_HOLD) return null;
+    return heading;
+  }
+
+  function stepCameraYaw(dt, movedX, movedZ) {
+    easeCamera(dt, cameraTurnTarget(dt, movedX, movedZ));
+  }
 
   function frame(now) {
     // The intro and the menu share this pause. The city waits until Play.
@@ -1142,6 +1251,10 @@ async function start() {
     camera.updateProjectionMatrix();
     const halfW = (spanW * view) / 2;
     const halfH = (spanH * view) / 2;
+    let reachX = halfW;
+    let reachZ = halfH;
+    let coverW = spanW;
+    let coverH = spanH;
     let camX = frameCenter(snappedX, halfW, city.mapW);
     let camZ = frameCenter(snappedZ, halfH, city.mapH);
     traffic.update(step, camX, camZ, player.x, player.z);
@@ -1156,8 +1269,18 @@ async function start() {
     }
     snappedX = Math.round(player.x);
     snappedZ = Math.round(player.z);
+    camX = frameCenter(snappedX, halfW, city.mapW);
+    camZ = frameCenter(snappedZ, halfH, city.mapH);
+    stepCameraYaw(realDt, player.x - previousX, player.z - previousZ);
+    const cover = frameCover(halfW, halfH, cameraYaw);
+    reachX = cover.x;
+    reachZ = cover.z;
+    coverW = view > 0 ? (cover.x * 2) / view : spanW;
+    coverH = view > 0 ? (cover.z * 2) / view : spanH;
     playerSprite.mesh.visible = !drive.driving;
     playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ, player.y, step);
+    // Aim and shots read this pose, so the cursor stays exact while the view turns.
+    placeCamera(camX, camZ);
     pistol.update(step);
     pedestrians.runOver(traffic.cars(), drive.driving ? drive.sample() : null);
     hitPlayerWithCars(traffic.cars(), drive.driving ? drive.sample() : null, previousX, previousZ);
@@ -1166,18 +1289,16 @@ async function start() {
     if (vitalStep.readyToRespawn) respawnAtSpawn();
     stepWanted(wanted, realDt, police.inSight());
     police.update(step, halfW, halfH);
-    pedestrians.update(step, player.x, player.z, spanW, spanH);
+    pedestrians.update(step, player.x, player.z, coverW, coverH);
     stepEconomy(economy, realDt);
     supplier.update(realDt);
     hud.setPrompt(dealPrompt());
-    rats.update(step, player.x, player.z, camX, camZ, halfW, halfH);
+    rats.update(step, player.x, player.z, camX, camZ, reachX, reachZ);
     camX = frameCenter(snappedX, halfW, city.mapW);
     camZ = frameCenter(snappedZ, halfH, city.mapH);
     glow.update(camX, camZ, traffic.lights(camX, camZ));
     driveFx.update(step, drive.driving ? drive.sample() : null, traffic.cars(), camX, camZ);
-    camera.position.setFromSphericalCoords(lookRadius, lookPhi, cameraTheta);
-    cameraTarget.set(camX, 0, camZ);
-    camera.position.add(cameraTarget);
+    placeCamera(camX, camZ);
     const shake = sampleShake(realDt);
     shakeX = shake.x;
     shakeZ = shake.z;
@@ -1186,13 +1307,13 @@ async function start() {
     camera.position.x += shakeX;
     camera.position.z += shakeZ;
     camera.lookAt(cameraTarget);
-    updateChunks(city.chunks, camX, camZ, view, spanW, spanH);
-    buildMode.updateRoads(camX, camZ, view, spanW, spanH);
+    updateChunks(city.chunks, camX, camZ, view, coverW, coverH);
+    buildMode.updateRoads(camX, camZ, view, coverW, coverH);
     lightVisibleCity(city.chunks);
-    placeSun(sun, player.x, player.z, camX, camZ, halfW, halfH);
+    placeSun(sun, player.x, player.z, camX, camZ, reachX, reachZ);
     renderer.shadowMap.needsUpdate = true;
     ambient.render();
-    minimap.draw(camX, camZ, player.x, player.z, TILE, (spanW * view) / TILE, (spanH * view) / TILE);
+    minimap.draw(camX, camZ, player.x, player.z, TILE, (spanW * view) / TILE, (spanH * view) / TILE, cameraYaw);
 
     hud.sync(session);
     const instant = 1 / Math.max(realDt, 1 / 240);
@@ -1244,19 +1365,28 @@ function jumpTo(index) {
 }
 
 function footWish() {
-  if (stick.active) return { x: stick.x, z: stick.z, gait: stick.gait };
-  let x = 0;
-  let z = 0;
-  if (held.has("KeyW") || held.has("ArrowUp")) z -= 1;
-  if (held.has("KeyS") || held.has("ArrowDown")) z += 1;
-  if (held.has("KeyA") || held.has("ArrowLeft")) x -= 1;
-  if (held.has("KeyD") || held.has("ArrowRight")) x += 1;
-  const len = Math.hypot(x, z);
-  if (len < 0.001) return { x: 0, z: 0, gait: "idle" };
-  const shift = held.has("ShiftLeft") || held.has("ShiftRight");
-  const ctrl = held.has("ControlLeft") || held.has("ControlRight");
-  const gait = shift ? "sprint" : ctrl ? "walk" : "jog";
-  return { x: x / len, z: z / len, gait };
+  let ix = 0;
+  let iz = 0;
+  let gait = "idle";
+  if (stick.active) {
+    ix = stick.x;
+    iz = stick.z;
+    gait = stick.gait;
+  } else {
+    if (held.has("KeyW") || held.has("ArrowUp")) iz -= 1;
+    if (held.has("KeyS") || held.has("ArrowDown")) iz += 1;
+    if (held.has("KeyA") || held.has("ArrowLeft")) ix -= 1;
+    if (held.has("KeyD") || held.has("ArrowRight")) ix += 1;
+    const len = Math.hypot(ix, iz);
+    if (len < 0.001) return { x: 0, z: 0, gait: "idle" };
+    ix /= len;
+    iz /= len;
+    const shift = held.has("ShiftLeft") || held.has("ShiftRight");
+    const ctrl = held.has("ControlLeft") || held.has("ControlRight");
+    gait = shift ? "sprint" : ctrl ? "walk" : "jog";
+  }
+  const moved = screenMove(ix, iz);
+  return { x: moved.x, z: moved.z, gait };
 }
 
 function footBlocked(map, x, z, limit) {

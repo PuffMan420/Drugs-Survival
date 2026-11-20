@@ -195,7 +195,7 @@ export function createMinimap(map, jumps = [], pieces = null) {
     context.fillRect((playerX / tile) - 1.5, (playerZ / tile) - 1.5, 3, 3);
   }
 
-  function drawCorner(camX, camZ, playerX, playerZ, tile, viewW, viewH) {
+  function drawCorner(camX, camZ, playerX, playerZ, tile, viewW, viewH, yaw) {
     const originX = playerX / tile - SPAN / 2;
     const originZ = playerZ / tile - SPAN / 2;
     if (
@@ -204,7 +204,8 @@ export function createMinimap(map, jumps = [], pieces = null) {
       camX === drawnCamX &&
       camZ === drawnCamZ &&
       viewW === drawnViewW &&
-      viewH === drawnViewH
+      viewH === drawnViewH &&
+      yaw === drawnYaw
     ) return;
     drawnOriginX = originX;
     drawnOriginZ = originZ;
@@ -212,8 +213,14 @@ export function createMinimap(map, jumps = [], pieces = null) {
     drawnCamZ = camZ;
     drawnViewW = viewW;
     drawnViewH = viewH;
+    drawnYaw = yaw;
+    miniCtx.setTransform(1, 0, 0, 1, 0, 0);
     miniCtx.fillStyle = "#1b6d78";
     miniCtx.fillRect(0, 0, CORNER, CORNER);
+    miniCtx.save();
+    miniCtx.translate(CORNER / 2, CORNER / 2);
+    miniCtx.rotate(yaw);
+    miniCtx.translate(-CORNER / 2, -CORNER / 2);
     const x0 = Math.max(0, Math.floor(originX));
     const z0 = Math.max(0, Math.floor(originZ));
     const x1 = Math.min(map.cols, Math.ceil(originX + SPAN));
@@ -236,11 +243,18 @@ export function createMinimap(map, jumps = [], pieces = null) {
         x = end;
       }
     }
-    const boxLeft = (camX / tile - viewW / 2 - originX) * TILE_PX;
-    const boxTop = (camZ / tile - viewH / 2 - originZ) * TILE_PX;
+    miniCtx.restore();
+    const dx = camX / tile - playerX / tile;
+    const dz = camZ / tile - playerZ / tile;
+    const cos = Math.cos(yaw);
+    const sin = Math.sin(yaw);
+    const boxCx = CORNER / 2 + (dx * cos - dz * sin) * TILE_PX;
+    const boxCy = CORNER / 2 + (dx * sin + dz * cos) * TILE_PX;
+    const boxW = viewW * TILE_PX;
+    const boxH = viewH * TILE_PX;
     miniCtx.strokeStyle = "#ffffff";
     miniCtx.lineWidth = 2;
-    miniCtx.strokeRect(Math.round(boxLeft) + 0.5, Math.round(boxTop) + 0.5, Math.round(viewW * TILE_PX), Math.round(viewH * TILE_PX));
+    miniCtx.strokeRect(Math.round(boxCx - boxW / 2) + 0.5, Math.round(boxCy - boxH / 2) + 0.5, Math.round(boxW), Math.round(boxH));
     miniCtx.fillStyle = "#082028";
     miniCtx.fillRect(CORNER / 2 - 5, CORNER / 2 - 5, 10, 10);
     miniCtx.fillStyle = "#ffe14a";
@@ -260,6 +274,7 @@ export function createMinimap(map, jumps = [], pieces = null) {
   let drawnCamZ = Number.NaN;
   let drawnViewW = Number.NaN;
   let drawnViewH = Number.NaN;
+  let drawnYaw = Number.NaN;
 
   function refreshBuildings() {
     ctx.putImageData(baseImage, 0, 0);
@@ -274,8 +289,8 @@ export function createMinimap(map, jumps = [], pieces = null) {
 
   return {
     refreshBuildings,
-    draw(camX, camZ, playerX, playerZ, tile, viewW, viewH) {
-      if (corner) drawCorner(camX, camZ, playerX, playerZ, tile, viewW, viewH);
+    draw(camX, camZ, playerX, playerZ, tile, viewW, viewH, yaw = 0) {
+      if (corner) drawCorner(camX, camZ, playerX, playerZ, tile, viewW, viewH, yaw);
       else draw(miniCtx, camX, camZ, playerX, playerZ, tile, viewW, viewH);
       if (overlay.hidden) return;
       const key = `${Math.round(camX)}:${Math.round(camZ)}:${Math.round(playerX)}:${Math.round(playerZ)}`;

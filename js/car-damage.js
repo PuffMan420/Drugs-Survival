@@ -1,7 +1,7 @@
 // Car hit points, crash math, and a small shared pool of smoke / fire / blast
 // sprites plus the crash/hit sound clips. Weapon and crash code call
 // applyCarDamage(); the traffic update plays the wreck once and later removes
-// the shell.
+// the shell. Enter and exit door clips also live here, on the same listener.
 
 // Every car starts with this many hit points, including parked and driven cars.
 export const CAR_HP = 100;
@@ -77,6 +77,12 @@ export const EXPLODE_SOUND_FILES = ["car-explode-1.ogg", "car-explode-2.ogg"];
 export const EXPLODE_SOUND_VOLUME = 0.6;
 export const EXPLODE_SOUND_NEAR = 280;
 export const EXPLODE_SOUND_FAR = 900;
+// Played when the player gets in or out of a car with E. Two clips each, one
+// picked at random. Heard at the player, so there is no distance fade.
+export const ENTER_SOUND_FILES = ["car-enter-1.ogg", "car-enter-2.ogg"];
+export const EXIT_SOUND_FILES = ["car-exit-1.ogg", "car-exit-2.ogg"];
+export const ENTER_SOUND_VOLUME = 0.5;
+export const EXIT_SOUND_VOLUME = 0.5;
 
 const WRECK_R = 0.12;
 const WRECK_G = 0.11;
@@ -262,6 +268,16 @@ export function playCarExplodeSound(sounds, x, z, opts = {}) {
     listenerZ: opts.listenerZ,
     isPlayerCar: Boolean(opts.isPlayerCar),
   });
+}
+
+export function playCarEnterSound(sounds) {
+  if (!sounds || typeof sounds.playEnter !== "function") return false;
+  return sounds.playEnter();
+}
+
+export function playCarExitSound(sounds) {
+  if (!sounds || typeof sounds.playExit !== "function") return false;
+  return sounds.playExit();
 }
 
 export function createCrashSoundClock(now = 0) {
@@ -560,10 +576,10 @@ export function blastPeds(car, pedestrians) {
   return hit;
 }
 
-// Loads crash, bullet-hit, and world-impact clips on the shared listener from drive-effects.
+// Loads crash, bullet-hit, world-impact, and enter/exit clips on the shared listener from drive-effects.
 export async function createCarCrashSounds(listener) {
   if (!listener) {
-    return { play() { return false; }, playWorld() { return false; }, playSmoke() { return false; }, playExplode() { return false; } };
+    return { play() { return false; }, playWorld() { return false; }, playSmoke() { return false; }, playExplode() { return false; }, playEnter() { return false; }, playExit() { return false; } };
   }
   const Three = await import("three");
   const loader = new Three.AudioLoader();
@@ -614,13 +630,17 @@ export async function createCarCrashSounds(listener) {
   const world = makeBank(BULLET_WORLD_SOUNDS, "world", 4);
   const smoke = makeBank(SMOKE_SOUND_FILES, "smoke", 4);
   const explode = makeBank(EXPLODE_SOUND_FILES, "explode", 4);
+  const enter = makeBank(ENTER_SOUND_FILES, "enter", 2);
+  const leave = makeBank(EXIT_SOUND_FILES, "exit", 2);
   crash.buffers = await loadBuffers(crash.files, crash.label);
   bullet.buffers = await loadBuffers(bullet.files, bullet.label);
   world.buffers = await loadBuffers(world.files, world.label);
   smoke.buffers = await loadBuffers(smoke.files, smoke.label);
   explode.buffers = await loadBuffers(explode.files, explode.label);
+  enter.buffers = await loadBuffers(enter.files, enter.label);
+  leave.buffers = await loadBuffers(leave.files, leave.label);
 
-  function playBank(bank, cooldown, gain) {
+  function playBank(bank, cooldown, gain, opts = {}) {
     const context = listener.context;
     const now = context && typeof context.currentTime === "number" ? context.currentTime : 0;
     if (!canPlayCrashSound(bank.clock, now)) return false;
@@ -649,7 +669,7 @@ export async function createCarCrashSounds(listener) {
       voice.setBuffer(bank.buffers[pick]);
       voice.setLoop(false);
       voice.setVolume(gain);
-      voice.setPlaybackRate(crashSoundPitch());
+      voice.setPlaybackRate(opts.rate != null ? opts.rate : crashSoundPitch());
       voice.play();
     } catch (error) {
       console.error(`The car ${bank.label} sound failed to play`, error);
@@ -661,7 +681,8 @@ export async function createCarCrashSounds(listener) {
   return {
     get ready() {
       return crash.buffers.some(Boolean) || bullet.buffers.some(Boolean) || world.buffers.some(Boolean)
-        || smoke.buffers.some(Boolean) || explode.buffers.some(Boolean);
+        || smoke.buffers.some(Boolean) || explode.buffers.some(Boolean)
+        || enter.buffers.some(Boolean) || leave.buffers.some(Boolean);
     },
     playPositional(bank, cooldown, gainFn, opts = {}) {
       const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;
@@ -677,6 +698,16 @@ export async function createCarCrashSounds(listener) {
     },
     playExplode(opts = {}) {
       return this.playPositional(explode, 0, explodeSoundGain, opts);
+    },
+    playEnter() {
+      const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;
+      if (!(master > 0)) return false;
+      return playBank(enter, 0, ENTER_SOUND_VOLUME, { rate: 1 });
+    },
+    playExit() {
+      const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;
+      if (!(master > 0)) return false;
+      return playBank(leave, 0, EXIT_SOUND_VOLUME, { rate: 1 });
     },
     playWorld(opts = {}) {
       const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;

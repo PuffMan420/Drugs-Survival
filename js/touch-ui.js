@@ -34,6 +34,16 @@ export function stickWish(nx, ny, dead = STICK_DEAD, jogAt = STICK_JOG) {
 // Far enough that the facing code treats it as a real target, close enough to stay a direction.
 const AIM_REACH = 4;
 
+// ix is screen-right, iz is screen-down. Yaw 0 keeps screen-up as world north.
+export function cameraWish(ix, iz, yaw) {
+  const cos = Math.cos(yaw);
+  const sin = Math.sin(yaw);
+  return {
+    x: ix * cos + iz * sin,
+    z: -ix * sin + iz * cos,
+  };
+}
+
 // The stick's unit wish, in the same world axes as walking. Null when it is centered.
 export function aimAlongStick(x, z, wishX, wishZ) {
   const mag = Math.hypot(wishX, wishZ);

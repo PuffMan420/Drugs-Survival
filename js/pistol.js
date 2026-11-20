@@ -119,7 +119,7 @@ import {
 } from "./game-feel.js";
 import { aimChord, pistolPose } from "./pose-layers.js";
 import { menuIsOpen } from "./start-menu.js";
-import { aimAlongStick, isTouchScreen, syncGunButtons } from "./touch-ui.js";
+import { aimAlongStick, cameraWish, isTouchScreen, syncGunButtons } from "./touch-ui.js";
 import {
   AdditiveBlending,
   Audio,
@@ -1612,10 +1612,11 @@ export async function createPistol({
       if (isTouchScreen()) {
         syncGunButtons(holding());
         if (aiming && stick && stick.active) {
-          const along = aimAlongStick(player.mesh.position.x, player.mesh.position.z, stick.x, stick.z);
+          const wish = cameraWish(stick.x, stick.z, camera.userData.yaw || 0);
+          const along = aimAlongStick(player.mesh.position.x, player.mesh.position.z, wish.x, wish.z);
           if (along) {
             player.aimAt(along.x, along.z);
-            aimDir = { x: stick.x, z: stick.z };
+            aimDir = { x: wish.x, z: wish.z };
           }
         } else if (!aiming) {
           aimDir = null;

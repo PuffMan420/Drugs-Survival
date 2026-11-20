@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   BAT_CAR_DAMAGE,
@@ -46,8 +47,14 @@ import {
   markSmokeSound,
   playBulletHitSound,
   playBulletWorldHitSound,
+  playCarEnterSound,
+  playCarExitSound,
   playCarExplodeSound,
   playCarSmokeSound,
+  ENTER_SOUND_FILES,
+  ENTER_SOUND_VOLUME,
+  EXIT_SOUND_FILES,
+  EXIT_SOUND_VOLUME,
   resetSmokeSound,
   smokeSoundGain,
   CRASH_SOUND_COOLDOWN,
@@ -400,4 +407,25 @@ test("bullet hits are louder up close, then ease down to a quiet cap", () => {
   assert.ok(bulletSoundVolumeAt(400) < BULLET_SOUND_VOLUME && bulletSoundVolumeAt(400) > 0);
   assert.equal(carHitSoundGain(10, 96, false, "bullet"), BULLET_SOUND_CLOSE_VOLUME);
   assert.equal(carHitSoundGain(10, 300, false, "bullet"), BULLET_SOUND_VOLUME);
+});
+
+test("enter and exit door sounds use two clips each and play through helpers", () => {
+  assert.deepEqual(ENTER_SOUND_FILES, ["car-enter-1.ogg", "car-enter-2.ogg"]);
+  assert.deepEqual(EXIT_SOUND_FILES, ["car-exit-1.ogg", "car-exit-2.ogg"]);
+  assert.equal(ENTER_SOUND_VOLUME, 0.5);
+  assert.equal(EXIT_SOUND_VOLUME, 0.5);
+  for (const name of [...ENTER_SOUND_FILES, ...EXIT_SOUND_FILES]) {
+    const data = readFileSync(new URL(`../assets/audio/${name}`, import.meta.url));
+    assert.ok(data.length > 1000, name);
+  }
+  assert.equal(playCarEnterSound(null), false);
+  assert.equal(playCarExitSound(null), false);
+  const plays = [];
+  const sounds = {
+    playEnter() { plays.push("enter"); return true; },
+    playExit() { plays.push("exit"); return true; },
+  };
+  assert.equal(playCarEnterSound(sounds), true);
+  assert.equal(playCarExitSound(sounds), true);
+  assert.deepEqual(plays, ["enter", "exit"]);
 });

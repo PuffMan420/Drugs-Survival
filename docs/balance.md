@@ -26,6 +26,19 @@ Values from `main` at `a6e9ccd`. Distances are **world units**, not meters: **on
 
 ---
 
+## Camera
+
+The view keeps the same tilt and the same zoom. It only turns. On foot it waits, then eases to the way you have been walking. Standing still or aiming holds it. In a car it eases to the way the car drives, and it holds while you reverse.
+
+| Name | Value | File | What it does |
+|---|---|---|---|
+| CAMERA_TURN_SPEED | 0.45 | js/constants.js | How fast the camera catches up. Higher is faster. At 0.45, a sudden quarter-turn is mostly caught in about 5 seconds. It eases. It does not snap. |
+| CAMERA_TURN_HOLD | 0.4 | js/constants.js | On foot, seconds you must keep walking the same way before the camera starts to follow. |
+| CAMERA_TURN_SAME | 35° | js/constants.js | On foot, a sharper turn than this counts as a new way, and the wait starts again. |
+| CAMERA_TURN_MOVE | 15 | js/constants.js | Slower than this (units/s) counts as standing still, on foot or in a car, so the camera does not turn. |
+
+---
+
 ## Player health, HIGH, regen, death
 
 All in `js/player-health.js`. Health and HIGH are 0–100. After death you wait, then respawn at the spawn point with full health, HIGH cleared, stars cleared, all weed gone, and a quarter of your cash lost (`DEATH_CASH_LOSS`).

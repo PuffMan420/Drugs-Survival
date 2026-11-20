@@ -10,6 +10,7 @@ import {
   SHOTGUN_SPREAD_DEG,
   kickBlend,
   spreadDirection,
+  spreadFlat,
 } from "../js/shotgun.js";
 import { SMG_FIRE_RATE, SMG_MAG, SMG_SPREAD_DEG } from "../js/smg.js";
 
@@ -44,6 +45,27 @@ test("pellets stay inside the cone", () => {
   }
   const straight = spreadDirection(0, 0, 1, 0, () => 0.5);
   assert.ok(Math.abs(straight.z - 1) < 1e-6);
+});
+
+test("flat spread stays on the ground and inside the angle", () => {
+  const spread = (SMG_SPREAD_DEG * Math.PI) / 180;
+  let n = 0;
+  const random = () => {
+    n += 1;
+    return (n * 0.37) % 1;
+  };
+  for (let i = 0; i < 40; i += 1) {
+    const dir = spreadFlat(0, 1, SMG_SPREAD_DEG, random);
+    assert.ok(Math.abs(Math.hypot(dir.x, dir.z) - 1) < 1e-6);
+    const angle = Math.atan2(dir.x, dir.z);
+    assert.ok(Math.abs(angle) <= spread + 1e-6, `shot ${i} left the flat cone`);
+  }
+  const straight = spreadFlat(3, 4, 0, () => 0);
+  assert.ok(Math.abs(straight.x - 0.6) < 1e-6);
+  assert.ok(Math.abs(straight.z - 0.8) < 1e-6);
+  const right = spreadFlat(0, 1, 90, () => 1);
+  assert.ok(Math.abs(right.x + 1) < 1e-6);
+  assert.ok(Math.abs(right.z) < 1e-6);
 });
 
 test("the scorpion is full auto with a 20 round mag", () => {

@@ -5,6 +5,8 @@
 // Future police or enemies should call player.takeDamage(amount, source).
 // Weapons should scale outgoing damage with damageDealt() while the player is high.
 
+import { SHAKE_CAR_HIT_PLAYER, SHAKE_PLAYER_HURT, addShake } from "./game-feel.js";
+
 export const PLAYER_MAX_HEALTH = 100;
 export const PLAYER_START_HEALTH = 100;
 export const PLAYER_MAX_HIGH = 100;
@@ -140,6 +142,10 @@ export function takeDamage(state, amount, source = "unknown") {
   const applied = source === "overdose" ? raw : damageTaken(raw, state.high);
   state.health = Math.max(0, state.health - applied);
   state.timeSinceDamage = 0;
+  // Overdose ticks every frame, so it does not shake. A car hit shakes harder.
+  if (applied > 0 && source !== "overdose") {
+    addShake(source === "car" ? SHAKE_CAR_HIT_PLAYER : SHAKE_PLAYER_HURT);
+  }
   const justDied = state.health <= 0;
   if (justDied) beginDeath(state);
   return { applied, health: state.health, died: justDied, justDied, source };

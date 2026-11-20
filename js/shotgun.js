@@ -10,8 +10,8 @@ export const SHOTGUN_RANGE = 144;
 export const SHOTGUN_SPREAD_DEG = 20;
 export const SHOTGUN_FIRE_DELAY = 1.0;
 export const SHOTGUN_MAG = 6;
-export const SHOTGUN_KICK_BACK = 0.15;
-export const SHOTGUN_KICK_UP_DEG = 12;
+export const SHOTGUN_KICK_BACK = 0.35;
+export const SHOTGUN_KICK_UP_DEG = 22;
 export const SHOTGUN_KICK_RETURN = 0.25;
 export const SHOTGUN_HAND = [0, 0.1, -0.03];
 export const SHOTGUN_EULER = [0, -Math.PI / 2, Math.PI / 2];
@@ -59,4 +59,17 @@ export function spreadDirection(x, y, z, spreadDeg, random = Math.random) {
   const oz = dz + sz * yaw + uz * pitch;
   const out = Math.hypot(ox, oy, oz) || 1;
   return { x: ox / out, y: oy / out, z: oz / out };
+}
+
+// Yaw on the ground around the aim. The angle is measured at the player.
+export function spreadFlat(x, z, spreadDeg, random = Math.random) {
+  const len = Math.hypot(x, z) || 1;
+  const ux = x / len;
+  const uz = z / len;
+  const spread = (Number(spreadDeg) * Math.PI) / 180;
+  if (!(spread > 0)) return { x: ux, z: uz };
+  const a = (random() * 2 - 1) * spread;
+  const c = Math.cos(a);
+  const s = Math.sin(a);
+  return { x: ux * c - uz * s, z: ux * s + uz * c };
 }

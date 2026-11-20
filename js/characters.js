@@ -11,7 +11,8 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 // Library 1 skeleton (UAL bone names: root, pelvis, spine_01..03, neck_01,
 // Head, clavicle/upperarm/lowerarm/hand_l/_r, thigh/calf/foot/ball_l/_r).
 // Every file carries the same UAL1 clips under the same names.
-export const PLAYER_MODEL = "../06 Player Character/Modular/men_Casual_Hoodie_UAL.glb";
+// The player is MainCharacter_v1 in the Medium + leaf style. Crowd and cops stay on the modular files.
+export const PLAYER_MODEL = "../06 Player Character/Main Character/MainCharacter_v1_medium_leaf.glb";
 export const PED_MODELS = [
   "../06 Player Character/Modular/men_Casual_Hoodie_UAL.glb",
   "../06 Player Character/Modular/women_Casual_UAL.glb",

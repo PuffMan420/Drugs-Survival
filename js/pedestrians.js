@@ -24,6 +24,7 @@ import { createRagdolls } from "./ped-ragdoll.js";
 import { GROUND_H, GROUND_W, PLAYER_SPEED, TILE } from "./constants.js";
 import { PED_LOOK_HEX, pedLookIndex } from "./ped-looks.js";
 import { walkableCells } from "./pedestrian-walk.js";
+import { HIT_FLASH_TIME, KILL_KNOCK_MULT, KNOCK_TIME, feelOn } from "./game-feel.js";
 
 // Same height fit as the player (fitCharacter), so these figures stand with him.
 const FEET_Y = 0.6;
@@ -261,6 +262,12 @@ function crowdTiles(cells, neighbors) {
   return chosen;
 }
 
+const flashWhite = new MeshLambertMaterial({
+  color: 0xffffff,
+  fog: false,
+  toneMapped: false,
+});
+
 function figureMaterial() {
   // Lambert has no shine, so the figures stay matte. Colors are per vertex.
   return new MeshLambertMaterial({
@@ -315,7 +322,10 @@ function sidewalkGraph(map, pieces) {
     }
     throw new Error("No walkable ground was found for a pedestrian.");
   }
-  return { span, neighbors, nearest, cells: list };
+  function open(tx, tz) {
+    return tx >= 0 && tz >= 0 && tx < cols && tz < rows && cells.has(key(tx, tz));
+  }
+  return { span, neighbors, nearest, cells: list, open };
 }
 
 function centerOf(tx, tz, span) {
@@ -482,6 +492,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
       ped.phase = null;
       ped.phaseTime = 0;
     }
+    restoreFlash(ped);
     const live = ped.live;
     ped.live = null;
     live.holder.removeFromParent();
@@ -657,11 +668,95 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     live.actions.hitHead.setEffectiveWeight(0);
   }
 
+  function figureOf(ped) {
+    if (!ped.live) return null;
+    return ped.live.model.getObjectByName("figure");
+  }
+
+  function restoreFlash(ped) {
+    const mesh = figureOf(ped);
+    if (mesh && ped.flashSaved && mesh.material === flashWhite) mesh.material = ped.flashSaved;
+    ped.flashSaved = null;
+    ped.flashLeft = 0;
+  }
+
+  function flashPed(ped) {
+    const mesh = figureOf(ped);
+    if (!mesh) return;
+    if (mesh.material !== flashWhite) ped.flashSaved = mesh.material;
+    mesh.material = flashWhite;
+    ped.flashLeft = HIT_FLASH_TIME;
+  }
+
+  function stepFlash(ped, step) {
+    if (!(ped.flashLeft > 0)) return;
+    if (!feelOn()) {
+      restoreFlash(ped);
+      return;
+    }
+    ped.flashLeft -= step;
+    if (ped.flashLeft <= 0) restoreFlash(ped);
+  }
+
+  // Same walkable tiles the crowd already uses, so a shove stops at a wall.
+  function slide(ped, dx, dz) {
+    const [tx, tz] = tileAt(ped.x, ped.z);
+    const x2 = ped.x + dx;
+    const z2 = ped.z + dz;
+    const [tx2] = tileAt(x2, ped.z);
+    const [, tz2] = tileAt(ped.x, z2);
+    if (tx2 === tx || graph.open(tx2, tz)) ped.x = x2;
+    if (tz2 === tz || graph.open(tx, tz2)) ped.z = z2;
+  }
+
+  function stepKnock(ped, step) {
+    if (!(ped.knockLeft > 0)) return;
+    if (!feelOn()) {
+      ped.knockLeft = 0;
+      ped.knockGot = 0;
+      return;
+    }
+    const span = ped.knockSpan > 0 ? ped.knockSpan : KNOCK_TIME;
+    const use = Math.min(step, ped.knockLeft);
+    slide(ped, ped.knockX * (use / span), ped.knockZ * (use / span));
+    ped.knockLeft -= use;
+    if (ped.knockLeft <= 0) ped.knockGot = 0;
+  }
+
+  function shove(ped, dirX, dirZ, distance, killBoost) {
+    if (!feelOn() || !ped || !(distance > 0)) return;
+    flashPed(ped);
+    const len = Math.hypot(dirX, dirZ) || 1;
+    const ux = dirX / len;
+    const uz = dirZ / len;
+    const got = (ped.knockGot || 0) + distance;
+    if (ped.dead) {
+      // Same vx/vz the death slide already uses. Later pellets this shot add on.
+      ped.knockGot = got;
+      const dist = got * (killBoost ? KILL_KNOCK_MULT : 1);
+      const decay = -Math.log(0.08);
+      ped.vx = ux * dist * decay;
+      ped.vz = uz * dist * decay;
+      ped.knockLeft = 0;
+      ped.knockX = 0;
+      ped.knockZ = 0;
+      return;
+    }
+    ped.knockGot = got;
+    ped.knockX = (ped.knockX || 0) + ux * distance;
+    ped.knockZ = (ped.knockZ || 0) + uz * distance;
+    ped.knockLeft = KNOCK_TIME;
+    ped.knockSpan = KNOCK_TIME;
+  }
+
   function fall(ped, step) {
     ped.phaseTime += step;
     if (ped.phase === "hit") {
-      ped.x += ped.vx * step;
-      ped.z += ped.vz * step;
+      const x0 = ped.x;
+      const z0 = ped.z;
+      slide(ped, ped.vx * step, ped.vz * step);
+      if (ped.x === x0) ped.vx = 0;
+      if (ped.z === z0) ped.vz = 0;
       ped.vx *= Math.pow(0.08, step);
       ped.vz *= Math.pow(0.08, step);
       if (ped.phaseTime >= duration(ped, ped.hitClip)) {
@@ -942,6 +1037,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
       return list;
     },
     scare,
+    shove,
     setPanic,
     ragdollFocus(x, z) {
       if (!rig || !rig.physicsScene) return;
@@ -958,7 +1054,12 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
       const enter = viewRect(playerX, playerZ, enterMargin, spanW, spanH);
       const leave = viewRect(playerX, playerZ, leaveMargin, spanW, spanH);
       for (const ped of people) {
+        if (ped.live) {
+          stepFlash(ped, step);
+          if (!ped.dead) stepKnock(ped, step);
+        }
         if (ped.live && ped.dead) {
+          ped.knockGot = 0;
           if (ped.ragdoll) applyRagdoll(ped);
           else fall(ped, step);
           continue;

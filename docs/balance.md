@@ -106,8 +106,8 @@ Damage numbers to *people* live in `js/pistol.js` (even for the bat and bottle).
 | SHOTGUN_SPREAD_DEG | 20 | js/shotgun.js | Widest angle a pellet can leave the aim line, in degrees. |
 | SHOTGUN_FIRE_DELAY | 1.0 | js/shotgun.js | Seconds before the shotgun can fire again. |
 | SHOTGUN_MAG | 6 | js/shotgun.js | Shells before a reload. |
-| SHOTGUN_KICK_BACK | 0.15 | js/shotgun.js | How far the shotgun kicks back toward the wrist. |
-| SHOTGUN_KICK_UP_DEG | 12 | js/shotgun.js | How far the barrel kicks up, in degrees. |
+| SHOTGUN_KICK_BACK | 0.35 | js/shotgun.js | How far the shotgun kicks back toward the wrist. |
+| SHOTGUN_KICK_UP_DEG | 22 | js/shotgun.js | How far the barrel kicks up, in degrees. |
 | SHOTGUN_KICK_RETURN | 0.25 | js/shotgun.js | Seconds for the kick to ease back. |
 | SHOTGUN_SCALE | 0.32 | js/shotgun.js | Size of the shotgun in the hand. |
 | SHOTGUN_HAND | 0, 0.1, -0.03 | js/shotgun.js | Where the shotgun sits in the hand. |
@@ -123,6 +123,8 @@ Damage numbers to *people* live in `js/pistol.js` (even for the bat and bottle).
 | RELOAD_TIME | 1.67 | js/pistol.js | Seconds a reload takes. |
 | SHOT_POSE | 0.4 | js/pistol.js | Seconds the recoil pose lasts. |
 | AIM_TAU | 0.08 | js/pistol.js | How quickly aim turns to follow the cursor, in seconds (smaller is snappier). |
+| AIM_CHEST_Y | 18 | js/pistol.js | Height of the aim plane above the player's feet. Gun spread is measured here, not at the camera. |
+| SHOT_VOICES | 4 | js/pistol.js | Gunshot voices, so full auto does not cut the same sound off. |
 | PED_REACH | 16 | js/pistol.js | Extra hit radius around a person when a shot is tested, so a near miss can still count. |
 
 ---
@@ -296,6 +298,70 @@ Props in build mode use `CITYPACK_METER` when the file is in meters. Billboard a
 | SIGNAL_GREEN | 6 | js/signals.js | Seconds a traffic light stays green on one axis. |
 | SIGNAL_YELLOW | 2 | js/signals.js | Seconds of yellow after green. |
 | SIGNAL_ALL_RED | 1 | js/signals.js | Seconds both axes stay red before the other axis turns green. A full cycle is 18 seconds. |
+
+---
+
+## Game feel
+
+Juice only. These do not change damage, range, fire rate, or ammo. `dsDebug.feel = false` turns the shake, freeze, white flash, knockback, tracers, muzzle light, and hit marker off.
+
+| Name | Value | File | What it does |
+|---|---|---|---|
+| SHAKE_MAX_OFFSET | 24 | js/game-feel.js | How far the camera can slide at full shake, in units. The view does not tilt. |
+| SHAKE_DECAY | 2.0 | js/game-feel.js | How fast the shake fades, per second. |
+| SHAKE_FREQ | 18 | js/game-feel.js | How fast the shake wobbles. |
+| SHAKE_PISTOL | 0.35 | js/game-feel.js | Shake added by one pistol shot. |
+| SHAKE_SMG | 0.18 | js/game-feel.js | Shake added by one scorpion shot. A burst stacks these. |
+| SHAKE_SHOTGUN | 0.7 | js/game-feel.js | Shake added by one shotgun blast. |
+| SHAKE_PUNCH_HIT | 0.3 | js/game-feel.js | Shake when a punch connects. |
+| SHAKE_BAT_HIT | 0.45 | js/game-feel.js | Shake when a normal bat swing connects. |
+| SHAKE_BAT_HEAVY_HIT | 0.7 | js/game-feel.js | Shake when a heavy bat swing connects. |
+| SHAKE_BOTTLE_HIT | 0.35 | js/game-feel.js | Shake when a bottle hits a person. |
+| SHAKE_PLAYER_HURT | 0.4 | js/game-feel.js | Shake when the player takes a hit (a cop punch, for example). |
+| SHAKE_CAR_HIT_PLAYER | 0.7 | js/game-feel.js | Shake when a car hits the player. |
+| HITSTOP_SCALE | 0.05 | js/game-feel.js | How slow the world runs during a hit freeze. Input, shake, the HUD, and sound stay at full speed. |
+| HITSTOP_MAX | 0.15 | js/game-feel.js | Longest hit freeze, in seconds. |
+| HITSTOP_PUNCH | 0.06 | js/game-feel.js | Freeze when a punch connects. |
+| HITSTOP_BAT | 0.09 | js/game-feel.js | Freeze when a normal bat swing connects. |
+| HITSTOP_BAT_HEAVY | 0.14 | js/game-feel.js | Freeze when a heavy bat swing connects. |
+| HITSTOP_BOTTLE | 0.07 | js/game-feel.js | Freeze when a bottle hits a person. |
+| HITSTOP_PISTOL_HIT | 0.03 | js/game-feel.js | Freeze when a pistol bullet hits a person. |
+| HITSTOP_SHOTGUN_HIT | 0.06 | js/game-feel.js | Freeze for one shotgun blast that hits, not for each pellet. |
+| HITSTOP_SMG_HIT | 0 | js/game-feel.js | Scorpion hits do not freeze the world, so full auto does not stutter. |
+| HITSTOP_KILL_BONUS | 0.04 | js/game-feel.js | Extra freeze when the hit kills. Not added for the scorpion. |
+| HIT_FLASH_TIME | 0.08 | js/game-feel.js | Seconds a hit person stays white. |
+| KNOCK_TIME | 0.15 | js/game-feel.js | Seconds a living hit slides back. |
+| KNOCK_PUNCH | 8 | js/game-feel.js | How far a punch pushes a person, in units. |
+| KNOCK_PISTOL | 6 | js/game-feel.js | How far a pistol hit pushes a person, in units. |
+| KNOCK_SMG | 1.5 | js/game-feel.js | How far one scorpion hit pushes a person, in units. Small, so a burst can stay on them. |
+| KNOCK_SHOTGUN_PELLET | 7 | js/game-feel.js | Push added by each shotgun pellet that hits the same person. |
+| KNOCK_BAT | 18 | js/game-feel.js | How far a normal bat hit pushes a person, in units. |
+| KNOCK_BAT_HEAVY | 30 | js/game-feel.js | How far a heavy bat hit pushes a person, in units. |
+| KNOCK_BOTTLE | 10 | js/game-feel.js | How far a bottle hit pushes a person, in units. |
+| KILL_KNOCK_MULT | 1.6 | js/game-feel.js | Extra throw on a shotgun kill or a heavy bat kill. Uses the existing death slide. |
+| PISTOL_KICK_BACK | 0.08 | js/game-feel.js | How far the pistol kicks back toward the wrist. |
+| PISTOL_KICK_UP_DEG | 10 | js/game-feel.js | How far the pistol barrel kicks up, in degrees. |
+| PISTOL_KICK_RETURN | 0.12 | js/game-feel.js | Seconds for the pistol kick to ease back. |
+| SMG_KICK_BACK | 0.04 | js/game-feel.js | How far the scorpion kicks back toward the wrist. |
+| SMG_KICK_UP_DEG | 5 | js/game-feel.js | How far the scorpion barrel kicks up, in degrees. |
+| SMG_KICK_RETURN | 0.06 | js/game-feel.js | Seconds for the scorpion kick to ease back. |
+| SMG_KICK_SIDE_DEG | 4 | js/game-feel.js | Random side wobble on each scorpion shot, in degrees. |
+| SHOTGUN_PLAYER_PUSH | 4 | js/game-feel.js | How far a shotgun blast slides the player back, in units. Not while driving. |
+| PLAYER_PUSH_TIME | 0.1 | js/game-feel.js | Seconds that shotgun slide takes. |
+| FLASH_SCALE_PISTOL | 1.0 | js/game-feel.js | Multiplies the pistol muzzle flash size. |
+| FLASH_SCALE_SMG | 0.8 | js/game-feel.js | Multiplies the scorpion muzzle flash size. |
+| FLASH_SCALE_SHOTGUN | 1.7 | js/game-feel.js | Multiplies the shotgun muzzle flash size. |
+| MUZZLE_LIGHT_INTENSITY | 3 | js/game-feel.js | Brightness of the shared muzzle light. |
+| MUZZLE_LIGHT_DISTANCE | 70 | js/game-feel.js | How far that light reaches, in units. |
+| MUZZLE_LIGHT_DECAY | 0 | js/game-feel.js | How fast the muzzle light dims with distance. 0 keeps it visible. The old default of 2 made it vanish. |
+| MUZZLE_LIGHT_TIME | 0.05 | js/game-feel.js | Seconds the muzzle light stays on. |
+| TRACER_TIME | 0.07 | js/game-feel.js | Seconds a bullet streak takes to fade. |
+| TRACER_WIDTH | 2 | js/game-feel.js | How thick a bullet streak is, in units. |
+| TRACER_POOL | 12 | js/game-feel.js | Most bullet streaks kept at once. No new mesh is built per shot. |
+| HITMARK_SCALE | 1.3 | js/game-feel.js | How big the crosshair grows on a hit. |
+| HITMARK_TIME | 0.1 | js/game-feel.js | Seconds the crosshair stays big and red. |
+| HITMARK_KILL_SCALE | 1.6 | js/game-feel.js | How big the crosshair grows on a kill. |
+| HITMARK_KILL_TIME | 0.2 | js/game-feel.js | Seconds the kill marker stays up. |
 
 ---
 

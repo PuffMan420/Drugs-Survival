@@ -95,6 +95,7 @@ import {
 } from "./wanted.js";
 import { createPlayer } from "./player.js";
 import { createPistol } from "./pistol.js";
+import { consumePlayerPush, feelOn, sampleShake, setFeel, worldScale } from "./game-feel.js";
 import { createBuildMode, loadNamedMap } from "./build-mode.js";
 import { placeBlueZone } from "./blue-zone.js";
 import { placeSampleBuildings } from "./sample-buildings.js";
@@ -905,12 +906,20 @@ async function start() {
     get police() {
       return police;
     },
+    get feel() {
+      return feelOn();
+    },
+    set feel(value) {
+      setFeel(value);
+    },
   };
   session.minimap = minimap;
   session.placeName = spawnPlaceName(map);
   placeEl.textContent = session.placeName;
 
   let fps = 0;
+  let shakeX = 0;
+  let shakeZ = 0;
   let last = performance.now();
   let lastDraw = last;
 
@@ -1046,8 +1055,15 @@ async function start() {
     }
     lastDraw = now - (sinceDraw % FRAME_INTERVAL);
     const frameDt = (now - last) / 1000;
-    const dt = Math.min(frameDt, 0.05);
+    const realDt = Math.min(frameDt, 0.05);
     last = now;
+    // Last frame's shake moved the camera. Put it back before aiming.
+    camera.position.x -= shakeX;
+    camera.position.z -= shakeZ;
+    shakeX = 0;
+    shakeZ = 0;
+    const scale = worldScale(realDt);
+    const step = realDt * scale;
     const previousX = player.x;
     const previousZ = player.z;
 
@@ -1062,7 +1078,7 @@ async function start() {
     // Physics keeps its own clock: whole 1/60 s steps, capped per frame.
     // Ragdolls need the buildings even when nobody is driving.
     pedestrians.ragdollFocus(player.x, player.z);
-    physics.step(frameDt);
+    physics.step(frameDt * scale);
     if (drive.mustExit) session.use();
 
     pistol.pre();
@@ -1080,7 +1096,7 @@ async function start() {
     } else {
       const wish = footWish();
       const boost = buildMode.isOpen() ? 3 : 1;
-      playerSprite.guide(dt, wish.x, wish.z, wish.gait, boost);
+      playerSprite.guide(step, wish.x, wish.z, wish.gait, boost);
       const radius = half + 0.75;
       const stuck = (x, z) => footBlocked(map, x, z, half);
       const release = () => {
@@ -1088,7 +1104,7 @@ async function start() {
         player.x = freed.x;
         player.z = freed.z;
       };
-      const stepLen = playerSprite.speed * dt;
+      const stepLen = playerSprite.speed * step;
       if (stepLen > 0.001) {
         // moveX/moveZ: the WASD direction while aiming, the facing otherwise.
         const stepX = playerSprite.moveX * stepLen;
@@ -1110,16 +1126,25 @@ async function start() {
       player.y = footHeight();
     }
 
+    const back = consumePlayerPush(realDt);
+    if (!drive.driving && !vitals.dead && (back.x !== 0 || back.z !== 0)) {
+      if (!blocked(map, player.x + back.x, player.z)) player.x += back.x;
+      if (!blocked(map, player.x, player.z + back.z)) player.z += back.z;
+      player.x = clamp(player.x, half, city.mapW - half);
+      player.z = clamp(player.z, half, city.mapH - half);
+      player.y = footHeight();
+    }
+
     let snappedX = Math.round(player.x);
     let snappedZ = Math.round(player.z);
-    stepView(dt, drive.driving);
+    stepView(realDt, drive.driving);
     const view = playView(camera);
     camera.updateProjectionMatrix();
     const halfW = (spanW * view) / 2;
     const halfH = (spanH * view) / 2;
     let camX = frameCenter(snappedX, halfW, city.mapW);
     let camZ = frameCenter(snappedZ, halfH, city.mapH);
-    traffic.update(dt, camX, camZ, player.x, player.z);
+    traffic.update(step, camX, camZ, player.x, player.z);
     // A moving car can roll over the square after the step above.
     if (!drive.driving) {
       const freed = traffic.shove(player.x, player.z, half + 0.75, (x, z) => footBlocked(map, x, z, half));
@@ -1132,27 +1157,34 @@ async function start() {
     snappedX = Math.round(player.x);
     snappedZ = Math.round(player.z);
     playerSprite.mesh.visible = !drive.driving;
-    playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ, player.y, dt);
-    pistol.update(dt);
+    playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ, player.y, step);
+    pistol.update(step);
     pedestrians.runOver(traffic.cars(), drive.driving ? drive.sample() : null);
     hitPlayerWithCars(traffic.cars(), drive.driving ? drive.sample() : null, previousX, previousZ);
-    const vitalStep = stepPlayerVitals(vitals, dt);
+    const vitalStep = stepPlayerVitals(vitals, realDt);
     if (vitalStep.justDied && drive.driving) session.use();
     if (vitalStep.readyToRespawn) respawnAtSpawn();
-    stepWanted(wanted, dt, police.inSight());
-    police.update(dt, halfW, halfH);
-    pedestrians.update(dt, player.x, player.z, spanW, spanH);
-    stepEconomy(economy, dt);
-    supplier.update(dt);
+    stepWanted(wanted, realDt, police.inSight());
+    police.update(step, halfW, halfH);
+    pedestrians.update(step, player.x, player.z, spanW, spanH);
+    stepEconomy(economy, realDt);
+    supplier.update(realDt);
     hud.setPrompt(dealPrompt());
-    rats.update(dt, player.x, player.z, camX, camZ, halfW, halfH);
+    rats.update(step, player.x, player.z, camX, camZ, halfW, halfH);
     camX = frameCenter(snappedX, halfW, city.mapW);
     camZ = frameCenter(snappedZ, halfH, city.mapH);
     glow.update(camX, camZ, traffic.lights(camX, camZ));
-    driveFx.update(dt, drive.driving ? drive.sample() : null, traffic.cars(), camX, camZ);
+    driveFx.update(step, drive.driving ? drive.sample() : null, traffic.cars(), camX, camZ);
     camera.position.setFromSphericalCoords(lookRadius, lookPhi, cameraTheta);
     cameraTarget.set(camX, 0, camZ);
     camera.position.add(cameraTarget);
+    const shake = sampleShake(realDt);
+    shakeX = shake.x;
+    shakeZ = shake.z;
+    cameraTarget.x += shakeX;
+    cameraTarget.z += shakeZ;
+    camera.position.x += shakeX;
+    camera.position.z += shakeZ;
     camera.lookAt(cameraTarget);
     updateChunks(city.chunks, camX, camZ, view, spanW, spanH);
     buildMode.updateRoads(camX, camZ, view, spanW, spanH);
@@ -1163,7 +1195,7 @@ async function start() {
     minimap.draw(camX, camZ, player.x, player.z, TILE, (spanW * view) / TILE, (spanH * view) / TILE);
 
     hud.sync(session);
-    const instant = 1 / Math.max(dt, 1 / 240);
+    const instant = 1 / Math.max(realDt, 1 / 240);
     fps = fps === 0 ? instant : fps + (instant - fps) * 0.1;
     fpsEl.textContent = `FPS ${Math.round(fps)}`;
     requestAnimationFrame(frame);

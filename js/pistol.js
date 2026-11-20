@@ -68,15 +68,64 @@ import {
   SHOTGUN_SCALE,
   SHOTGUN_SPREAD_DEG,
   kickBlend,
-  spreadDirection,
+  spreadFlat,
 } from "./shotgun.js";
+import {
+  FLASH_SCALE_PISTOL,
+  FLASH_SCALE_SHOTGUN,
+  FLASH_SCALE_SMG,
+  HITSTOP_BAT,
+  HITSTOP_BAT_HEAVY,
+  HITSTOP_BOTTLE,
+  HITSTOP_KILL_BONUS,
+  HITSTOP_PISTOL_HIT,
+  HITSTOP_PUNCH,
+  HITSTOP_SHOTGUN_HIT,
+  KNOCK_BAT,
+  KNOCK_BAT_HEAVY,
+  KNOCK_BOTTLE,
+  KNOCK_PISTOL,
+  KNOCK_PUNCH,
+  KNOCK_SHOTGUN_PELLET,
+  KNOCK_SMG,
+  MUZZLE_LIGHT_DECAY,
+  MUZZLE_LIGHT_DISTANCE,
+  MUZZLE_LIGHT_INTENSITY,
+  MUZZLE_LIGHT_TIME,
+  PISTOL_KICK_BACK,
+  PISTOL_KICK_RETURN,
+  PISTOL_KICK_UP_DEG,
+  SHAKE_BAT_HEAVY_HIT,
+  SHAKE_BAT_HIT,
+  SHAKE_BOTTLE_HIT,
+  SHAKE_PISTOL,
+  SHAKE_PUNCH_HIT,
+  SHAKE_SHOTGUN,
+  SHAKE_SMG,
+  SHOTGUN_PLAYER_PUSH,
+  SMG_KICK_BACK,
+  SMG_KICK_RETURN,
+  SMG_KICK_SIDE_DEG,
+  SMG_KICK_UP_DEG,
+  TRACER_POOL,
+  TRACER_TIME,
+  TRACER_WIDTH,
+  addShake,
+  crosshairScale,
+  feelOn,
+  hitStop,
+  markHit,
+  requestPlayerPush,
+} from "./game-feel.js";
 import { aimChord, pistolPose } from "./pose-layers.js";
 import { menuIsOpen } from "./start-menu.js";
 import { aimAlongStick, isTouchScreen, syncGunButtons } from "./touch-ui.js";
 import {
+  AdditiveBlending,
   Audio,
   AudioLoader,
   Box3,
+  BoxGeometry,
   DoubleSide,
   Group,
   Mesh,
@@ -86,6 +135,7 @@ import {
   MeshLambertMaterial,
   Object3D,
   PlaneGeometry,
+  PointLight,
   Quaternion,
   Raycaster,
   Sprite,
@@ -123,9 +173,12 @@ const SPLASH_FADE = 0.16;
 const CAR_HIT_SCALE = (36 * 0.7 * 0.6) / 3;
 const CAR_HIT_LIFE = 0.3;
 
+const AIM_CHEST_Y = 18;
 const raycaster = new Raycaster();
 const ndc = new Vector2();
 const muzzlePos = new Vector3();
+const aimPoint = new Vector3();
+const flatAim = { x: 0, z: 1, dist: 0 };
 const pedBox = new Box3();
 const pedHit = new Vector3();
 const flightPos = new Vector3();
@@ -226,6 +279,9 @@ export async function createPistol({
   hand.add(smgRoot);
   hand.add(shotgunRoot);
   let kickAge = SHOTGUN_KICK_RETURN;
+  let pistolKick = PISTOL_KICK_RETURN;
+  let smgKick = SMG_KICK_RETURN;
+  let smgSide = 0;
 
   const handRoot = new Group();
   // Bottles stand on their base at this point. 1.5 grows them along the
@@ -339,12 +395,37 @@ export async function createPistol({
     depthWrite: false,
     toneMapped: false,
   }));
-  flash.scale.set(22 * 0.6 * 0.6, 22 * 0.6 * 0.6, 1);
+  const FLASH_BASE = 22 * 0.6 * 0.6;
+  flash.scale.set(FLASH_BASE, FLASH_BASE, 1);
   flash.visible = false;
   flash.renderOrder = 3;
   scene.add(flash);
   let flashIndex = 0;
   let flashLife = 0;
+  const muzzleLight = new PointLight(0xfff1d0, 0, MUZZLE_LIGHT_DISTANCE, MUZZLE_LIGHT_DECAY);
+  scene.add(muzzleLight);
+  let lightLife = 0;
+  const tracerGeo = new BoxGeometry(1, 1, 1);
+  tracerGeo.translate(0, 0, 0.5);
+  const tracers = [];
+  for (let i = 0; i < TRACER_POOL; i += 1) {
+    const mesh = new Mesh(tracerGeo, new MeshBasicMaterial({
+      color: 0xffe9a8,
+      transparent: true,
+      blending: AdditiveBlending,
+      depthWrite: false,
+      toneMapped: false,
+    }));
+    mesh.frustumCulled = false;
+    mesh.visible = false;
+    mesh.renderOrder = 3;
+    mesh.raycast = () => {};
+    scene.add(mesh);
+    tracers.push({ mesh, life: 0 });
+  }
+  let tracerCursor = 0;
+  const shotHit = { ped: false, kill: false };
+  let blastPed = null;
 
   const puffMaterial = new SpriteMaterial({
     map: puffTextures[0],
@@ -371,12 +452,17 @@ export async function createPistol({
   const flights = [];
   const splashes = [];
 
-  const shot = new Audio(listener);
+  const SHOT_VOICES = 4;
+  const shotVoices = [];
+  for (let i = 0; i < SHOT_VOICES; i += 1) shotVoices.push(new Audio(listener));
+  let shotVoice = 0;
   const shotUrl = new URL("../assets/sound/pistol-shot.mp3", import.meta.url).href;
   new AudioLoader().load(shotUrl, (buffer) => {
-    shot.setBuffer(buffer);
-    shot.setLoop(false);
-    shot.setVolume(0.4);
+    for (let i = 0; i < shotVoices.length; i += 1) {
+      shotVoices[i].setBuffer(buffer);
+      shotVoices[i].setLoop(false);
+      shotVoices[i].setVolume(0.4);
+    }
   });
   const meleeHit = new Audio(listener);
   let meleeReady = false;
@@ -508,13 +594,16 @@ export async function createPistol({
   }
 
   function playShot(rate = 1) {
-    if (!shot.buffer) return;
+    const voice = shotVoices[shotVoice];
+    shotVoice = (shotVoice + 1) % shotVoices.length;
+    if (!voice.buffer) return;
     const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;
     if (!(master > 0)) return;
+    const playback = (rate > 0 ? rate : 1) * (1 + (Math.random() * 2 - 1) * 0.05);
     try {
-      if (shot.isPlaying) shot.stop();
-      shot.setPlaybackRate(rate > 0 ? rate : 1);
-      shot.play();
+      if (voice.isPlaying) voice.stop();
+      voice.setPlaybackRate(playback);
+      voice.play();
     } catch (error) {
       console.error("The gunshot failed to play", error);
     }
@@ -929,6 +1018,8 @@ export async function createPistol({
   }
 
   function strikeBat() {
+    shotHit.ped = false;
+    shotHit.kill = false;
     const from = player.mesh.position;
     const dirX = player.dirX;
     const dirZ = player.dirZ;
@@ -942,6 +1033,8 @@ export async function createPistol({
       if (!hurt) continue;
       killed = true;
       connected = true;
+      if (ped.dead) shotHit.kill = true;
+      pedestrians.shove(ped, ped.x - from.x, ped.z - from.z, heavySwing ? KNOCK_BAT_HEAVY : KNOCK_BAT, heavySwing && ped.dead);
       bleed(hurt);
     }
     if (traffic && traffic.cars && traffic.hit) {
@@ -952,7 +1045,13 @@ export async function createPistol({
         if (result && result.damaged) connected = true;
       }
     }
-    if (connected) playMeleeHit();
+    if (connected) {
+      playMeleeHit();
+      addShake(heavySwing ? SHAKE_BAT_HEAVY_HIT : SHAKE_BAT_HIT);
+      const freeze = heavySwing ? HITSTOP_BAT_HEAVY : HITSTOP_BAT;
+      hitStop(freeze + (shotHit.kill ? HITSTOP_KILL_BONUS : 0));
+      markHit(shotHit.kill);
+    }
     return killed;
   }
 
@@ -970,6 +1069,8 @@ export async function createPistol({
   }
 
   function strikePunch() {
+    shotHit.ped = false;
+    shotHit.kill = false;
     const from = player.mesh.position;
     const dirX = player.dirX;
     const dirZ = player.dirZ;
@@ -980,9 +1081,16 @@ export async function createPistol({
       const hurt = pedestrians.hurt(ped, ped.x - from.x, ped.z - from.z, dealt(PUNCH_DAMAGE * mult));
       if (!hurt) continue;
       connected = true;
+      if (ped.dead) shotHit.kill = true;
+      pedestrians.shove(ped, ped.x - from.x, ped.z - from.z, KNOCK_PUNCH, false);
       bleed(hurt);
     }
-    if (connected) playMeleeHit();
+    if (connected) {
+      playMeleeHit();
+      addShake(SHAKE_PUNCH_HIT);
+      hitStop(HITSTOP_PUNCH + (shotHit.kill ? HITSTOP_KILL_BONUS : 0));
+      markHit(shotHit.kill);
+    }
   }
 
   function beginThrow() {
@@ -1009,7 +1117,13 @@ export async function createPistol({
         if (pedHit) {
           const from = player.mesh.position;
           const hurt = pedestrians.hurt(pedHit, pedHit.x - from.x, pedHit.z - from.z, dealt(BOTTLE_DAMAGE));
-          if (hurt) bleed(hurt);
+          if (hurt) {
+            bleed(hurt);
+            pedestrians.shove(pedHit, pedHit.x - from.x, pedHit.z - from.z, KNOCK_BOTTLE, false);
+            addShake(SHAKE_BOTTLE_HIT);
+            hitStop(HITSTOP_BOTTLE + (pedHit.dead ? HITSTOP_KILL_BONUS : 0));
+            markHit(pedHit.dead);
+          }
         } else if (carHit && traffic.hit) {
           traffic.hit(carHit, dealt(BOTTLE_CAR_DAMAGE), "melee");
         }
@@ -1019,14 +1133,46 @@ export async function createPistol({
     }
   }
 
-  function showFlash() {
+  function showFlash(scale) {
     flashIndex = (flashIndex + 1) % flashTextures.length;
     flash.material.map = flashTextures[flashIndex];
     flash.material.needsUpdate = true;
     gunMuzzle().getWorldPosition(muzzlePos);
     flash.position.copy(muzzlePos);
+    const mul = feelOn() ? scale : 1;
+    flash.scale.set(FLASH_BASE * mul, FLASH_BASE * mul, 1);
     flash.visible = true;
     flashLife = FLASH_LIFE;
+    if (!feelOn()) return;
+    lightLife = MUZZLE_LIGHT_TIME;
+    muzzleLight.intensity = MUZZLE_LIGHT_INTENSITY;
+    muzzleLight.position.copy(muzzlePos);
+  }
+
+  function spawnTracer(x, y, z) {
+    if (!feelOn()) return;
+    const dx = x - muzzlePos.x;
+    const dy = y - muzzlePos.y;
+    const dz = z - muzzlePos.z;
+    const len = Math.hypot(dx, dy, dz);
+    if (len < 0.5) return;
+    const slot = tracers[tracerCursor];
+    tracerCursor = (tracerCursor + 1) % tracers.length;
+    const mesh = slot.mesh;
+    mesh.position.copy(muzzlePos);
+    mesh.lookAt(x, y, z);
+    mesh.scale.set(TRACER_WIDTH, TRACER_WIDTH, len);
+    mesh.material.opacity = 1;
+    mesh.visible = true;
+    slot.life = TRACER_TIME;
+  }
+
+  function traceMiss(flat, range) {
+    spawnTracer(
+      muzzlePos.x + flat.x * range,
+      muzzlePos.y,
+      muzzlePos.z + flat.z * range,
+    );
   }
 
   function scareCrowd() {
@@ -1035,6 +1181,67 @@ export async function createPistol({
     if (pedestrians.scare) {
       pedestrians.scare(player.mesh.position.x, player.mesh.position.z);
     }
+  }
+
+  function readAim() {
+    const ray = aimRay();
+    if (aimDir && Math.hypot(aimDir.x, aimDir.z) > 0) {
+      flatAim.x = ray.direction.x;
+      flatAim.z = ray.direction.z;
+      flatAim.dist = 0;
+      return flatAim;
+    }
+    const planeY = player.mesh.position.y + AIM_CHEST_Y;
+    const dirY = ray.direction.y;
+    const px = player.mesh.position.x;
+    const pz = player.mesh.position.z;
+    if (Math.abs(dirY) > 1e-8) {
+      const t = (planeY - ray.origin.y) / dirY;
+      if (t > 0) {
+        aimPoint.set(
+          ray.origin.x + ray.direction.x * t,
+          planeY,
+          ray.origin.z + ray.direction.z * t,
+        );
+        const hx = aimPoint.x - px;
+        const hz = aimPoint.z - pz;
+        const dist = Math.hypot(hx, hz);
+        if (dist > 1e-4) {
+          flatAim.x = hx / dist;
+          flatAim.z = hz / dist;
+          flatAim.dist = dist;
+          return flatAim;
+        }
+      }
+    }
+    const flat = Math.hypot(ray.direction.x, ray.direction.z) || 1;
+    flatAim.x = ray.direction.x / flat;
+    flatAim.z = ray.direction.z / flat;
+    flatAim.dist = 0;
+    return flatAim;
+  }
+
+  function spreadShot(aim, origin, spreadDeg) {
+    const f = spreadFlat(aim.x, aim.z, spreadDeg);
+    const ray = raycaster.ray;
+    ray.origin.copy(origin);
+    if (aim.dist > 0) {
+      aimPoint.set(
+        player.mesh.position.x + f.x * aim.dist,
+        player.mesh.position.y + AIM_CHEST_Y,
+        player.mesh.position.z + f.z * aim.dist,
+      );
+      aimPoint.sub(origin);
+      if (aimPoint.lengthSq() > 1e-8) aimPoint.normalize();
+      else aimPoint.set(f.x, 0, f.z);
+    } else {
+      aimPoint.set(f.x, 0, f.z);
+    }
+    ray.direction.copy(aimPoint);
+    return {
+      dir: { x: aimPoint.x, y: aimPoint.y, z: aimPoint.z },
+      flat: f,
+    };
   }
 
   function aimRay() {
@@ -1051,10 +1258,26 @@ export async function createPistol({
     return ray;
   }
 
-  function shootAlong(dir, range, damage, markCar) {
+  function boxHit(ped, range) {
+    if (!ped || !ped.live) return null;
+    const ray = raycaster.ray;
+    ped.live.holder.updateWorldMatrix(true, true);
+    pedBox.setFromObject(ped.live.holder);
+    if (!ray.intersectBox(pedBox, pedHit)) return null;
+    const t = pedHit.distanceTo(ray.origin);
+    const from = player.mesh.position;
+    if (Math.hypot(ped.x - from.x, ped.z - from.z) > range) return null;
+    return { ped, t };
+  }
+
+  function shootAlong(dir, range, damage, markCar, knock, killBoost, flat) {
     const ray = raycaster.ray;
     ray.direction.set(dir.x, dir.y, dir.z);
-    const hit = pickTarget(range);
+    let hit = pickTarget(range);
+    if (killBoost && blastPed) {
+      const body = boxHit(blastPed, range);
+      if (body && (!hit || body.t <= hit.t)) hit = body;
+    }
     const car = nearestCar(ray);
     const from = player.mesh.position;
     const carInRange = car && Math.hypot(car.x - from.x, car.z - from.z) <= range;
@@ -1063,14 +1286,38 @@ export async function createPistol({
         carHitAt(car.x, car.y, car.z);
         if (traffic.bulletHit && car.car) traffic.bulletHit(car.car, dealt(PISTOL_CAR_DAMAGE), car.x, car.z);
       }
+      spawnTracer(car.x, car.y, car.z);
       return "car";
     }
     if (hit) {
+      if (killBoost) blastPed = hit.ped;
       const hurt = pedestrians.hurt(hit.ped, hit.ped.x - from.x, hit.ped.z - from.z, dealt(damage));
-      if (hurt) bleed(hurt);
+      const awayX = hit.ped.x - from.x;
+      const awayZ = hit.ped.z - from.z;
+      if (hurt) {
+        bleed(hurt);
+        pedestrians.shove(hit.ped, awayX, awayZ, knock, Boolean(killBoost) && hit.ped.dead);
+        shotHit.ped = true;
+        if (hit.ped.dead) shotHit.kill = true;
+        spawnTracer(hurt.x, hurt.y, hurt.z);
+      } else if (killBoost && hit.ped.dead) {
+        pedestrians.shove(hit.ped, awayX, awayZ, knock, true);
+        shotHit.ped = true;
+        shotHit.kill = true;
+        spawnTracer(hit.ped.x, muzzlePos.y, hit.ped.z);
+      } else {
+        spawnTracer(hit.ped.x, muzzlePos.y, hit.ped.z);
+      }
       return "ped";
     }
+    traceMiss(flat, range);
     return "";
+  }
+
+  function noteGunHit(kind) {
+    if (kind === "car") markHit(false);
+    if (!shotHit.ped) return;
+    markHit(shotHit.kill);
   }
 
   function firePistol() {
@@ -1079,12 +1326,20 @@ export async function createPistol({
     shootLeft = SHOT_TIME;
     poseLeft = SHOT_POSE;
     player.kickPose("pistolShoot");
+    pistolKick = 0;
+    shotHit.ped = false;
+    shotHit.kill = false;
     const ray = aimRay();
     const dir = { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z };
-    showFlash();
+    const aim = readAim();
+    showFlash(FLASH_SCALE_PISTOL);
+    addShake(SHAKE_PISTOL);
     playShot(1);
     scareCrowd();
-    if (!shootAlong(dir, PISTOL_RANGE, PISTOL_DAMAGE, true) && traffic.playBulletWorldHitSound) {
+    const kind = shootAlong(dir, PISTOL_RANGE, PISTOL_DAMAGE, true, KNOCK_PISTOL, false, aim);
+    if (shotHit.ped) hitStop(HITSTOP_PISTOL_HIT + (shotHit.kill ? HITSTOP_KILL_BONUS : 0));
+    noteGunHit(kind);
+    if (!kind && traffic.playBulletWorldHitSound) {
       const world = nearestWorldHit(PISTOL_RANGE);
       if (world) traffic.playBulletWorldHitSound(world.x, world.z);
     }
@@ -1097,12 +1352,20 @@ export async function createPistol({
     shootLeft = 1 / SMG_FIRE_RATE;
     poseLeft = SHOT_POSE;
     player.kickPose("pistolShoot");
+    smgKick = 0;
+    smgSide = Math.random() * 2 - 1;
+    shotHit.ped = false;
+    shotHit.kill = false;
     const ray = aimRay();
-    const dir = spreadDirection(ray.direction.x, ray.direction.y, ray.direction.z, SMG_SPREAD_DEG);
-    showFlash();
+    const origin = ray.origin.clone();
+    const bullet = spreadShot(readAim(), origin, SMG_SPREAD_DEG);
+    showFlash(FLASH_SCALE_SMG);
+    addShake(SHAKE_SMG);
     playShot(1);
     scareCrowd();
-    if (!shootAlong(dir, SMG_RANGE, SMG_DAMAGE, true) && traffic.playBulletWorldHitSound) {
+    const kind = shootAlong(bullet.dir, SMG_RANGE, SMG_DAMAGE, true, KNOCK_SMG, false, bullet.flat);
+    noteGunHit(kind);
+    if (!kind && traffic.playBulletWorldHitSound) {
       const world = nearestWorldHit(SMG_RANGE);
       if (world) traffic.playBulletWorldHitSound(world.x, world.z);
     }
@@ -1116,20 +1379,31 @@ export async function createPistol({
     poseLeft = SHOT_POSE;
     player.kickPose("pistolShoot");
     kickAge = 0;
+    blastPed = null;
+    shotHit.ped = false;
+    shotHit.kill = false;
     const ray = aimRay();
+    const origin = ray.origin.clone();
     const base = { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z };
-    showFlash();
+    const read = readAim();
+    const aim = { x: read.x, z: read.z, dist: read.dist };
+    showFlash(FLASH_SCALE_SHOTGUN);
+    addShake(SHAKE_SHOTGUN);
+    requestPlayerPush(-aim.x, -aim.z, SHOTGUN_PLAYER_PUSH);
     playShot(0.7);
     scareCrowd();
     let any = false;
     let carMarked = false;
     for (let i = 0; i < SHOTGUN_PELLETS; i += 1) {
-      const dir = spreadDirection(base.x, base.y, base.z, SHOTGUN_SPREAD_DEG);
-      const kind = shootAlong(dir, SHOTGUN_RANGE, SHOTGUN_PELLET_DAMAGE, !carMarked);
+      const bullet = spreadShot(aim, origin, SHOTGUN_SPREAD_DEG);
+      const kind = shootAlong(bullet.dir, SHOTGUN_RANGE, SHOTGUN_PELLET_DAMAGE, !carMarked, KNOCK_SHOTGUN_PELLET, true, bullet.flat);
       if (kind === "car") carMarked = true;
       if (kind) any = true;
     }
+    if (shotHit.ped) hitStop(HITSTOP_SHOTGUN_HIT + (shotHit.kill ? HITSTOP_KILL_BONUS : 0));
+    if (shotHit.ped || carMarked) markHit(shotHit.kill);
     if (!any && traffic.playBulletWorldHitSound) {
+      ray.origin.copy(origin);
       ray.direction.set(base.x, base.y, base.z);
       const world = nearestWorldHit(SHOTGUN_RANGE);
       if (world) traffic.playBulletWorldHitSound(world.x, world.z);
@@ -1370,6 +1644,10 @@ export async function createPistol({
       if (shootLeft > 0) shootLeft = Math.max(0, shootLeft - step);
       if (poseLeft > 0) poseLeft = Math.max(0, poseLeft - step);
       if (kickAge < SHOTGUN_KICK_RETURN) kickAge = Math.min(SHOTGUN_KICK_RETURN, kickAge + step);
+      if (pistolKick < PISTOL_KICK_RETURN) pistolKick = Math.min(PISTOL_KICK_RETURN, pistolKick + step);
+      if (smgKick < SMG_KICK_RETURN) smgKick = Math.min(SMG_KICK_RETURN, smgKick + step);
+      let killed = false;
+      if (weapon === "scorpion" && trigger && aiming && !busy()) fireSmg();
       const kick = kickBlend(kickAge);
       shotgunRoot.position.set(
         SHOTGUN_HAND[0],
@@ -1381,8 +1659,20 @@ export async function createPistol({
         SHOTGUN_EULER[1],
         SHOTGUN_EULER[2],
       );
-      let killed = false;
-      if (weapon === "scorpion" && trigger && aiming && !busy()) fireSmg();
+      const pistolBlend = kickBlend(pistolKick, PISTOL_KICK_RETURN);
+      grip.position.set(0, 0.205 - pistolBlend * PISTOL_KICK_BACK, -0.089);
+      grip.rotation.set(pistolBlend * PISTOL_KICK_UP_DEG * Math.PI / 180, 0, Math.PI / 2);
+      const smgBlend = kickBlend(smgKick, SMG_KICK_RETURN);
+      smgRoot.position.set(
+        SMG_HAND[0],
+        SMG_HAND[1] - smgBlend * SMG_KICK_BACK,
+        SMG_HAND[2],
+      );
+      smgRoot.rotation.set(
+        SMG_EULER[0] + smgBlend * SMG_KICK_UP_DEG * Math.PI / 180,
+        SMG_EULER[1],
+        SMG_EULER[2] + smgBlend * smgSide * SMG_KICK_SIDE_DEG * Math.PI / 180,
+      );
       if (swinging && weapon === "bat") {
         const prev = swingAge;
         swingAge += step;
@@ -1425,11 +1715,13 @@ export async function createPistol({
       canvas.style.cursor = busy() ? "" : "none";
       const show = pointer && !busy();
       crosshair.hidden = !show;
+      if (!show) crosshair.style.filter = "";
       if (show) {
         crosshair.style.left = `${mouseX}px`;
         crosshair.style.top = `${mouseY}px`;
-        const scale = 1 - aimBlend * 0.42;
+        const scale = (1 - aimBlend * 0.42) * crosshairScale();
         crosshair.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        crosshair.style.filter = crosshairScale() > 1 ? "sepia(1) saturate(7) hue-rotate(-20deg)" : "";
         small.style.opacity = String(aimBlend);
         big.style.opacity = String(1 - aimBlend);
       }
@@ -1437,6 +1729,27 @@ export async function createPistol({
         flashLife -= step;
         gunMuzzle().getWorldPosition(flash.position);
         if (flashLife <= 0) flash.visible = false;
+      }
+      if (lightLife > 0) {
+        lightLife -= step;
+        if (lightLife <= 0 || !feelOn()) {
+          lightLife = 0;
+          muzzleLight.intensity = 0;
+        } else {
+          muzzleLight.intensity = MUZZLE_LIGHT_INTENSITY * (lightLife / MUZZLE_LIGHT_TIME);
+          muzzleLight.position.copy(muzzlePos);
+        }
+      }
+      for (let i = 0; i < tracers.length; i += 1) {
+        const slot = tracers[i];
+        if (slot.life <= 0) continue;
+        slot.life -= step;
+        if (slot.life <= 0 || !feelOn()) {
+          slot.life = 0;
+          slot.mesh.visible = false;
+        } else {
+          slot.mesh.material.opacity = slot.life / TRACER_TIME;
+        }
       }
       for (let i = splashes.length - 1; i >= 0; i -= 1) {
         const splash = splashes[i];

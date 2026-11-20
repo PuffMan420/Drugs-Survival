@@ -1,7 +1,9 @@
 import {
   Box3,
   BufferAttribute,
+  DoubleSide,
   Group,
+  MeshLambertMaterial,
   SkinnedMesh,
   Vector3,
 } from "three";
@@ -11,8 +13,8 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 // Library 1 skeleton (UAL bone names: root, pelvis, spine_01..03, neck_01,
 // Head, clavicle/upperarm/lowerarm/hand_l/_r, thigh/calf/foot/ball_l/_r).
 // Every file carries the same UAL1 clips under the same names.
-// The player is MainCharacter_v1. Crowd and cops stay on the modular files.
-export const PLAYER_MODEL = "../06 Player Character/Main Character/MainCharacter_v1.glb";
+// The player is MainCharacter_v1 in the Medium + leaf style. Crowd and cops stay on the modular files.
+export const PLAYER_MODEL = "../06 Player Character/Main Character/MainCharacter_v1_medium_leaf_v3.glb";
 export const PED_MODELS = [
   "../06 Player Character/Modular/men_Casual_Hoodie_UAL.glb",
   "../06 Player Character/Modular/women_Casual_UAL.glb",
@@ -76,13 +78,41 @@ export function matteMaterials(root) {
   });
 }
 
+// A textured part (the player's leaf print) keeps its picture: a matte,
+// see-through Lambert with the file's own map, on the same skeleton.
+function texturedPartMaterial(source) {
+  return new MeshLambertMaterial({
+    map: source.map,
+    color: source.color.clone(),
+    transparent: true,
+    alphaTest: 0.02,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+    fog: false,
+    side: DoubleSide,
+  });
+}
+
 // One skinned mesh per figure instead of ten: each part's color goes into a
 // vertex color, and its slot into pedSlot, so a pedestrian is one draw call.
+// If a part has its own vertex colors (COLOR_0), those times the material
+// color are used. Parts with a texture stay out of the merge as their own
+// skinned mesh, so the picture still shows.
 export function mergeFigure(root, material) {
   const parts = [];
   root.updateMatrixWorld(true);
   root.traverse((obj) => {
-    if (obj.isSkinnedMesh) parts.push(obj);
+    if (!obj.isSkinnedMesh) return;
+    const source = Array.isArray(obj.material) ? obj.material[0] : obj.material;
+    if (source && source.map) {
+      obj.material = texturedPartMaterial(source);
+      obj.frustumCulled = false;
+      obj.renderOrder = 2;
+      return;
+    }
+    parts.push(obj);
   });
   if (!parts.length) throw new Error("The character file has no skinned mesh.");
   const first = parts[0];
@@ -92,6 +122,9 @@ export function mergeFigure(root, material) {
       ? mesh.parent.name
       : mesh.name;
     const geometry = mesh.geometry.clone();
+    // COLOR_0 may be vec3 or vec4 and normalized bytes or shorts; getX/Y/Z
+    // return plain floats either way, and alpha is dropped.
+    const own = geometry.attributes.color || null;
     for (const name of Object.keys(geometry.attributes)) {
       if (!["position", "normal", "skinIndex", "skinWeight"].includes(name)) geometry.deleteAttribute(name);
     }
@@ -101,9 +134,9 @@ export function mergeFigure(root, material) {
     const color = source.color;
     const slot = slotFor(partName, source.name || "");
     for (let i = 0; i < count; i += 1) {
-      colors[i * 3] = color.r;
-      colors[i * 3 + 1] = color.g;
-      colors[i * 3 + 2] = color.b;
+      colors[i * 3] = own ? own.getX(i) * color.r : color.r;
+      colors[i * 3 + 1] = own ? own.getY(i) * color.g : color.g;
+      colors[i * 3 + 2] = own ? own.getZ(i) * color.b : color.b;
       slots[i] = slot;
     }
     geometry.setAttribute("color", new BufferAttribute(colors, 3));

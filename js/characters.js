@@ -14,7 +14,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 // Head, clavicle/upperarm/lowerarm/hand_l/_r, thigh/calf/foot/ball_l/_r).
 // Every file carries the same UAL1 clips under the same names.
 // The player is the hoodie criminal (hood down). Crowd uses the two casual modular files plus the four new concept models. Cops stay on their own files.
-export const PLAYER_MODEL = "../06 Player Character/Modular/men_Hoodie_criminal_UAL.glb";
+export const PLAYER_MODEL = "../06 Player Character/Main Character/MainCharacter_v1_medium_leaf_v3.glb";
 export const PED_MODELS = [
   "../06 Player Character/Modular/men_Casual_Hoodie_UAL.glb",
   "../06 Player Character/Modular/women_Casual_UAL.glb",

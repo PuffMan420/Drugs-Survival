@@ -73,13 +73,19 @@ const UPPER_BODY = new Set([
   "swordHeavy",
   "hitChest",
   "hitHead",
+  // Two-handed shotgun (Kevin Iglesias rifle aim and shoot, retargeted). The
+  // clips only carry the spine, head, and arms, so the gait always keeps the legs.
+  // Carry is Kevin's WeaponHold_Rifle01.
+  "shotgunHold",
+  "shotgunAim",
+  "shotgunShoot",
 ]);
 
 // Jump_Start is 1.33s; speed it up so the hop into a car stays snappy.
 export const JUMP_MAX = 0.35;
 // After a flinch, wait at least this long before another. Hit_Head is 0.42s.
 export const HIT_REACT_COOLDOWN = 0.5;
-export const GUN_PRIORITY = new Set(["pistolShoot", "pistolReload"]);
+export const GUN_PRIORITY = new Set(["pistolShoot", "pistolReload", "shotgunShoot"]);
 
 export function clipSpeedForMax(duration, max) {
   const d = Number(duration) || 0;
@@ -115,7 +121,15 @@ export function pistolPose({
   if (weapon === "bottle") return shooting ? "overhandThrow" : "";
   // Sword idle until a light combo swing or the heavy swing.
   if (weapon === "bat") return shooting ? (swing || "swordRegularA") : "swordIdle";
-  // Pistol, scorpion, and shotgun share the pistol poses.
+  // The shotgun stays in both hands on its own clips: carry (also while
+  // reloading; the left hand loads shells on top of it), aim, and shoot.
+  if (weapon === "shotgun") {
+    if (reloading) return "shotgunHold";
+    if (shooting) return "shotgunShoot";
+    if (aiming) return "shotgunAim";
+    return "shotgunHold";
+  }
+  // Pistol and scorpion share the pistol poses.
   if (reloading) return "pistolReload";
   if (shooting) return "pistolShoot";
   if (aiming) return "pistolAim";

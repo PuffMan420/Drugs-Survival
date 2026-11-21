@@ -54,20 +54,38 @@ import {
   SMG_SPREAD_DEG,
 } from "./smg.js";
 import {
+  SHOTGUN_CARRY_GRIP,
+  SHOTGUN_CARRY_PITCH_DEG,
+  SHOTGUN_CARRY_PUMP_X,
+  SHOTGUN_CARRY_YAW_DEG,
   SHOTGUN_EULER,
   SHOTGUN_FIRE_DELAY,
+  SHOTGUN_GRIP,
   SHOTGUN_HAND,
   SHOTGUN_KICK_BACK,
   SHOTGUN_KICK_RETURN,
   SHOTGUN_KICK_UP_DEG,
+  SHOTGUN_LENGTH_SCALE,
   SHOTGUN_MAG,
   SHOTGUN_MUZZLE,
   SHOTGUN_PELLET_DAMAGE,
+  SHOTGUN_PALM_OFFSET,
   SHOTGUN_PELLETS,
+  SHOTGUN_PORT,
+  SHOTGUN_PORT_DROP,
+  SHOTGUN_PUMP,
+  SHOTGUN_PUMP_MIN_X,
+  SHOTGUN_PUMP_TRAVEL,
   SHOTGUN_RANGE,
+  SHOTGUN_RELOAD_ROLL_DEG,
+  SHOTGUN_RIFLE_KICK,
   SHOTGUN_SCALE,
   SHOTGUN_SPREAD_DEG,
+  SHOTGUN_THICK_SCALE,
+  carryDirection,
   kickBlend,
+  pumpSlide,
+  reloadHand,
   spreadFlat,
 } from "./shotgun.js";
 import {
@@ -304,9 +322,51 @@ export async function createPistol({
   const smgMuzzle = new Object3D();
   smgMuzzle.position.set(SMG_MUZZLE[0], SMG_MUZZLE[1], SMG_MUZZLE[2]);
   smgRoot.children[0].add(smgMuzzle);
+  // Bigger shotgun, scaled around the grip point so the hand still holds the stock wrist.
+  const shotgunMesh = shotgunRoot.children[0];
+  shotgunMesh.scale.set(SHOTGUN_LENGTH_SCALE, SHOTGUN_THICK_SCALE, SHOTGUN_THICK_SCALE);
+  shotgunMesh.position.set(
+    SHOTGUN_GRIP[0] * (1 - SHOTGUN_LENGTH_SCALE),
+    SHOTGUN_GRIP[1] * (1 - SHOTGUN_THICK_SCALE),
+    SHOTGUN_GRIP[2] * (1 - SHOTGUN_THICK_SCALE),
+  );
   const shotgunMuzzle = new Object3D();
   shotgunMuzzle.position.set(SHOTGUN_MUZZLE[0], SHOTGUN_MUZZLE[1], SHOTGUN_MUZZLE[2]);
   shotgunRoot.children[0].add(shotgunMuzzle);
+  // The brown pump is one primitive with the stock. Split its triangles (all
+  // corners past SHOTGUN_PUMP_MIN_X) into their own mesh so it can slide.
+  let shotgunPump = null;
+  shotgunMesh.traverse((obj) => {
+    if (shotgunPump || !obj.isMesh || !obj.geometry.index) return;
+    if (!/brown/i.test(obj.material && obj.material.name)) return;
+    const pos = obj.geometry.attributes.position;
+    const index = obj.geometry.index.array;
+    const keep = [];
+    const pump = [];
+    for (let i = 0; i < index.length; i += 3) {
+      const a = index[i];
+      const b = index[i + 1];
+      const c = index[i + 2];
+      const inPump = pos.getX(a) > SHOTGUN_PUMP_MIN_X && pos.getX(b) > SHOTGUN_PUMP_MIN_X && pos.getX(c) > SHOTGUN_PUMP_MIN_X;
+      (inPump ? pump : keep).push(a, b, c);
+    }
+    if (!pump.length || !keep.length) return;
+    const pumpGeometry = obj.geometry.clone();
+    pumpGeometry.setIndex(pump);
+    obj.geometry.setIndex(keep);
+    shotgunPump = new Mesh(pumpGeometry, obj.material);
+    shotgunPump.name = "shotgun_pump";
+    shotgunPump.frustumCulled = false;
+    shotgunPump.position.copy(obj.position);
+    shotgunPump.quaternion.copy(obj.quaternion);
+    shotgunPump.scale.copy(obj.scale);
+    shotgunPump.userData.restX = obj.position.x;
+    obj.parent.add(shotgunPump);
+  });
+  // Seconds since the last shotgun blast; drives the pump slide.
+  let pumpAge = 10;
+  // Shells going in on this reload (one push each).
+  let reloadShells = 1;
   hand.add(smgRoot);
   const smgBaseQuat = smgRoot.quaternion.clone();
   const smgKickQuat = new Quaternion();
@@ -314,8 +374,209 @@ export async function createPistol({
   hand.add(shotgunRoot);
   const shotgunBaseQuat = shotgunRoot.quaternion.clone();
   const shotgunKickQuat = new Quaternion();
-  // Kick axis: turns the barrel (hand +Y) toward the gun's top, whatever its roll.
-  const shotgunKickAxis = new Vector3(Math.sin(SHOTGUN_EULER[1]), 0, Math.cos(SHOTGUN_EULER[1]));
+  // Two-handed hold. Grip and pump in the root's scaled frame (mesh offset and
+  // scale applied, then the root scale), so a turn of the root maps them to hand space.
+  const meshToRoot = (p) => new Vector3(p[0], p[1], p[2])
+    .multiply(shotgunMesh.scale).add(shotgunMesh.position).multiply(shotgunRoot.scale);
+  const sgGrip = meshToRoot(SHOTGUN_GRIP);
+  const sgPump = meshToRoot(SHOTGUN_PUMP);
+  // Where the right fist holds the stock wrist in the one-handed hold, in hand
+  // space. The two-handed hold keeps this point in the fist.
+  const sgFist = sgGrip.clone().applyQuaternion(shotgunBaseQuat)
+    .add(new Vector3(SHOTGUN_HAND[0], SHOTGUN_HAND[1], SHOTGUN_HAND[2]));
+  const sgRestPos = new Vector3(SHOTGUN_HAND[0], SHOTGUN_HAND[1], SHOTGUN_HAND[2]);
+  const sgBones = ["hand_l", "middle_01_l", "middle_03_l", "index_01_l", "pinky_01_l"]
+    .map((name) => player.model.getObjectByName(name));
+  const sgHasLeft = sgBones.every(Boolean);
+  const sgTmp = [new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3()];
+  const sgPalm = new Vector3();
+  const sgPalmOffset = new Vector3();
+  const sgTarget = new Vector3();
+  const sgPort = new Vector3();
+  const sgUp = new Vector3();
+  const sgAlong = new Vector3();
+  const sgSide = new Vector3();
+  const sgBarrel = new Vector3();
+  const sgPos = new Vector3();
+  const sgQuat = new Quaternion();
+  const sgHandQuat = new Quaternion();
+  const sgBasis = new Matrix4();
+  const sgFrom = new Matrix4();
+  // Gun frame: the stock-wrist-to-pump line and the gun's top (+Y).
+  {
+    const along = sgPump.clone().sub(sgGrip).normalize();
+    const up = new Vector3(0, 1, 0).addScaledVector(along, -along.y).normalize();
+    sgFrom.makeBasis(along, up, along.clone().cross(up)).invert();
+  }
+    // Two-bone reach (upper arm and forearm; the hand keeps its world turn) on
+  // one arm. The spine is never touched. The left arm puts the palm on the
+  // pump; in the carry the right arm also carries the gun to the low ready.
+  // The mixer only writes a bone when its clip value changes, so on a still
+  // clip (the carry) last frame's reach would stay on the arm and feed back.
+  // undo() puts the clip's own turns back first.
+  const ikS = new Vector3();
+  const ikE = new Vector3();
+  const ikW = new Vector3();
+  const ikT = new Vector3();
+  const ikN = new Vector3();
+  const ikA = new Vector3();
+  const ikB = new Vector3();
+  const ikC = new Vector3();
+  const ikUpper = new Quaternion();
+  const ikLower = new Quaternion();
+  const ikHand = new Quaternion();
+  const ikParent = new Quaternion();
+  const ikSwing = new Quaternion();
+  const ikSwing2 = new Quaternion();
+  function armReach(side) {
+    const bones = ["upperarm", "lowerarm", "hand"].map((name) => player.model.getObjectByName(`${name}_${side}`));
+    const ok = bones.every(Boolean);
+    const clip = bones.map(() => new Quaternion());
+    const done = bones.map(() => new Quaternion());
+    let applied = false;
+    return {
+      ok,
+      bones,
+      undo() {
+        if (!applied) return;
+        applied = false;
+        for (let i = 0; i < bones.length; i += 1) {
+          // Untouched by the mixer since the reach: back to the clip's turn.
+          if (bones[i].quaternion.equals(done[i])) bones[i].quaternion.copy(clip[i]);
+        }
+      },
+      // Remember the clip's turns (call before changing any of these bones).
+      keep() {
+        if (applied) return;
+        for (let i = 0; i < bones.length; i += 1) clip[i].copy(bones[i].quaternion);
+        applied = true;
+        for (let i = 0; i < bones.length; i += 1) done[i].copy(bones[i].quaternion);
+      },
+      // target: world point for the wrist (hand bone origin).
+      reach(weight, target) {
+        if (!ok) return;
+        this.keep();
+        const [upper, lower, wristBone] = bones;
+        upper.getWorldPosition(ikS);
+        lower.getWorldPosition(ikE);
+        wristBone.getWorldPosition(ikW);
+        ikT.copy(target).sub(ikW).multiplyScalar(weight).add(ikW);
+        const a = ikS.distanceTo(ikE);
+        const b = ikE.distanceTo(ikW);
+        ikA.copy(ikE).sub(ikS);
+        ikB.copy(ikW).sub(ikS);
+        ikN.copy(ikA).cross(ikB);
+        if (ikN.lengthSq() < 1e-8 || a < 1e-6 || b < 1e-6) return;
+        ikN.normalize();
+        ikB.copy(ikT).sub(ikS);
+        const d = Math.min(a + b - 1e-4, Math.max(Math.abs(a - b) + 1e-4, ikB.length()));
+        const cosA = Math.min(1, Math.max(-1, (a * a + d * d - b * b) / (2 * a * d)));
+        // New elbow: in the arm's old bend plane, on the same side as before.
+        ikB.normalize().applyAxisAngle(ikN, -Math.acos(cosA)).multiplyScalar(a).add(ikS);
+        upper.getWorldQuaternion(ikUpper);
+        lower.getWorldQuaternion(ikLower);
+        wristBone.getWorldQuaternion(ikHand);
+        upper.parent.getWorldQuaternion(ikParent);
+        // ikA: old upper arm, ikC: new upper arm. Then the forearm, already carried
+        // by that swing (ikA), onto the target from the new elbow (ikC).
+        ikA.normalize();
+        ikC.copy(ikB).sub(ikS).normalize();
+        ikSwing.setFromUnitVectors(ikA, ikC);
+        ikA.copy(ikW).sub(ikE).applyQuaternion(ikSwing).normalize();
+        ikC.copy(ikT).sub(ikB).normalize();
+        ikSwing2.setFromUnitVectors(ikA, ikC);
+        ikUpper.premultiply(ikSwing);
+        ikLower.premultiply(ikSwing).premultiply(ikSwing2);
+        upper.quaternion.copy(ikParent.invert().multiply(ikUpper));
+        lower.quaternion.copy(ikUpper.invert().multiply(ikLower));
+        wristBone.quaternion.copy(ikLower.invert().multiply(ikHand));
+        upper.updateMatrixWorld(true);
+        for (let i = 0; i < bones.length; i += 1) done[i].copy(bones[i].quaternion);
+      },
+      // Turn the hand to a world rotation (blended by weight), wrist in place.
+      turnHand(weight, world) {
+        if (!ok) return;
+        this.keep();
+        const wristBone = bones[2];
+        wristBone.getWorldQuaternion(ikHand).slerp(world, weight);
+        wristBone.parent.getWorldQuaternion(ikParent);
+        wristBone.quaternion.copy(ikParent.invert().multiply(ikHand));
+        wristBone.updateMatrixWorld(true);
+        for (let i = 0; i < bones.length; i += 1) done[i].copy(bones[i].quaternion);
+      },
+    };
+  }
+  const leftArm = armReach("l");
+  const rightArm = armReach("r");
+  const sgChest = player.model.getObjectByName("spine_03");
+  const sgCarryDir = new Vector3();
+  const sgCarryUp = new Vector3();
+  const sgCarryGrip = new Vector3();
+  const sgCarryQuat = new Quaternion();
+  const sgFacing = new Quaternion();
+  const sgWorldTmp = new Vector3();
+  const sgBaseInv = shotgunBaseQuat.clone().invert();
+  // The low ready, in world space: writes sgCarryGrip (where the fist closes on
+  // the stock wrist) and sgCarryQuat (the gun root's world turn). roll: radians
+  // about the barrel, the port turning toward his left hand.
+  function carryPose(roll) {
+    player.mesh.getWorldQuaternion(sgFacing);
+    const dir = carryDirection(SHOTGUN_CARRY_YAW_DEG, SHOTGUN_CARRY_PITCH_DEG);
+    sgCarryDir.set(dir[0], dir[1], dir[2]).applyQuaternion(sgFacing);
+    sgCarryUp.set(0, 1, 0).addScaledVector(sgCarryDir, -sgCarryDir.y).normalize();
+    if (roll) sgCarryUp.applyAxisAngle(sgCarryDir, roll);
+    sgBasis.makeBasis(sgCarryDir, sgCarryUp, sgWorldTmp.copy(sgCarryDir).cross(sgCarryUp));
+    sgCarryQuat.setFromRotationMatrix(sgBasis.multiply(sgFrom));
+    sgChest.getWorldPosition(sgCarryGrip);
+    sgWorldTmp.set(SHOTGUN_CARRY_GRIP[0], SHOTGUN_CARRY_GRIP[1], SHOTGUN_CARRY_GRIP[2]).applyQuaternion(sgFacing);
+    sgCarryGrip.add(sgWorldTmp);
+  }
+  const sgHandWorld = new Quaternion();
+  const sgSocketInv = hand.quaternion.clone().invert();
+  const sgFistWorld = new Vector3();
+  const sgWrist = new Vector3();
+  // Right arm to the low ready, by weight: the hand takes the one-handed
+  // grip's turn on a gun at carryPose, then the arm carries the fist there.
+  function rightToCarry(weight, roll) {
+    carryPose(roll);
+    // Gun root world = socket world * base, so socket world = gun * base^-1,
+    // and the hand bone = socket world * socket^-1.
+    sgHandWorld.copy(sgCarryQuat).multiply(sgBaseInv).multiply(sgSocketInv);
+    rightArm.turnHand(weight, sgHandWorld);
+    hand.updateMatrixWorld(true);
+    sgFistWorld.copy(sgFist);
+    hand.localToWorld(sgFistWorld);
+    rightArm.bones[2].getWorldPosition(sgWrist);
+    sgCarryGrip.sub(sgFistWorld).add(sgWrist);
+    rightArm.reach(weight, sgCarryGrip);
+  }
+  // Turns the shotgun about the right fist so the pump sits in the left palm of
+  // the current pose, top up. Writes sgPos and sgQuat (hand space).
+  function twoHandedGrip() {
+    player.mesh.updateWorldMatrix(true, true);
+    const [wrist, knuckle, tip, index, pinky] = sgTmp;
+    sgBones[0].getWorldPosition(wrist);
+    sgBones[1].getWorldPosition(knuckle);
+    sgBones[2].getWorldPosition(tip);
+    sgBones[3].getWorldPosition(index);
+    sgBones[4].getWorldPosition(pinky);
+    // Palm side: across the knuckles crossed with the fingers, flipped toward
+    // where the curled fingertips are.
+    sgAlong.copy(knuckle).sub(wrist);
+    const length = sgAlong.length();
+    sgSide.copy(index).sub(pinky).cross(sgAlong).normalize();
+    if (sgSide.dot(tip.sub(knuckle)) < 0) sgSide.negate();
+    sgPalm.copy(wrist).add(knuckle).multiplyScalar(0.5).addScaledVector(sgSide, SHOTGUN_PALM_OFFSET * length);
+    sgPalmOffset.copy(sgPalm).sub(wrist);
+    hand.worldToLocal(sgPalm);
+    hand.getWorldQuaternion(sgHandQuat).invert();
+    sgUp.set(0, 1, 0).applyQuaternion(sgHandQuat);
+    sgAlong.copy(sgPalm).sub(sgFist).normalize();
+    sgUp.addScaledVector(sgAlong, -sgUp.dot(sgAlong)).normalize();
+    sgBasis.makeBasis(sgAlong, sgUp, sgSide.copy(sgAlong).cross(sgUp));
+    sgQuat.setFromRotationMatrix(sgBasis.multiply(sgFrom));
+    sgPos.copy(sgGrip).applyQuaternion(sgQuat).negate().add(sgFist);
+  }
   let kickAge = SHOTGUN_KICK_RETURN;
   let pistolKick = PISTOL_KICK_RETURN;
   let smgKick = SMG_KICK_RETURN;
@@ -709,6 +970,8 @@ export async function createPistol({
 
   function beginReload() {
     reloadLeft = RELOAD_TIME;
+    // The shotgun loads one shell per empty slot inside the same reload time.
+    if (weapon === "shotgun") reloadShells = Math.max(1, SHOTGUN_MAG - rounds.shotgun);
     playReloadSound();
   }
 
@@ -1598,8 +1861,9 @@ export async function createPistol({
     rounds.shotgun -= 1;
     shootLeft = SHOTGUN_FIRE_DELAY;
     poseLeft = SHOT_POSE;
-    player.kickPose("pistolShoot");
+    player.kickPose("shotgunShoot");
     kickAge = 0;
+    pumpAge = 0;
     blastPed = null;
     shotHit.ped = false;
     shotHit.kill = false;
@@ -1869,15 +2133,58 @@ export async function createPistol({
       if (smgKick < SMG_KICK_RETURN) smgKick = Math.min(SMG_KICK_RETURN, smgKick + step);
       let killed = false;
       if (weapon === "scorpion" && trigger && aiming && !busy()) fireSmg();
-      const kick = kickBlend(kickAge);
-      shotgunRoot.position.set(
-        SHOTGUN_HAND[0],
-        SHOTGUN_HAND[1] - kick * SHOTGUN_KICK_BACK,
-        SHOTGUN_HAND[2],
-      );
-      // The muzzle tips toward the top of the gun.
-      shotgunKickQuat.setFromAxisAngle(shotgunKickAxis, kick * SHOTGUN_KICK_UP_DEG * Math.PI / 180);
-      shotgunRoot.quaternion.copy(shotgunKickQuat).multiply(shotgunBaseQuat);
+      // One-handed hold, turned into the two-handed grip as the shotgun clips
+      // take the arms. The two-handed kick is smaller: the clip recoils too.
+      leftArm.undo();
+      rightArm.undo();
+      const twoHands = weapon === "shotgun" && sgHasLeft && leftArm.ok && rightArm.ok && sgChest
+        ? player.twoHandedWeight || 0 : 0;
+      // Share of it that is the low-ready carry (hold clip, also the reload).
+      const carry = twoHands > 0 ? player.carryShare || 0 : 0;
+      pumpAge += step;
+      const slide = pumpSlide(pumpAge);
+      if (shotgunPump) shotgunPump.position.x = shotgunPump.userData.restX - slide * SHOTGUN_PUMP_TRAVEL;
+      const kick = kickBlend(kickAge) * (1 + (SHOTGUN_RIFLE_KICK - 1) * twoHands);
+      const loadHand = twoHands > 0 && reloadLeft > 0
+        ? reloadHand(RELOAD_TIME - reloadLeft, RELOAD_TIME, reloadShells) : null;
+      shotgunRoot.position.copy(sgRestPos);
+      shotgunRoot.quaternion.copy(shotgunBaseQuat);
+      if (twoHands > 0) {
+        // Aim and shoot: the gun turns about the right fist onto the clip's
+        // left palm. Read off the clip pose, before any reach.
+        twoHandedGrip();
+        const aimShare = twoHands * (1 - carry);
+        shotgunRoot.position.lerp(sgPos, aimShare);
+        shotgunRoot.quaternion.slerp(sgQuat, aimShare);
+        // Carry: the right arm brings the one-handed grip to the low ready.
+        if (carry > 0) {
+          const roll = loadHand ? -SHOTGUN_RELOAD_ROLL_DEG * Math.PI / 180 * loadHand.lead : 0;
+          rightToCarry(twoHands * carry, roll);
+        }
+      }
+      // Kick back along the barrel, and the muzzle tips toward the top of the gun.
+      sgBarrel.set(1, 0, 0).applyQuaternion(shotgunRoot.quaternion);
+      shotgunRoot.position.addScaledVector(sgBarrel, -kick * SHOTGUN_KICK_BACK);
+      shotgunKickQuat.setFromAxisAngle(AXIS_Z, kick * SHOTGUN_KICK_UP_DEG * Math.PI / 180);
+      shotgunRoot.quaternion.multiply(shotgunKickQuat);
+      // Squared, so the arm does not stretch toward a gun that is still turning in or out.
+      if (twoHands > 0) {
+        shotgunRoot.updateMatrixWorld(true);
+        // On the pump, riding it back and forward after a shot. The carry
+        // holds the back of the pump, the aim its middle.
+        const pumpX = SHOTGUN_PUMP[0] + (SHOTGUN_CARRY_PUMP_X - SHOTGUN_PUMP[0]) * carry;
+        sgTarget.set(pumpX - slide * SHOTGUN_PUMP_TRAVEL, SHOTGUN_PUMP[1], SHOTGUN_PUMP[2]);
+        shotgunMesh.localToWorld(sgTarget);
+        if (loadHand) {
+          // Reload: the left hand leaves the pump for the loading port under
+          // the receiver and stays there, a short drop below the port and a
+          // push up into it once per shell. The gun stays in the carry.
+          sgPort.set(SHOTGUN_PORT[0], SHOTGUN_PORT[1] - loadHand.away * SHOTGUN_PORT_DROP + loadHand.push * 0.12, SHOTGUN_PORT[2]);
+          shotgunMesh.localToWorld(sgPort);
+          sgTarget.lerp(sgPort, loadHand.lead);
+        }
+        leftArm.reach(twoHands * twoHands, sgTarget.sub(sgPalmOffset));
+      }
       const pistolBlend = kickBlend(pistolKick, PISTOL_KICK_RETURN);
       grip.position.set(0, 0.205 - pistolBlend * PISTOL_KICK_BACK, -0.089);
       grip.rotation.set(pistolBlend * PISTOL_KICK_UP_DEG * Math.PI / 180, 0, Math.PI / 2);

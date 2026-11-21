@@ -30,6 +30,12 @@ export const COP_MODELS = [
 // Bat_Shoulder, Bat_Hang and Bat_Swing on the UAL skeleton (clips only).
 export const BAT_CLIPS_MODEL = "../06 Player Character/Modular/ual-bat.glb";
 export const UAL2_CLIPS_MODEL = "../assets/player/ual2-clips.glb";
+// Two-handed shotgun carry, aim and shoot: Kevin Iglesias "Human Soldier
+// Animations FREE" WeaponHold_Rifle01, Rifle_Aim01 and Rifle_Aim01_Shoot01
+// as Shotgun_Hold, Shotgun_Aim, Shotgun_Shoot (royalty-free, no resale of the
+// raw files), retargeted onto the UAL skeleton and baked to plain keyframes.
+// Spine, head, and arm bones only; the file has no mesh.
+export const SHOTGUN_CLIPS_MODEL = "../assets/player/shotgun-clips.glb";
 
 export function modelUrl(path) {
   return new URL(path, import.meta.url).href;

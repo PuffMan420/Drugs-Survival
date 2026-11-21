@@ -40,7 +40,12 @@ test("a shot while aiming plays the shoot pose, then aim returns", () => {
   assert.equal(pistolPose({ ...aimed, weapon: "bat", shooting: true, reloading: true }), "swordRegularA");
   assert.equal(pistolPose({ ...aimed, weapon: "scorpion" }), "pistolAim");
   assert.equal(pistolPose({ ...aimed, weapon: "scorpion", shooting: true }), "pistolShoot");
-  assert.equal(pistolPose({ ...aimed, weapon: "shotgun", reloading: true }), "pistolReload");
+  assert.equal(pistolPose({ ...aimed, weapon: "shotgun", reloading: true }), "shotgunHold");
+  assert.equal(pistolPose({ ...aimed, weapon: "shotgun" }), "shotgunAim");
+  assert.equal(pistolPose({ ...aimed, weapon: "shotgun", shooting: true }), "shotgunShoot");
+  assert.equal(pistolPose({ ...aimed, weapon: "shotgun", aiming: false }), "shotgunHold");
+  assert.equal(pistolPose({ ...aimed, weapon: "shotgun", busy: true }), "");
+  assert.equal(pistolPose({ ...aimed, weapon: "shotgun", armed: false }), "");
   const bare = { armed: false, busy: false, reloading: false, shooting: false, aiming: false, weapon: "hands" };
   assert.equal(pistolPose(bare), "");
   assert.equal(pistolPose({ ...bare, shooting: true, punch: "punchJab" }), "punchJab");
@@ -68,6 +73,11 @@ test("moving while aiming, shooting, or reloading keeps the gait on the legs", (
   assert.equal(legsWhileAiming("punchCross", true), true);
   assert.equal(legsWhileAiming("punchCross", false), true);
   assert.equal(legsWhileAiming("swordIdle", true), true);
+  // The two-handed shotgun clips only hold the upper body, standing or walking.
+  assert.equal(legsWhileAiming("shotgunAim", false), true);
+  assert.equal(legsWhileAiming("shotgunHold", true), true);
+  assert.equal(legsWhileAiming("shotgunHold", false), true);
+  assert.equal(legsWhileAiming("shotgunShoot", true), true);
   assert.equal(legsWhileAiming("swordIdle", false), true);
   assert.equal(legsWhileAiming("swordRegularA", false), true);
   assert.equal(legsWhileAiming("swordHeavy", true), true);

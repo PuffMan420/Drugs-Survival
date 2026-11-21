@@ -16,6 +16,7 @@ import {
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import {
   PLAYER_MODEL,
+  SHOTGUN_CLIPS_MODEL,
   UAL2_CLIPS_MODEL,
   fitCharacter,
   isArmBone,
@@ -141,10 +142,16 @@ export async function createPlayer() {
   const loader = new GLTFLoader();
   const url = modelUrl(PLAYER_MODEL);
   const ual2Url = modelUrl(UAL2_CLIPS_MODEL);
+  const shotgunUrl = modelUrl(SHOTGUN_CLIPS_MODEL);
   let gltf;
   let ual2;
+  let shotgunClips;
   try {
-    [gltf, ual2] = await Promise.all([loader.loadAsync(url), loader.loadAsync(ual2Url)]);
+    [gltf, ual2, shotgunClips] = await Promise.all([
+      loader.loadAsync(url),
+      loader.loadAsync(ual2Url),
+      loader.loadAsync(shotgunUrl),
+    ]);
   } catch {
     throw new Error("The player model failed to load.");
   }
@@ -289,6 +296,13 @@ export async function createPlayer() {
     setWeight(actions[key], 0);
     actions[key].play();
   }
+  // Two-handed shotgun hold. Upper body only, so they always play as layers.
+  const shotgunNames = { shotgunHold: "Shotgun_Hold", shotgunAim: "Shotgun_Aim", shotgunShoot: "Shotgun_Shoot" };
+  for (const key of Object.keys(shotgunNames)) {
+    actions[key] = mixer.clipAction(clipNamed(shotgunClips.animations, shotgunNames[key]));
+    setWeight(actions[key], 0);
+    actions[key].play();
+  }
   actions.punchJab = mixer.clipAction(clipNamed(gltf.animations, "Punch_Jab"));
   setWeight(actions.punchJab, 0);
   actions.punchJab.setLoop(LoopOnce, 1);
@@ -317,6 +331,7 @@ export async function createPlayer() {
     "overhandThrow", "consume",
     "swordIdle", "swordRegularA", "swordRegularB", "swordRegularC", "swordHeavy",
     "hitChest", "hitHead",
+    "shotgunHold", "shotgunAim", "shotgunShoot",
   ];
   const upperActions = {};
   for (const name of upperNames) {
@@ -328,7 +343,7 @@ export async function createPlayer() {
     "pistolShoot", "pistolReload", "punchCross", "punchJab", "meleeHook",
     "overhandThrow", "consume", "swordRegularA", "swordRegularB", "swordRegularC",
     "swordHeavy", "hitKnockback", "swordAttack",
-    "hitChest", "hitHead", "death", "jumpIn",
+    "hitChest", "hitHead", "death", "jumpIn", "shotgunShoot",
   ];
   for (const name of oneShots) {
     const action = actions[name];
@@ -370,7 +385,7 @@ export async function createPlayer() {
     "pistolShoot", "punchCross", "punchJab", "meleeHook",
     "overhandThrow", "consume",
     "swordRegularA", "swordRegularB", "swordRegularC", "swordHeavy",
-    "hitChest", "hitHead",
+    "hitChest", "hitHead", "shotgunShoot",
   ]);
   const buffers = [null, null];
   let stepsReady = false;
@@ -590,6 +605,20 @@ export async function createPlayer() {
       mixer.update(0);
     },
     hideHeld,
+    // 0..1: how much the two-handed shotgun clips own the arms right now.
+    // The held shotgun turns into the two-handed grip by this much.
+    // carryShare: the part of it that is the carry clip (not aim or shoot).
+    get carryShare() {
+      const hold = upperActions.shotgunHold.getEffectiveWeight();
+      const all = hold + upperActions.shotgunAim.getEffectiveWeight() + upperActions.shotgunShoot.getEffectiveWeight();
+      return all > 1e-4 ? hold / all : 0;
+    },
+    get twoHandedWeight() {
+      const w = upperActions.shotgunHold.getEffectiveWeight()
+        + upperActions.shotgunAim.getEffectiveWeight()
+        + upperActions.shotgunShoot.getEffectiveWeight();
+      return Math.min(1, Math.max(0, w));
+    },
     get poseName() {
       return bodyCue || ride || forced || playing;
     },

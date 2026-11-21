@@ -73,3 +73,27 @@ test("the scorpion is full auto with a 20 round mag", () => {
   assert.equal(SMG_MAG, 20);
   assert.equal(SMG_SPREAD_DEG, 6);
 });
+
+test("the pump racks back and home after a shot, inside the fire delay", async () => {
+  const { pumpSlide } = await import("../js/shotgun.js");
+  assert.equal(pumpSlide(0), 0);
+  assert.equal(pumpSlide(0.3), 1);
+  assert.ok(pumpSlide(0.4) > 0 && pumpSlide(0.4) < 1);
+  assert.equal(pumpSlide(0.6), 0);
+  assert.equal(pumpSlide(SHOTGUN_FIRE_DELAY), 0);
+});
+
+test("a reload pushes one shell per empty slot and ends with the hand back on the pump", async () => {
+  const { reloadHand } = await import("../js/shotgun.js");
+  assert.equal(reloadHand(0, 1.67, 3).lead, 0);
+  assert.equal(reloadHand(1.67, 1.67, 3).lead, 0);
+  let pushes = 0;
+  let pushing = false;
+  for (let t = 0; t <= 1.67; t += 0.005) {
+    const hand = reloadHand(t, 1.67, 3);
+    assert.ok(hand.away >= 0 && hand.away <= 1);
+    if (hand.push > 0.5 && !pushing) pushes += 1;
+    pushing = hand.push > 0.5;
+  }
+  assert.equal(pushes, 3);
+});

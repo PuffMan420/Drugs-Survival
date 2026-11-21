@@ -72,6 +72,7 @@ import {
 } from "./shotgun.js";
 import {
   FLASH_SCALE_PISTOL,
+  FLASH_JITTER,
   FLASH_SCALE_SHOTGUN,
   FLASH_SCALE_SMG,
   HITSTOP_BAT,
@@ -81,6 +82,15 @@ import {
   HITSTOP_PISTOL_HIT,
   HITSTOP_PUNCH,
   HITSTOP_SHOTGUN_HIT,
+  IMPACT_GROW,
+  IMPACT_POOL,
+  IMPACT_SIZE,
+  IMPACT_SPARK_SIZE,
+  IMPACT_SPARK_TIME,
+  IMPACT_TIME,
+  KICK_PISTOL,
+  KICK_SHOTGUN,
+  KICK_SMG,
   KNOCK_BAT,
   KNOCK_BAT_HEAVY,
   KNOCK_BOTTLE,
@@ -102,6 +112,12 @@ import {
   SHAKE_PUNCH_HIT,
   SHAKE_SHOTGUN,
   SHAKE_SMG,
+  SHELL_GRAVITY,
+  SHELL_LIFE,
+  SHELL_POOL,
+  SHELL_SIZE,
+  SHELL_SPEED,
+  SHELL_UP,
   SHOTGUN_PLAYER_PUSH,
   SMG_KICK_BACK,
   SMG_KICK_RETURN,
@@ -110,6 +126,7 @@ import {
   TRACER_POOL,
   TRACER_TIME,
   TRACER_WIDTH,
+  addKick,
   addShake,
   crosshairScale,
   feelOn,
@@ -174,9 +191,26 @@ const CAR_HIT_SCALE = (36 * 0.7 * 0.6) / 3;
 const CAR_HIT_LIFE = 0.3;
 
 const AIM_CHEST_Y = 18;
+// Held weapons: a bit bigger overall, and a bit thicker across (not longer),
+// so they read from the top-down camera. Ted asked for "just a little bit".
+const HELD_SIZE = 1.1;
+const HELD_THICK = 1.1;
+
+// Scales a held model. lengthAxis is the mesh axis that runs muzzle to stock.
+function heldScale(target, base, lengthAxis) {
+  const thick = base * HELD_SIZE * HELD_THICK;
+  const len = base * HELD_SIZE;
+  target.scale.set(
+    lengthAxis === "x" ? len : thick,
+    lengthAxis === "y" ? len : thick,
+    lengthAxis === "z" ? len : thick,
+  );
+}
 const raycaster = new Raycaster();
 const ndc = new Vector2();
 const muzzlePos = new Vector3();
+const AXIS_X = new Vector3(1, 0, 0);
+const AXIS_Z = new Vector3(0, 0, 1);
 const aimPoint = new Vector3();
 const flatAim = { x: 0, z: 1, dist: 0 };
 const pedBox = new Box3();
@@ -232,7 +266,7 @@ export async function createPistol({
   const grip = new Group();
   // Hand-local: +Y is wrist to knuckles, +X toward the pinky, -Z is the palm.
   // 0.85 fits the gun on the larger hand. Bottles stay on handRoot.
-  grip.scale.setScalar(0.25 * 1.5 * 0.85);
+  heldScale(grip, 0.25 * 1.5 * 0.85, "x");
   grip.rotation.z = Math.PI / 2;
   grip.position.set(0, 0.205, -0.089);
   grip.add(gunGltf.scene);
@@ -247,10 +281,10 @@ export async function createPistol({
   muzzle.position.set(0.021, 0, 0);
   pistolMesh.add(muzzle);
 
-  function heldGun(url, scale, hand, euler) {
+  function heldGun(url, scale, hand, euler, lengthAxis) {
     return loader.loadAsync(url).then((gltf) => {
       const root = new Group();
-      root.scale.setScalar(scale);
+      heldScale(root, scale, lengthAxis);
       root.position.set(hand[0], hand[1], hand[2]);
       root.rotation.set(euler[0], euler[1], euler[2]);
       root.visible = false;
@@ -264,12 +298,9 @@ export async function createPistol({
   const smgUrl = new URL("../assets/gun/scorpion.glb", import.meta.url).href;
   const shotgunUrl = new URL("../assets/gun/shotgun.glb", import.meta.url).href;
   const [smgRoot, shotgunRoot] = await Promise.all([
-    heldGun(smgUrl, SMG_SCALE, SMG_HAND, SMG_EULER),
-    heldGun(shotgunUrl, SHOTGUN_SCALE, SHOTGUN_HAND, SHOTGUN_EULER),
+    heldGun(smgUrl, SMG_SCALE, SMG_HAND, SMG_EULER, "z"),
+    heldGun(shotgunUrl, SHOTGUN_SCALE, SHOTGUN_HAND, SHOTGUN_EULER, "x"),
   ]);
-  // Z is applied first so the barrel turns toward the knuckles before the roll.
-  shotgunRoot.rotation.order = "ZYX";
-  shotgunRoot.rotation.set(SHOTGUN_EULER[0], SHOTGUN_EULER[1], SHOTGUN_EULER[2]);
   const smgMuzzle = new Object3D();
   smgMuzzle.position.set(SMG_MUZZLE[0], SMG_MUZZLE[1], SMG_MUZZLE[2]);
   smgRoot.children[0].add(smgMuzzle);
@@ -277,7 +308,14 @@ export async function createPistol({
   shotgunMuzzle.position.set(SHOTGUN_MUZZLE[0], SHOTGUN_MUZZLE[1], SHOTGUN_MUZZLE[2]);
   shotgunRoot.children[0].add(shotgunMuzzle);
   hand.add(smgRoot);
+  const smgBaseQuat = smgRoot.quaternion.clone();
+  const smgKickQuat = new Quaternion();
+  const smgSideQuat = new Quaternion();
   hand.add(shotgunRoot);
+  const shotgunBaseQuat = shotgunRoot.quaternion.clone();
+  const shotgunKickQuat = new Quaternion();
+  // Kick axis: turns the barrel (hand +Y) toward the gun's top, whatever its roll.
+  const shotgunKickAxis = new Vector3(Math.sin(SHOTGUN_EULER[1]), 0, Math.cos(SHOTGUN_EULER[1]));
   let kickAge = SHOTGUN_KICK_RETURN;
   let pistolKick = PISTOL_KICK_RETURN;
   let smgKick = SMG_KICK_RETURN;
@@ -286,7 +324,7 @@ export async function createPistol({
   const handRoot = new Group();
   // Bottles stand on their base at this point. 1.5 grows them along the
   // fingers, the same bump as the pistol, and the throw copies this scale.
-  handRoot.scale.setScalar(1.5);
+  heldScale(handRoot, 1.5, "y");
   handRoot.position.set(0, 0.08, 0.02);
   hand.add(handRoot);
   const bottleModels = [];
@@ -351,7 +389,7 @@ export async function createPistol({
       );
   };
   const batRoot = new Group();
-  batRoot.scale.setScalar(BAT_SCALE);
+  heldScale(batRoot, BAT_SCALE, "y");
   batRoot.position.set(BAT_HAND[0], BAT_HAND[1], BAT_HAND[2]);
   batRoot.rotation.set(BAT_EULER[0], BAT_EULER[1], BAT_EULER[2]);
   batRoot.visible = false;
@@ -424,6 +462,45 @@ export async function createPistol({
     tracers.push({ mesh, life: 0 });
   }
   let tracerCursor = 0;
+
+  // Bullet impacts: a dust puff (car-hit smoke, tinted) plus a short spark. Pooled.
+  const impacts = [];
+  for (let i = 0; i < IMPACT_POOL; i += 1) {
+    const dust = new Sprite(new SpriteMaterial({ transparent: true, depthWrite: false, toneMapped: false }));
+    dust.visible = false;
+    dust.renderOrder = 3;
+    dust.raycast = () => {};
+    scene.add(dust);
+    const spark = new Sprite(new SpriteMaterial({
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+      blending: AdditiveBlending,
+    }));
+    spark.visible = false;
+    spark.renderOrder = 4;
+    spark.raycast = () => {};
+    scene.add(spark);
+    impacts.push({ dust, spark, age: IMPACT_TIME, size: IMPACT_SIZE });
+  }
+  let impactCursor = 0;
+  let worldSoundDone = false;
+
+  // Empty shells. One shared box and material, positions stepped by hand.
+  const shellGeo = new BoxGeometry(SHELL_SIZE[0], SHELL_SIZE[1], SHELL_SIZE[2]);
+  const shellMat = new MeshBasicMaterial({ color: 0xd9a43a });
+  const shells = [];
+  for (let i = 0; i < SHELL_POOL; i += 1) {
+    const mesh = new Mesh(shellGeo, shellMat);
+    mesh.visible = false;
+    mesh.raycast = () => {};
+    mesh.castShadow = false;
+    scene.add(mesh);
+    shells.push({ mesh, age: SHELL_LIFE, vx: 0, vy: 0, vz: 0, spin: 0, floor: 0, bounces: 0 });
+  }
+  let shellCursor = 0;
+  let shotgunShellIn = 0;
+  const shellAim = { x: 0, z: 1 };
   const shotHit = { ped: false, kill: false };
   let blastPed = null;
 
@@ -1139,8 +1216,10 @@ export async function createPistol({
     flash.material.needsUpdate = true;
     gunMuzzle().getWorldPosition(muzzlePos);
     flash.position.copy(muzzlePos);
-    const mul = feelOn() ? scale : 1;
+    const wobble = feelOn() ? 1 + (Math.random() * 2 - 1) * FLASH_JITTER : 1;
+    const mul = (feelOn() ? scale : 1) * wobble;
     flash.scale.set(FLASH_BASE * mul, FLASH_BASE * mul, 1);
+    flash.material.rotation = feelOn() ? Math.random() * Math.PI * 2 : 0;
     flash.visible = true;
     flashLife = FLASH_LIFE;
     if (!feelOn()) return;
@@ -1167,12 +1246,154 @@ export async function createPistol({
     slot.life = TRACER_TIME;
   }
 
+  function groundAt(x, z) {
+    const feet = player.mesh.position.y;
+    if (!traffic || !traffic.roadHeight) return feet;
+    const y = traffic.roadHeight(x, z, feet);
+    return y == null ? feet : y;
+  }
+
+  // Dust puff plus spark where a bullet stops. wall = true for buildings/props.
+  function spawnImpact(x, y, z, wall) {
+    if (!feelOn()) return;
+    const slot = impacts[impactCursor];
+    impactCursor = (impactCursor + 1) % impacts.length;
+    slot.age = 0;
+    slot.size = IMPACT_SIZE * (0.8 + Math.random() * 0.4) * (wall ? 1.2 : 1);
+    const dust = slot.dust;
+    dust.material.map = carHitTextures[Math.floor(Math.random() * carHitTextures.length)];
+    dust.material.color.setHex(wall ? 0xd8d0c4 : 0xcdb68a);
+    dust.material.rotation = Math.random() * Math.PI * 2;
+    dust.material.opacity = 0.95;
+    dust.material.needsUpdate = true;
+    dust.position.set(x, y + 2, z);
+    dust.scale.set(slot.size, slot.size, 1);
+    dust.visible = true;
+    const spark = slot.spark;
+    spark.material.map = flashTextures[Math.floor(Math.random() * flashTextures.length)];
+    spark.material.rotation = Math.random() * Math.PI * 2;
+    spark.material.opacity = 1;
+    spark.material.needsUpdate = true;
+    spark.position.set(x, y + 3, z);
+    spark.scale.set(IMPACT_SPARK_SIZE, IMPACT_SPARK_SIZE, 1);
+    spark.visible = true;
+  }
+
+  // A miss stops at the first wall or prop under the bullet's ray, else on the
+  // ground at the aimed spot (if in range), else it flies flat to full range.
+  // flat.dist is how far from the player the aim point is (0 = unknown).
   function traceMiss(flat, range) {
+    const world = nearestWorldHit(range);
+    if (world) {
+      spawnTracer(world.x, world.y, world.z);
+      spawnImpact(world.x, world.y, world.z, true);
+      if (!worldSoundDone && traffic.playBulletWorldHitSound) {
+        worldSoundDone = true;
+        traffic.playBulletWorldHitSound(world.x, world.z);
+      }
+      return;
+    }
+    const dist = flat.dist || 0;
+    if (dist > 4 && dist <= range) {
+      const px = player.mesh.position.x + flat.x * dist;
+      const pz = player.mesh.position.z + flat.z * dist;
+      const py = groundAt(px, pz);
+      spawnTracer(px, py + 1, pz);
+      spawnImpact(px, py, pz, false);
+      return;
+    }
     spawnTracer(
       muzzlePos.x + flat.x * range,
       muzzlePos.y,
       muzzlePos.z + flat.z * range,
     );
+  }
+
+  // Throws one shell out of the gun's right side (aim is the flat shot direction).
+  function ejectShell(aimX, aimZ) {
+    if (!feelOn()) return;
+    const slot = shells[shellCursor];
+    shellCursor = (shellCursor + 1) % shells.length;
+    const from = player.mesh.position;
+    // Ejection port: 60% of the way from the chest to the muzzle.
+    slot.mesh.position.set(
+      from.x + (muzzlePos.x - from.x) * 0.6,
+      muzzlePos.y,
+      from.z + (muzzlePos.z - from.z) * 0.6,
+    );
+    const rightX = -aimZ;
+    const rightZ = aimX;
+    const speed = SHELL_SPEED * (0.8 + Math.random() * 0.4);
+    slot.vx = rightX * speed - aimX * 12;
+    slot.vz = rightZ * speed - aimZ * 12;
+    slot.vy = SHELL_UP * (0.8 + Math.random() * 0.4);
+    slot.spin = (Math.random() * 2 - 1) * 20;
+    slot.floor = from.y + SHELL_SIZE[1] * 0.5;
+    slot.bounces = 0;
+    slot.age = 0;
+    slot.mesh.rotation.set(0, Math.atan2(aimX, aimZ), 0);
+    slot.mesh.scale.setScalar(1);
+    slot.mesh.visible = true;
+  }
+
+  function stepFx(step) {
+    for (let i = 0; i < impacts.length; i += 1) {
+      const slot = impacts[i];
+      if (slot.age >= IMPACT_TIME) continue;
+      slot.age += step;
+      if (slot.age >= IMPACT_TIME || !feelOn()) {
+        slot.age = IMPACT_TIME;
+        slot.dust.visible = false;
+        slot.spark.visible = false;
+        continue;
+      }
+      const t = slot.age / IMPACT_TIME;
+      const s = slot.size * (1 + (IMPACT_GROW - 1) * (1 - (1 - t) * (1 - t)));
+      slot.dust.scale.set(s, s, 1);
+      slot.dust.material.opacity = 0.95 * (1 - t);
+      slot.dust.position.y += step * 6;
+      if (slot.age >= IMPACT_SPARK_TIME) slot.spark.visible = false;
+    }
+    for (let i = 0; i < shells.length; i += 1) {
+      const slot = shells[i];
+      if (slot.age >= SHELL_LIFE) continue;
+      slot.age += step;
+      const mesh = slot.mesh;
+      if (slot.age >= SHELL_LIFE || !feelOn()) {
+        slot.age = SHELL_LIFE;
+        mesh.visible = false;
+        continue;
+      }
+      if (slot.bounces < 3) {
+        slot.vy -= SHELL_GRAVITY * step;
+        mesh.position.x += slot.vx * step;
+        mesh.position.y += slot.vy * step;
+        mesh.position.z += slot.vz * step;
+        mesh.rotation.y += slot.spin * step;
+        mesh.rotation.z += slot.spin * 0.5 * step;
+        if (mesh.position.y <= slot.floor && slot.vy < 0) {
+          mesh.position.y = slot.floor;
+          slot.vy = -slot.vy * 0.35;
+          slot.vx *= 0.45;
+          slot.vz *= 0.45;
+          slot.spin *= 0.5;
+          slot.bounces += 1;
+          if (slot.bounces >= 3) mesh.rotation.z = 0;
+        }
+      }
+      const fadeStart = SHELL_LIFE - 0.25;
+      if (slot.age > fadeStart) mesh.scale.setScalar(Math.max(0.01, 1 - (slot.age - fadeStart) / 0.25));
+    }
+    if (shotgunShellIn > 0) {
+      shotgunShellIn -= step;
+      if (shotgunShellIn <= 0) {
+        shotgunShellIn = 0;
+        if (weapon === "shotgun") {
+          shotgunMuzzle.getWorldPosition(muzzlePos);
+          ejectShell(shellAim.x, shellAim.z);
+        }
+      }
+    }
   }
 
   function scareCrowd() {
@@ -1336,13 +1557,12 @@ export async function createPistol({
     addShake(SHAKE_PISTOL);
     playShot(1);
     scareCrowd();
+    addKick(aim.x, aim.z, KICK_PISTOL);
+    ejectShell(aim.x, aim.z);
+    worldSoundDone = false;
     const kind = shootAlong(dir, PISTOL_RANGE, PISTOL_DAMAGE, true, KNOCK_PISTOL, false, aim);
     if (shotHit.ped) hitStop(HITSTOP_PISTOL_HIT + (shotHit.kill ? HITSTOP_KILL_BONUS : 0));
     noteGunHit(kind);
-    if (!kind && traffic.playBulletWorldHitSound) {
-      const world = nearestWorldHit(PISTOL_RANGE);
-      if (world) traffic.playBulletWorldHitSound(world.x, world.z);
-    }
     if (rounds.pistol === 0) beginReload();
   }
 
@@ -1358,17 +1578,18 @@ export async function createPistol({
     shotHit.kill = false;
     const ray = aimRay();
     const origin = ray.origin.clone();
-    const bullet = spreadShot(readAim(), origin, SMG_SPREAD_DEG);
+    const aim = readAim();
+    const bullet = spreadShot(aim, origin, SMG_SPREAD_DEG);
+    bullet.flat.dist = aim.dist;
     showFlash(FLASH_SCALE_SMG);
     addShake(SHAKE_SMG);
+    addKick(aim.x, aim.z, KICK_SMG);
+    ejectShell(aim.x, aim.z);
     playShot(1);
     scareCrowd();
+    worldSoundDone = false;
     const kind = shootAlong(bullet.dir, SMG_RANGE, SMG_DAMAGE, true, KNOCK_SMG, false, bullet.flat);
     noteGunHit(kind);
-    if (!kind && traffic.playBulletWorldHitSound) {
-      const world = nearestWorldHit(SMG_RANGE);
-      if (world) traffic.playBulletWorldHitSound(world.x, world.z);
-    }
     if (rounds.scorpion === 0) beginReload();
   }
 
@@ -1390,24 +1611,23 @@ export async function createPistol({
     showFlash(FLASH_SCALE_SHOTGUN);
     addShake(SHAKE_SHOTGUN);
     requestPlayerPush(-aim.x, -aim.z, SHOTGUN_PLAYER_PUSH);
+    addKick(aim.x, aim.z, KICK_SHOTGUN);
+    // The pump throws the shell a beat after the blast.
+    shellAim.x = aim.x;
+    shellAim.z = aim.z;
+    shotgunShellIn = 0.3;
+    worldSoundDone = false;
     playShot(0.7);
     scareCrowd();
-    let any = false;
     let carMarked = false;
     for (let i = 0; i < SHOTGUN_PELLETS; i += 1) {
       const bullet = spreadShot(aim, origin, SHOTGUN_SPREAD_DEG);
+      bullet.flat.dist = aim.dist;
       const kind = shootAlong(bullet.dir, SHOTGUN_RANGE, SHOTGUN_PELLET_DAMAGE, !carMarked, KNOCK_SHOTGUN_PELLET, true, bullet.flat);
       if (kind === "car") carMarked = true;
-      if (kind) any = true;
     }
     if (shotHit.ped) hitStop(HITSTOP_SHOTGUN_HIT + (shotHit.kill ? HITSTOP_KILL_BONUS : 0));
     if (shotHit.ped || carMarked) markHit(shotHit.kill);
-    if (!any && traffic.playBulletWorldHitSound) {
-      ray.origin.copy(origin);
-      ray.direction.set(base.x, base.y, base.z);
-      const world = nearestWorldHit(SHOTGUN_RANGE);
-      if (world) traffic.playBulletWorldHitSound(world.x, world.z);
-    }
     if (rounds.shotgun === 0) beginReload();
   }
 
@@ -1655,11 +1875,9 @@ export async function createPistol({
         SHOTGUN_HAND[1] - kick * SHOTGUN_KICK_BACK,
         SHOTGUN_HAND[2],
       );
-      shotgunRoot.rotation.set(
-        SHOTGUN_EULER[0] + kick * SHOTGUN_KICK_UP_DEG * Math.PI / 180,
-        SHOTGUN_EULER[1],
-        SHOTGUN_EULER[2],
-      );
+      // The muzzle tips toward the top of the gun.
+      shotgunKickQuat.setFromAxisAngle(shotgunKickAxis, kick * SHOTGUN_KICK_UP_DEG * Math.PI / 180);
+      shotgunRoot.quaternion.copy(shotgunKickQuat).multiply(shotgunBaseQuat);
       const pistolBlend = kickBlend(pistolKick, PISTOL_KICK_RETURN);
       grip.position.set(0, 0.205 - pistolBlend * PISTOL_KICK_BACK, -0.089);
       grip.rotation.set(pistolBlend * PISTOL_KICK_UP_DEG * Math.PI / 180, 0, Math.PI / 2);
@@ -1669,11 +1887,11 @@ export async function createPistol({
         SMG_HAND[1] - smgBlend * SMG_KICK_BACK,
         SMG_HAND[2],
       );
-      smgRoot.rotation.set(
-        SMG_EULER[0] + smgBlend * SMG_KICK_UP_DEG * Math.PI / 180,
-        SMG_EULER[1],
-        SMG_EULER[2] + smgBlend * smgSide * SMG_KICK_SIDE_DEG * Math.PI / 180,
-      );
+      // Kick in hand axes: the muzzle tips toward the sights (about hand Z,
+      // since the top faces hand -X) and wobbles sideways (about hand X).
+      smgKickQuat.setFromAxisAngle(AXIS_Z, smgBlend * SMG_KICK_UP_DEG * Math.PI / 180);
+      smgSideQuat.setFromAxisAngle(AXIS_X, smgBlend * smgSide * SMG_KICK_SIDE_DEG * Math.PI / 180);
+      smgRoot.quaternion.copy(smgKickQuat).multiply(smgSideQuat).multiply(smgBaseQuat);
       if (swinging && weapon === "bat") {
         const prev = swingAge;
         swingAge += step;
@@ -1726,6 +1944,7 @@ export async function createPistol({
         small.style.opacity = String(aimBlend);
         big.style.opacity = String(1 - aimBlend);
       }
+      stepFx(step);
       if (flashLife > 0) {
         flashLife -= step;
         gunMuzzle().getWorldPosition(flash.position);

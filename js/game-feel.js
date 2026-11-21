@@ -65,6 +65,33 @@ export const HITMARK_TIME = 0.1;
 export const HITMARK_KILL_SCALE = 1.6;
 export const HITMARK_KILL_TIME = 0.2;
 
+// Screen kick: the view jumps a little away from the shot, then eases back.
+// World units (one tile is 48). KICK_DECAY is per second; higher snaps back faster.
+export const KICK_PISTOL = 2.5;
+export const KICK_SMG = 1.2;
+export const KICK_SHOTGUN = 9;
+export const KICK_MAX = 12;
+export const KICK_DECAY = 14;
+
+// Muzzle flash: random turn every shot and a size wobble of +/- this much.
+export const FLASH_JITTER = 0.2;
+
+// Where a bullet stops on the ground or a wall: a dust puff and a spark.
+export const IMPACT_POOL = 24;
+export const IMPACT_TIME = 0.32;
+export const IMPACT_SIZE = 9;
+export const IMPACT_GROW = 2.2;
+export const IMPACT_SPARK_SIZE = 7;
+export const IMPACT_SPARK_TIME = 0.06;
+
+// Empty shells thrown out of the gun's right side.
+export const SHELL_POOL = 32;
+export const SHELL_LIFE = 1.2;
+export const SHELL_SPEED = 55;
+export const SHELL_UP = 45;
+export const SHELL_GRAVITY = 260;
+export const SHELL_SIZE = [2.4, 1.1, 1.1];
+
 let feel = true;
 let trauma = 0;
 let shakeClock = 0;
@@ -74,6 +101,8 @@ let markScale = 1;
 let pushX = 0;
 let pushZ = 0;
 let pushLeft = 0;
+let kickX = 0;
+let kickZ = 0;
 
 const offset = { x: 0, z: 0 };
 const pushOut = { x: 0, z: 0 };
@@ -90,6 +119,8 @@ export function setFeel(on) {
   markLeft = 0;
   markScale = 1;
   pushLeft = 0;
+  kickX = 0;
+  kickZ = 0;
   offset.x = 0;
   offset.z = 0;
 }
@@ -114,14 +145,45 @@ export function addShake(amount) {
   trauma = Math.min(1, trauma + amount);
 }
 
-// Ground-plane offset for this frame. Call once, with real time, after the shots.
+// Push the view away from a shot along the ground (dirX, dirZ is the aim).
+// Works at any camera yaw: it is a world offset, like the shake.
+export function addKick(dirX, dirZ, amount) {
+  if (!feel || !(amount > 0)) return;
+  const len = Math.hypot(dirX, dirZ) || 1;
+  kickX -= (dirX / len) * amount;
+  kickZ -= (dirZ / len) * amount;
+  const size = Math.hypot(kickX, kickZ);
+  if (size > KICK_MAX) {
+    kickX *= KICK_MAX / size;
+    kickZ *= KICK_MAX / size;
+  }
+}
+
+// Ground-plane offset for this frame (shake plus kick). Call once, with real time, after the shots.
 export function sampleShake(realDt) {
   const dt = Math.max(0, realDt);
   if (markLeft > 0) markLeft = Math.max(0, markLeft - dt);
-  if (!feel || trauma <= 0) {
+  offset.x = 0;
+  offset.z = 0;
+  if (!feel) {
     trauma = 0;
-    offset.x = 0;
-    offset.z = 0;
+    kickX = 0;
+    kickZ = 0;
+    return offset;
+  }
+  if (kickX !== 0 || kickZ !== 0) {
+    offset.x = kickX;
+    offset.z = kickZ;
+    const keep = Math.exp(-KICK_DECAY * dt);
+    kickX *= keep;
+    kickZ *= keep;
+    if (Math.hypot(kickX, kickZ) < 0.05) {
+      kickX = 0;
+      kickZ = 0;
+    }
+  }
+  if (trauma <= 0) {
+    trauma = 0;
     return offset;
   }
   shakeClock += dt * SHAKE_FREQ;
@@ -129,8 +191,8 @@ export function sampleShake(realDt) {
   const nz = noise(shakeClock + 19.2) * 2 - 1;
   const len = Math.hypot(nx, nz) || 1;
   const mag = SHAKE_MAX_OFFSET * trauma * trauma;
-  offset.x = (nx / len) * mag;
-  offset.z = (nz / len) * mag;
+  offset.x += (nx / len) * mag;
+  offset.z += (nz / len) * mag;
   trauma = Math.max(0, trauma - SHAKE_DECAY * dt);
   return offset;
 }

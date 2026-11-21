@@ -71,7 +71,32 @@ const UPPER_BODY = new Set([
   "swordRegularB",
   "swordRegularC",
   "swordHeavy",
+  "hitChest",
+  "hitHead",
 ]);
+
+// Jump_Start is 1.33s; speed it up so the hop into a car stays snappy.
+export const JUMP_MAX = 0.35;
+// After a flinch, wait at least this long before another. Hit_Head is 0.42s.
+export const HIT_REACT_COOLDOWN = 0.5;
+export const GUN_PRIORITY = new Set(["pistolShoot", "pistolReload"]);
+
+export function clipSpeedForMax(duration, max) {
+  const d = Number(duration) || 0;
+  const cap = Number(max) || 0;
+  if (!(d > cap) || !(cap > 0)) return 1;
+  return d / cap;
+}
+
+// A flinch does not play on overdose ticks, car hits (those use knockback),
+// a gun shot or reload, or while a full-body cue already owns the figure.
+export function shouldPlayHit({ source, pose, locked, cooldown }) {
+  if (locked) return false;
+  if (source === "overdose" || source === "car") return false;
+  if (GUN_PRIORITY.has(pose)) return false;
+  if (cooldown > 0) return false;
+  return true;
+}
 
 export function pistolPose({
   armed,

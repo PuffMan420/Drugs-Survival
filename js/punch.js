@@ -25,6 +25,11 @@ export function nextPunch(current) {
   return PUNCH_ORDER[(index + 1) % PUNCH_ORDER.length];
 }
 
+// Cops only jab and cross. An empty current starts on the jab.
+export function nextCopPunch(current) {
+  return current === JAB ? CROSS : JAB;
+}
+
 export function punchTiming(name) {
   if (name === CROSS) return { hit: CROSS_HIT, pose: CROSS_POSE };
   if (name === HOOK) return { hit: HOOK_HIT, pose: HOOK_POSE };

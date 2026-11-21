@@ -10,6 +10,8 @@ import { applyCarDamage, crashDamageFromLostSpeed, playCarSmokeSound } from "./c
 import { createArcadeVehicle } from "./kenney-vehicle.js";
 import { carShell } from "./model-shell.js";
 import { GROUP, groups, yawQuat } from "./physics.js";
+import { hopTarget, localPoint } from "./drive-seat.js";
+export { hopTarget, localPoint, HOP_FORWARD, HOP_LIFT, HOP_SIDE } from "./drive-seat.js";
 
 const MASS = 90;
 const REST = 2;
@@ -47,16 +49,6 @@ function sideGap(px, pz, car) {
   if (gap < 4 || gap > 40) return Infinity;
   if (Math.abs(lz) > h / 2 - 8) return Infinity;
   return gap;
-}
-
-function localPoint(car, lx, lz) {
-  const c = Math.cos(car.angle || 0);
-  const s = Math.sin(car.angle || 0);
-  return {
-    x: car.x + lx * c + lz * s,
-    z: car.z - lx * s + lz * c,
-    y: car.y == null ? 0.6 : car.y,
-  };
 }
 
 export function createDrive(physics, scene) {
@@ -312,6 +304,12 @@ export function createDrive(physics, scene) {
       if (!occupied) return null;
       writePose(false);
       return { x: occupied.x, y: occupied.y, z: occupied.z };
+    },
+    // Ground spot the player hops toward. Gameplay stays on pose() (the car centre).
+    hopPose() {
+      if (!occupied) return null;
+      writePose(false);
+      return hopTarget(occupied);
     },
     // Throttle, drift, and the engine/skid levels, plus where the car is drawn.
     sample() {

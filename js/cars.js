@@ -26,6 +26,24 @@ import {
   wreckRgb,
 } from "./car-damage.js";
 import { isBulkyCar } from "./car-kind.js";
+import {
+  attachDoor,
+  assignDoorFlags,
+  bakeHinge,
+  catalogName,
+  closeCarDoor,
+  doorIsOpen,
+  doorPhase,
+  doorSideFromHinge,
+  hasSwingDoor,
+  isDoorName,
+  isInnerPanel,
+  nearestCat,
+  openCarDoor,
+  readDoorClips,
+  snapDoorShut,
+  stepDoor,
+} from "./car-door.js";
 import { rockVertexColors } from "./bed-rocks.js";
 import { foldHeadlightGeometry } from "./headlights.js";
 import { pushOutOfCars } from "./car-push.js";
@@ -189,6 +207,23 @@ const wheelSteerM = new Matrix4();
 const wheelToAxle = new Matrix4();
 const wheelFromAxle = new Matrix4();
 
+const doorToHinge = new Matrix4();
+const doorFromHinge = new Matrix4();
+const doorSpin = new Matrix4();
+const doorLocal = new Matrix4();
+const doorWorldM = new Matrix4();
+
+function doorMatrix(carMatrix, hinge, angle) {
+  doorFromHinge.makeTranslation(-hinge[0], -hinge[1], -hinge[2]);
+  doorSpin.makeRotationY(angle);
+  doorToHinge.makeTranslation(hinge[0], hinge[1], hinge[2]);
+  doorLocal.copy(doorFromHinge);
+  doorLocal.premultiply(doorSpin);
+  doorLocal.premultiply(doorToHinge);
+  doorWorldM.multiplyMatrices(carMatrix, doorLocal);
+  return doorWorldM;
+}
+
 function wheelMatrix(carMatrix, part, travel, steer, scaleY) {
   const radius = Math.max(0.05, part.radius * scaleY);
   const spin = CITYPACK_ROLL_SIGN * travel / radius;
@@ -312,7 +347,7 @@ function faceCatalog(scene) {
   const prepared = [];
   scene.traverse((obj) => {
     if (!obj.isMesh || isWheel(obj)) return;
-    prepared.push({ name: obj.name, geometry: worldGeometry(obj) });
+    prepared.push({ name: catalogName(obj), geometry: worldGeometry(obj) });
   });
   let zMin = Infinity;
   let zMax = -Infinity;
@@ -387,13 +422,18 @@ function faceCatalog(scene) {
       }
       keys.set(triKey(position, i0, i1, i2), cat);
     }
-    catalog.set(part.name, keys);
+    const existing = catalog.get(part.name);
+    if (existing) {
+      for (const [key, cat] of keys) existing.set(key, cat);
+    } else {
+      catalog.set(part.name, keys);
+    }
     geometry.dispose();
   }
   return catalog;
 }
 
-function applyPaintMask(geometry, keys, label) {
+function applyPaintMask(geometry, keys, label, samples) {
   const index = geometry.getIndex();
   const position = geometry.getAttribute("position");
   const count = position.count;
@@ -405,7 +445,10 @@ function applyPaintMask(geometry, keys, label) {
     const i0 = cornerIndex(index, tri, 0);
     const i1 = cornerIndex(index, tri, 1);
     const i2 = cornerIndex(index, tri, 2);
-    const cat = keys ? keys.get(triKey(position, i0, i1, i2)) : undefined;
+    let cat = keys ? keys.get(triKey(position, i0, i1, i2)) : undefined;
+    if (cat == null && samples) {
+      cat = nearestCat(triCentroid(position, i0, i1, i2), samples);
+    }
     const paintTri = cat === 0;
     if (cat == null) misses += 1;
     for (const indexOf of [i0, i1, i2]) {
@@ -544,27 +587,214 @@ function shadeBedRocks(geometry, material) {
   material.vertexColors = true;
 }
 
-function bakeLevel(scene, catalog) {
+
+function triCentroid(position, i0, i1, i2) {
+  return {
+    x: (position.getX(i0) + position.getX(i1) + position.getX(i2)) / 3,
+    y: (position.getY(i0) + position.getY(i1) + position.getY(i2)) / 3,
+    z: (position.getZ(i0) + position.getZ(i1) + position.getZ(i2)) / 3,
+  };
+}
+
+function mergeKeyMaps(...maps) {
+  const out = new Map();
+  for (const map of maps) {
+    if (!map) continue;
+    for (const [key, cat] of map) out.set(key, cat);
+  }
+  return out;
+}
+
+function paintKeysFor(catalog, name, doorRig) {
+  if (!catalog) return null;
+  if (doorRig && (name === "body" || isDoorName(name))) {
+    return mergeKeyMaps(catalog.get("body"), catalog.get(doorRig.nodeName), catalog.get(name));
+  }
+  return catalog.get(name) || null;
+}
+
+function triangleList(geometry) {
+  const index = geometry.getIndex();
+  const position = geometry.getAttribute("position");
+  const tris = triCountOf(geometry);
+  const keys = [];
+  const centroids = [];
+  for (let tri = 0; tri < tris; tri += 1) {
+    const i0 = cornerIndex(index, tri, 0);
+    const i1 = cornerIndex(index, tri, 1);
+    const i2 = cornerIndex(index, tri, 2);
+    keys.push(triKey(position, i0, i1, i2));
+    centroids.push(triCentroid(position, i0, i1, i2));
+  }
+  return { keys, centroids };
+}
+
+function extractTris(geometry, flags, keepDoor) {
+  const index = geometry.getIndex();
+  const kept = [];
+  for (let tri = 0; tri < flags.length; tri += 1) {
+    if (Boolean(flags[tri]) !== keepDoor) continue;
+    for (let corner = 0; corner < 3; corner += 1) {
+      kept.push(index ? index.getX(tri * 3 + corner) : tri * 3 + corner);
+    }
+  }
+  if (kept.length === 0) return null;
+  const slice = geometry.clone();
+  slice.setIndex(kept);
+  slice.clearGroups();
+  return slice;
+}
+
+function collectDoorRig(scene, gltf, catalog) {
+  scene.updateMatrixWorld(true);
+  let doorNode = null;
+  scene.traverse((obj) => {
+    if (obj.name === "Door_FL") doorNode = obj;
+  });
+  if (!doorNode) return null;
+  const e = doorNode.matrixWorld.elements;
+  const hinge = { x: e[12], y: e[13], z: e[14] };
+  const clips = readDoorClips(gltf);
+  const doorKeys = catalog.get("Door_FL") || new Map();
+  const bodyKeys = catalog.get("body") || new Map();
+  const doorCentroids = [];
+  const bodyCentroids = [];
+  const samples = [];
+  const innerGeoms = [];
+  let innerMaterial = null;
+  scene.traverse((obj) => {
+    if (!obj.isMesh || isWheel(obj)) return;
+    const geometry = worldGeometry(obj);
+    const name = catalogName(obj);
+    const keys = catalog.get(name);
+    const { centroids } = triangleList(geometry);
+    const index = geometry.getIndex();
+    const position = geometry.getAttribute("position");
+    const tris = triCountOf(geometry);
+    for (let tri = 0; tri < tris; tri += 1) {
+      const i0 = cornerIndex(index, tri, 0);
+      const i1 = cornerIndex(index, tri, 1);
+      const i2 = cornerIndex(index, tri, 2);
+      const sample = { ...centroids[tri], cat: keys ? keys.get(triKey(position, i0, i1, i2)) : undefined };
+      samples.push(sample);
+      if (isDoorName(name)) doorCentroids.push(centroids[tri]);
+      else if (name === "body") bodyCentroids.push(centroids[tri]);
+    }
+    if (isInnerPanel(obj)) {
+      innerGeoms.push(geometry);
+      const material = Array.isArray(obj.material) ? obj.material[0] : obj.material;
+      if (material && !innerMaterial) {
+        innerMaterial = material.clone();
+        innerMaterial.toneMapped = false;
+        innerMaterial.side = material.side;
+      }
+    } else {
+      geometry.dispose();
+    }
+  });
+  return {
+    nodeName: "Door_FL",
+    hinge,
+    doorKeys,
+    bodyKeys,
+    doorCentroids,
+    bodyCentroids,
+    samples,
+    innerGeoms,
+    innerMaterial,
+    ...clips,
+  };
+}
+
+function splitDoorParts(parts, doorRig) {
+  if (!doorRig) return parts;
+  if (parts.some((part) => part.door)) return parts;
+  const next = [];
+  for (const part of parts) {
+    if (part.wheel) {
+      next.push(part);
+      continue;
+    }
+    const list = triangleList(part.geometry);
+    const flags = assignDoorFlags(
+      list.keys,
+      list.centroids,
+      doorRig.doorKeys,
+      doorRig.bodyKeys,
+      doorRig.doorCentroids,
+      doorRig.bodyCentroids,
+    );
+    const doorCount = flags.reduce((sum, flag) => sum + (flag ? 1 : 0), 0);
+    if (doorCount === 0) {
+      next.push(part);
+      continue;
+    }
+    const bodyGeom = extractTris(part.geometry, flags, false);
+    const doorGeom = extractTris(part.geometry, flags, true);
+    part.geometry.dispose();
+    if (bodyGeom) next.push({ ...part, geometry: bodyGeom, door: false });
+    if (doorGeom) next.push({ ...part, name: doorRig.nodeName, geometry: doorGeom, door: true });
+  }
+  for (const geometry of doorRig.innerGeoms) {
+    next.push({
+      name: "DoorInner",
+      geometry: geometry.clone(),
+      material: doorRig.innerMaterial,
+      paintable: false,
+      wheel: false,
+      front: false,
+      door: false,
+    });
+  }
+  return next;
+}
+
+function bakeDoorParts(parts, doorRig, cx, minY, cz) {
+  if (!doorRig) return null;
+  const hinge = bakeHinge(doorRig.hinge, cx, minY, cz);
+  for (const part of parts) {
+    if (part.door) part.hinge = [hinge.x, hinge.y, hinge.z];
+  }
+  return {
+    hinge,
+    side: doorSideFromHinge(hinge),
+    openAngle: doorRig.openAngle,
+    openTime: doorRig.openTime,
+    closeTime: doorRig.closeTime,
+  };
+}
+
+function bakeLevel(scene, catalog, doorRig = null) {
   scene.updateMatrixWorld(true);
   const parts = [];
   scene.traverse((obj) => {
     if (!obj.isMesh) return;
     const geometry = worldGeometry(obj);
     const wheel = isWheel(obj);
-    const paintable = Boolean(catalog) && !wheel && applyPaintMask(geometry, catalog.get(obj.name), obj.name);
+    const name = catalogName(obj);
+    const paintable = Boolean(catalog) && !wheel && applyPaintMask(
+      geometry,
+      paintKeysFor(catalog, name, doorRig),
+      name,
+      doorRig && doorRig.samples,
+    );
     const material = Array.isArray(obj.material) ? obj.material[0] : obj.material;
     if (material) material.toneMapped = false;
     if (obj.name === "trash") shadeBedRocks(geometry, material);
     if (paintable) installPaintShader(material, averagePaintLuma(material, geometry));
     parts.push({
-      name: obj.name,
+      name,
       geometry,
       material,
       paintable,
       wheel,
-      front: wheel && obj.name.startsWith("wheel-front"),
+      front: wheel && name.startsWith("wheel-front"),
+      door: isDoorName(name),
     });
   });
+  const split = splitDoorParts(parts, doorRig);
+  parts.length = 0;
+  parts.push(...split);
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
@@ -643,7 +873,8 @@ function bakeLevel(scene, catalog) {
   }
   const height = Number.isFinite(low) ? Math.max(0.001, high - low) : 1;
   const lift = Number.isFinite(low) ? (low + high) / 2 : 0.5;
-  return { parts, width, length, height, lift };
+  const door = bakeDoorParts(parts, doorRig, cx, minY, cz);
+  return { parts, width, length, height, lift, door };
 }
 
 // Headlight quads are exclusive vertices on the baked body. Folding them
@@ -743,13 +974,17 @@ function splitMaterials(root) {
   }
 }
 
-async function loadScene(loader, url, label) {
+async function loadGltf(loader, url, label) {
   try {
-    const gltf = await loader.loadAsync(url);
-    return gltf.scene;
+    return await loader.loadAsync(url);
   } catch {
     throw new Error(`The car model failed to load: ${label}`);
   }
+}
+
+async function loadScene(loader, url, label) {
+  const gltf = await loadGltf(loader, url, label);
+  return gltf.scene;
 }
 
 export async function createTraffic(scene, map, pieces = []) {
@@ -781,12 +1016,15 @@ export async function createTraffic(scene, map, pieces = []) {
       });
       return;
     }
-    const maskScene = await loadScene(
+    const maskGltf = await loadGltf(
       maskLoader,
       new URL(`../assets/cars3d/${file}.glb`, import.meta.url).href,
       `${file}.glb`,
     );
+    const maskScene = maskGltf.scene;
+    splitMaterials(maskScene);
     const catalog = faceCatalog(maskScene);
+    const doorRig = collectDoorRig(maskScene, maskGltf, catalog);
     const levels = {};
     let measured = null;
     for (const level of levelsFor(file)) {
@@ -795,7 +1033,7 @@ export async function createTraffic(scene, map, pieces = []) {
         new URL(`../assets/cars3d/weathered/${file}-L${level}.glb`, import.meta.url).href,
         `${file}-L${level}.glb`,
       );
-      const built = bakeLevel(weathered, catalog);
+      const built = bakeLevel(weathered, catalog, doorRig);
       levels[level] = built.parts;
       if (level === 2) measured = built;
       releaseGeometries(weathered);
@@ -807,6 +1045,7 @@ export async function createTraffic(scene, map, pieces = []) {
       height: measured.height,
       lift: measured.lift,
       levels,
+      door: measured.door || null,
     });
   }));
 
@@ -822,6 +1061,11 @@ export async function createTraffic(scene, map, pieces = []) {
       bodyH: file.height / file.length * car.h * DRAW_SCALE,
       bodyLift: file.lift / file.length * car.h * DRAW_SCALE,
       levels: file.levels,
+      hasDoor: Boolean(file.door),
+      doorSide: file.door ? file.door.side : 0,
+      doorOpenAngle: file.door ? file.door.openAngle : 0,
+      doorOpenTime: file.door ? file.door.openTime : 0,
+      doorCloseTime: file.door ? file.door.closeTime : 0,
     };
   });
   const weightTotal = models.reduce((sum, model) => sum + model.weight, 0);
@@ -845,6 +1089,7 @@ export async function createTraffic(scene, map, pieces = []) {
     car.y = GROUND_Y;
     car.angle = headingAngle(car.hx, car.hz);
     car.level = wearLevel(models[car.model].file, car.hash);
+    attachDoor(car, models[car.model]);
     settleParked(car, map);
     initCarHealth(car);
     car.smokeSoundPlayed = false;
@@ -919,6 +1164,8 @@ export async function createTraffic(scene, map, pieces = []) {
           front: part.front,
           axle: part.axle,
           radius: part.radius,
+          door: part.door,
+          hinge: part.hinge,
         });
       }
       groups.push({
@@ -973,11 +1220,15 @@ export async function createTraffic(scene, map, pieces = []) {
     const civilian = !SERVICE.has(group.model.name);
     const tint = car.wrecked ? wreckTint : (civilian ? PALETTE[colourIndex(salt)] : WHITE);
     const rec = car.wrecked ? 1 : (civilian ? 1 : 0);
+    attachDoor(car, group.model);
     for (const part of group.parts) {
       const rolling = group.model.rollWheels && part.wheel && part.axle;
+      const swinging = part.door && part.hinge;
       const drawn = rolling
         ? wheelMatrix(matrix, part, car.rollTravel || 0, car.rollSteer || 0, group.model.scaleY)
-        : matrix;
+        : swinging
+          ? doorMatrix(matrix, part.hinge, car.doorAngle || 0)
+          : matrix;
       part.mesh.setMatrixAt(count, drawn);
       if (!part.paintable) continue;
       part.recolor.setX(count, rec);
@@ -1095,7 +1346,26 @@ export async function createTraffic(scene, map, pieces = []) {
       listed.length = total;
       for (let i = 0; i < parked.length; i += 1) listed[i] = parked[i];
       for (let i = 0; i < sim.drivers.length; i += 1) listed[parked.length + i] = sim.drivers[i];
+      for (const car of listed) attachDoor(car, models[car.model]);
       return listed;
+    },
+    hasSwingDoor,
+    openDoor(car) {
+      attachDoor(car, car && models[car.model]);
+      return openCarDoor(car);
+    },
+    closeDoor(car) {
+      attachDoor(car, car && models[car.model]);
+      return closeCarDoor(car);
+    },
+    snapDoorShut(car) {
+      snapDoorShut(car);
+    },
+    doorIsOpen(car) {
+      return doorIsOpen(car);
+    },
+    doorPhase(car) {
+      return doorPhase(car);
     },
     roadHeight(x, z, y) {
       return plan.heightAt ? plan.heightAt(x, z, y) : null;
@@ -1117,6 +1387,10 @@ export async function createTraffic(scene, map, pieces = []) {
       syncParked();
       const all = parked.concat(sim.drivers);
       for (const car of all) trackRoll(car, models[car.model], dt);
+      for (const car of all) {
+        attachDoor(car, models[car.model]);
+        stepDoor(car, dt);
+      }
       for (const car of all) {
         if (car.wrecked && !car.blew) finishWreck(car);
       }

@@ -43,7 +43,7 @@ The view keeps the same tilt and the same zoom. It only turns. On foot it waits,
 
 All in `js/player-health.js`. Health and HIGH are 0–100. After death you wait, then respawn at the spawn point with full health, HIGH cleared, stars cleared, all weed gone, and a quarter of your cash lost (`DEATH_CASH_LOSS`).
 
-There is **no in-game way to gain HIGH yet**. Only the debug key **F10** (and `dsDebug.high()`) add it.
+Street-drug bags (meth and FULE) fill the HIGH orb for as long as their buff lasts. The debug key **F10** (and `dsDebug.addHigh()`) still adds HIGH when no street-drug buff is running.
 
 | Name | Value | File | What it does |
 |---|---|---|---|
@@ -110,9 +110,9 @@ Damage numbers to *people* live in `js/pistol.js` (even for the bat and bottle).
 | SMG_MAG | 20 | js/smg.js | Scorpion shots before a reload. |
 | SMG_SPREAD_DEG | 6 | js/smg.js | Widest angle a scorpion bullet can leave the aim line, in degrees. |
 | SMG_SCALE | 0.22 | js/smg.js | Size of the scorpion in the hand. |
-| SMG_HAND | 0, 0.12, -0.04 | js/smg.js | Where the scorpion sits in the hand. |
-| SMG_EULER | 90, 180, 0 deg | js/smg.js | Turn of the scorpion in the hand. Change this if it points the wrong way. |
-| SMG_MUZZLE | 0, 0.15, 2.1 | js/smg.js | Where the scorpion flash sits, in the gun's own axes. |
+| SMG_HAND | -0.2, 0.5, -0.09 | js/smg.js | Where the scorpion sits in the hand. The fist holds the brown grip. |
+| SMG_EULER | 90, 0, 90 deg | js/smg.js | Turn of the scorpion in the hand. Change this if it points the wrong way. |
+| SMG_MUZZLE | 0, 0.05, -2.4 | js/smg.js | Where the scorpion flash sits, in the gun's own axes. |
 | SHOTGUN_PELLETS | 5 | js/shotgun.js | Pellets in one shotgun blast. |
 | SHOTGUN_PELLET_DAMAGE | 1 | js/shotgun.js | Damage of one pellet. A close person is hit by more than one. |
 | SHOTGUN_RANGE | 144 | js/shotgun.js | How far a pellet can hit (three tiles). |
@@ -123,8 +123,8 @@ Damage numbers to *people* live in `js/pistol.js` (even for the bat and bottle).
 | SHOTGUN_KICK_UP_DEG | 22 | js/shotgun.js | How far the barrel kicks up, in degrees. |
 | SHOTGUN_KICK_RETURN | 0.25 | js/shotgun.js | Seconds for the kick to ease back. |
 | SHOTGUN_SCALE | 0.32 | js/shotgun.js | Size of the shotgun in the hand. |
-| SHOTGUN_HAND | 0, 0.1, -0.03 | js/shotgun.js | Where the shotgun sits in the hand. |
-| SHOTGUN_EULER | 0, -90, 90 deg | js/shotgun.js | Turn of the shotgun in the hand. Change this if it points the wrong way. |
+| SHOTGUN_HAND | 0.02, 0.59, -0.09 | js/shotgun.js | Where the shotgun sits in the hand. The fist is on the wrist of the stock, just behind the receiver. |
+| SHOTGUN_EULER | 0, 0, 90 deg (XYZ) | js/shotgun.js | Turn of the shotgun in the hand, the same as the pistol: barrel out past the knuckles, top up. The old 0, -90, 90 showed it edge-on as a thin line pointing sideways; lying it on its side pushed the stock into the chest. |
 | SHOTGUN_MUZZLE | 2.15, 0.02, 0 | js/shotgun.js | Where the shotgun flash sits, in the gun's own axes. |
 | THROW_REACH | 144 | js/bottle.js | How far a bottle flies along the ground (three tiles). |
 | MIN_REACH | 18 | js/bottle.js | Shortest throw; closer than this the bottle still leaves the hand at this distance. |
@@ -316,7 +316,7 @@ Props in build mode use `CITYPACK_METER` when the file is in meters. Billboard a
 
 ## Game feel
 
-Juice only. These do not change damage, range, fire rate, or ammo. `dsDebug.feel = false` turns the shake, freeze, white flash, knockback, tracers, muzzle light, and hit marker off.
+Juice only. These do not change damage, range, fire rate, or ammo. `dsDebug.feel = false` turns the shake, screen kick, freeze, white flash, knockback, tracers, impacts, shells, muzzle light, flash wobble, and hit marker off.
 
 | Name | Value | File | What it does |
 |---|---|---|---|
@@ -375,6 +375,26 @@ Juice only. These do not change damage, range, fire rate, or ammo. `dsDebug.feel
 | HITMARK_TIME | 0.1 | js/game-feel.js | Seconds the crosshair stays big and red. |
 | HITMARK_KILL_SCALE | 1.6 | js/game-feel.js | How big the crosshair grows on a kill. |
 | HITMARK_KILL_TIME | 0.2 | js/game-feel.js | Seconds the kill marker stays up. |
+| KICK_PISTOL | 2.5 | js/game-feel.js | How far one pistol shot jolts the view away from the aim, in units. Eases back. |
+| KICK_SMG | 1.2 | js/game-feel.js | View jolt per scorpion shot. A burst stacks up to KICK_MAX. |
+| KICK_SHOTGUN | 9 | js/game-feel.js | View jolt for one shotgun blast. |
+| KICK_MAX | 12 | js/game-feel.js | Largest view jolt, in units. |
+| KICK_DECAY | 14 | js/game-feel.js | How fast the jolt eases back, per second. |
+| FLASH_JITTER | 0.2 | js/game-feel.js | Muzzle flash size wobble (+/- 20%); it also turns randomly every shot. |
+| IMPACT_POOL | 24 | js/game-feel.js | Most bullet impacts (dust puff + spark) shown at once. Pooled. |
+| IMPACT_TIME | 0.32 | js/game-feel.js | Seconds a dust puff takes to fade. |
+| IMPACT_SIZE | 9 | js/game-feel.js | Starting size of a dust puff, in units. Walls get 20% more. |
+| IMPACT_GROW | 2.2 | js/game-feel.js | How much a dust puff grows while it fades. |
+| IMPACT_SPARK_SIZE | 7 | js/game-feel.js | Size of the spark at the impact, in units. |
+| IMPACT_SPARK_TIME | 0.06 | js/game-feel.js | Seconds the spark shows. |
+| SHELL_POOL | 32 | js/game-feel.js | Most empty shells on the ground at once. Pooled. |
+| SHELL_LIFE | 1.2 | js/game-feel.js | Seconds a shell stays before it shrinks away. |
+| SHELL_SPEED | 55 | js/game-feel.js | How fast a shell flies out to the right of the gun, units per second. |
+| SHELL_UP | 45 | js/game-feel.js | Upward speed of a shell. |
+| SHELL_GRAVITY | 260 | js/game-feel.js | Pull on a flying shell. It bounces up to 3 times. |
+| SHELL_SIZE | 2.4 x 1.1 x 1.1 | js/game-feel.js | Shell size, in units. |
+| HELD_SIZE | 1.1 | js/pistol.js | Held weapons are 10% bigger than before (pistol, scorpion, shotgun, bat, bottle). |
+| HELD_THICK | 1.1 | js/pistol.js | Extra 10% thickness across the weapon (not along it), so it reads from above. |
 
 ---
 
@@ -387,3 +407,32 @@ Juice only. These do not change damage, range, fire rate, or ammo. `dsDebug.feel
 | PANIC_RANGE | 900 | js/pedestrians.js | How far a gunshot scare reaches, in units (almost 19 tiles). |
 | PANIC_TIME | 6 | js/pedestrians.js | Seconds those people sprint away after a scare. |
 | CROWD | 1200 | js/pedestrians.js | How many pedestrian slots the island keeps in the simulation. |
+
+---
+
+## Street drugs (pickups)
+
+Bags on the sidewalk near spawn, in `js/drugs.js` and `js/drug-bags.js`. Walking over a bag (on foot only) uses it at once: the Consume clip plays, an ornate pickup card appears (name, what you get, and the side-effect line), a timer chip sits above the HIGH orb, and the HIGH orb fills, then drains as that buff runs out. Taking the same drug again resets its timer (no stacking). If both are active, walk and run use the higher speed. Meth regen can go all the way to full health. These pickups do not change other health, HIGH drain, overdose, or weapon numbers. While a street-drug buff owns the HIGH orb, the default HIGH drain and overdose do not run on that fill (otherwise meth regen would cancel, and FULE would hurt you). The usual HIGH damage bonus and damage reduction still apply while the orb is filled. On death the buffs are cleared.
+
+Distances below are world units. `DRUG_METER` is 15, because a sedan is about 71 units long, roughly 4.7 m.
+
+| Name | Value | File | What it does |
+|---|---|---|---|
+| DRUG_METER | 15 | js/drugs.js | World units treated as one metre when converting the pickup ranges. |
+| DRUG_SPAWN_RADIUS | 600 | js/drugs.js | Bags are placed on sidewalks within this of the spawn (about 40 m). |
+| DRUG_PICKUP_RADIUS | 18 | js/drugs.js | How close the player's centre must be to use a bag (about 1.2 m). On foot only. |
+| DRUG_RESPAWN | 60 | js/drugs.js | Seconds before a used bag comes back at the same spot. |
+| DRUG_COUNT_METH | 4 | js/drugs.js | Number of meth bags placed near spawn. |
+| DRUG_COUNT_FULE | 4 | js/drugs.js | Number of FULE bags placed near spawn. |
+| DRUG_MIN_SEPARATION | 48 | js/drugs.js | Closest two bags may be (one tile). |
+| DRUG_MIN_SPAWN_DIST | 72 | js/drugs.js | Closest a bag may be to the spawn, so you do not use one the instant you appear. |
+| DRUG_PLACE_DIST | 160 | js/drugs.js | Preferred distance from spawn when spreading the eight bags around the nearby sidewalks. |
+| METH_SPEED | 1.25 | js/drugs.js | Walk and run speed while meth is active. |
+| METH_DURATION | 120 | js/drugs.js | Seconds a meth pickup lasts (2 minutes). A second meth resets this timer. |
+| METH_REGEN_PER_SECOND | 3 | js/drugs.js | Health gained per second while meth lasts, never above max health. |
+| FULE_SPEED | 1.4 | js/drugs.js | Walk and run speed while FULE is active. |
+| FULE_DURATION | 60 | js/drugs.js | Seconds a FULE pickup lasts (1 minute). A second FULE resets this timer. |
+| DRUG_HIGH_FULL | 100 | js/drugs.js | HIGH orb value when a buff has just started. It drains with the remaining time. |
+| DRUG_TOAST_SECONDS | 3 | js/drugs.js | Seconds the pickup card stays up before it fades. |
+| DRUG_SOUNDS.meth | assets/sounds/drugs/meth-pickup.mp3 | js/drugs.js | Meth pickup sound. Missing files stay quiet; drop the clip at this path. |
+| DRUG_SOUNDS.fule | assets/sounds/drugs/fule-pickup.mp3 | js/drugs.js | FULE pickup sound. Missing files stay quiet; drop the clip at this path. |

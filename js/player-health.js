@@ -192,10 +192,12 @@ export function stepPlayerVitals(state, dt) {
     result.high = state.high;
     return result;
   }
-  if (state.high > 0) {
+  // Street-drug buffs own the HIGH orb while they last (see js/drugs.js),
+  // so the default drain and overdose do not run on that fill.
+  if (!state.freezeHigh && state.high > 0) {
     state.high = Math.max(0, state.high - HIGH_DRAIN_PER_SECOND * step);
   }
-  if (state.high > OVERDOSE_HIGH) {
+  if (!state.freezeHigh && state.high > OVERDOSE_HIGH) {
     const hit = takeDamage(state, OVERDOSE_HP_PER_SECOND * step, "overdose");
     result.justDied = hit.justDied;
   }

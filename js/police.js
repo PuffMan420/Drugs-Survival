@@ -6,6 +6,7 @@
 // Distances are world units, not meters: a tile is 48, the player square 32.
 
 import { PLAYER_SPEED } from "./constants.js";
+import { nextCopPunch, punchTiming } from "./punch.js";
 
 // Ground speed while chasing. Equal to the player's jog (PLAYER_SPEED);
 // player sprint is 1.4x, so the player can outrun cops on foot.
@@ -86,7 +87,7 @@ export function createPolice({ pedestrians, player, wanted, economy, onBusted })
     const x = player.x + Math.cos(angle) * radius;
     const z = player.z + Math.sin(angle) * radius;
     const ped = pedestrians.spawnCop(x, z, COP_HP);
-    if (ped) cops.push({ ped, cooldown: 0, leaving: false });
+    if (ped) cops.push({ ped, cooldown: 0, leaving: false, lastPunch: "" });
   }
 
   function update(dt, halfW, halfH) {
@@ -127,6 +128,19 @@ export function createPolice({ pedestrians, player, wanted, economy, onBusted })
         ped.copGait = "idle";
         continue;
       }
+      // Finish a started punch in place. Damage lands at the impact time.
+      if (cop.punching) {
+        cop.punchAge = (cop.punchAge || 0) + dt;
+        ped.copGait = "idle";
+        if (cop.punchPending && cop.punchAge >= cop.punchHit) {
+          cop.punchPending = false;
+          if (dist <= COP_REACH && !player.dead && player.health >= BUST_HEALTH) {
+            player.takeDamage(COP_DAMAGE, "police");
+          }
+        }
+        if (cop.punchAge >= cop.punchPose) cop.punching = false;
+        continue;
+      }
       if (cop.leaving) {
         ped.dx = -dx / dist;
         ped.dz = -dz / dist;
@@ -150,8 +164,16 @@ export function createPolice({ pedestrians, player, wanted, economy, onBusted })
       inReach = true;
       // Below BUST_HEALTH they stop hitting and hold the player for the bust.
       if (cop.cooldown === 0 && player.health >= BUST_HEALTH) {
-        player.takeDamage(COP_DAMAGE, "police");
+        const punch = nextCopPunch(cop.lastPunch);
+        const timing = punchTiming(punch);
+        cop.lastPunch = punch;
+        cop.punching = true;
+        cop.punchAge = 0;
+        cop.punchHit = timing.hit;
+        cop.punchPose = timing.pose;
+        cop.punchPending = true;
         cop.cooldown = COP_PUNCH_COOLDOWN;
+        if (pedestrians.playPunch) pedestrians.playPunch(ped, punch);
       }
     }
 

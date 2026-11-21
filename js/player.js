@@ -25,7 +25,17 @@ import {
 } from "./characters.js";
 import { PLAYER_SPEED } from "./constants.js";
 import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
-import { isLowerBone, legsWhileAiming, moveDirection } from "./pose-layers.js";
+import { DEATH_RESPAWN_DELAY } from "./player-health.js";
+import {
+  GUN_PRIORITY,
+  HIT_REACT_COOLDOWN,
+  JUMP_MAX,
+  clipSpeedForMax,
+  isLowerBone,
+  legsWhileAiming,
+  moveDirection,
+  shouldPlayHit,
+} from "./pose-layers.js";
 
 // His height is CHARACTER_HEIGHT in js/characters.js (car units). Pedestrians
 // use the same fit, so they stand at his height.
@@ -284,6 +294,17 @@ export async function createPlayer() {
   actions.punchJab.setLoop(LoopOnce, 1);
   actions.punchJab.clampWhenFinished = true;
   actions.punchJab.play();
+  const ual1Extra = {
+    death: "Death01",
+    hitChest: "Hit_Chest",
+    hitHead: "Hit_Head",
+    jumpIn: "Jump_Start",
+  };
+  for (const key of Object.keys(ual1Extra)) {
+    actions[key] = mixer.clipAction(clipNamed(gltf.animations, ual1Extra[key]));
+    setWeight(actions[key], 0);
+    actions[key].play();
+  }
   const lowerActions = {};
   for (const name of ["idle", "walk", "jog", "sprint"]) {
     lowerActions[name] = mixer.clipAction(maskedClip(actions[name].getClip(), true));
@@ -295,6 +316,7 @@ export async function createPlayer() {
     "punchCross", "punchJab", "meleeHook",
     "overhandThrow", "consume",
     "swordIdle", "swordRegularA", "swordRegularB", "swordRegularC", "swordHeavy",
+    "hitChest", "hitHead",
   ];
   const upperActions = {};
   for (const name of upperNames) {
@@ -306,6 +328,7 @@ export async function createPlayer() {
     "pistolShoot", "pistolReload", "punchCross", "punchJab", "meleeHook",
     "overhandThrow", "consume", "swordRegularA", "swordRegularB", "swordRegularC",
     "swordHeavy", "hitKnockback", "swordAttack",
+    "hitChest", "hitHead", "death", "jumpIn",
   ];
   for (const name of oneShots) {
     const action = actions[name];
@@ -339,11 +362,15 @@ export async function createPlayer() {
   // One-shot that owns the arms (consume) or the whole body (car hit).
   let upperCue = "";
   let bodyCue = "";
-  const FULL_ONESHOT = new Set(["pistolShoot", "swordAttack", "hitKnockback"]);
+  let ride = "";
+  let hitCool = 0;
+  let lastHit = "hitHead";
+  const FULL_ONESHOT = new Set(["pistolShoot", "swordAttack", "hitKnockback", "death", "jumpIn"]);
   const UPPER_FAST = new Set([
     "pistolShoot", "punchCross", "punchJab", "meleeHook",
     "overhandThrow", "consume",
     "swordRegularA", "swordRegularB", "swordRegularC", "swordHeavy",
+    "hitChest", "hitHead",
   ]);
   const buffers = [null, null];
   let stepsReady = false;
@@ -454,6 +481,11 @@ export async function createPlayer() {
     shadow.position.set(x, feet - (FEET_Y - SHADOW_Y), z);
   }
 
+  function hideHeld(hide) {
+    const socket = model.getObjectByName("hand_r_socket");
+    if (socket) socket.visible = !hide;
+  }
+
   return {
     mesh: holder,
     shadow,
@@ -505,6 +537,80 @@ export async function createPlayer() {
       kick = "hitKnockback";
       forced = "hitKnockback";
     },
+    playDeath() {
+      upperCue = "";
+      ride = "";
+      bodyCue = "death";
+      kick = "death";
+      forced = "death";
+    },
+    playHit(source = "") {
+      const pose = bodyCue || ride || forced || playing;
+      const locked = Boolean(bodyCue || ride === "jumpIn");
+      if (!shouldPlayHit({ source, pose, locked, cooldown: hitCool })) return false;
+      lastHit = lastHit === "hitChest" ? "hitHead" : "hitChest";
+      upperCue = lastHit;
+      kick = lastHit;
+      forced = lastHit;
+      hitCool = HIT_REACT_COOLDOWN;
+      return true;
+    },
+    ridePose(name) {
+      ride = name || "";
+      if (ride) {
+        kick = ride;
+        forced = ride;
+      } else if (forced === "jumpIn") {
+        kick = "";
+        forced = "";
+      }
+    },
+    setFacing(yaw) {
+      facing = yaw;
+      holder.rotation.y = yaw;
+    },
+    resetPose() {
+      ride = "";
+      upperCue = "";
+      bodyCue = "";
+      kick = "";
+      forced = "";
+      layered = false;
+      hitCool = 0;
+      for (const key of Object.keys(lowerActions)) setWeight(lowerActions[key], 0);
+      for (const key of Object.keys(upperActions)) setWeight(upperActions[key], 0);
+      for (const key of Object.keys(actions)) {
+        actions[key].stopFading();
+        actions[key].stopWarping();
+        setWeight(actions[key], key === "idle" ? 1 : 0);
+      }
+      actions.idle.reset().play();
+      playing = "idle";
+      hideHeld(false);
+      mixer.update(0);
+    },
+    hideHeld,
+    get poseName() {
+      return bodyCue || ride || forced || playing;
+    },
+    get hitCooldown() {
+      return hitCool;
+    },
+    locked() {
+      return bodyCue === "death";
+    },
+    playDuration(name) {
+      const action = actions[name];
+      if (!action) return 0;
+      const duration = action.getClip().duration;
+      if (name === "jumpIn") {
+        return duration / clipSpeedForMax(duration, JUMP_MAX);
+      }
+      if (name === "death") {
+        return duration / clipSpeedForMax(duration, DEATH_RESPAWN_DELAY);
+      }
+      return duration;
+    },
     aimAt(x, z) {
       aim = { x, z };
     },
@@ -545,16 +651,24 @@ export async function createPlayer() {
       const moved = dist > 0.001 && dist < PLACE_STEP;
       const ground = moved && step > 0 ? dist / step : 0;
       const gait = gaitForSpeed(ground);
+      if (hitCool > 0) hitCool = Math.max(0, hitCool - step);
+      if (ride === "jumpIn") {
+        const clip = actions.jumpIn;
+        if (kick !== "jumpIn" && clip.time >= clip.getClip().duration - 0.001) ride = "";
+      }
       if (bodyCue) {
         const clip = actions[bodyCue];
         const done = kick !== bodyCue && clip.time >= clip.getClip().duration - 0.001;
-        if (done) bodyCue = "";
+        // Death holds its last frame until resetPose(). Knockback still ends.
+        if (done && bodyCue !== "death") bodyCue = "";
         else forced = bodyCue;
-      } else if (upperCue) {
+      } else if (upperCue && !GUN_PRIORITY.has(forced)) {
         const clip = upperActions[upperCue];
         const done = kick !== upperCue && clip.time >= clip.getClip().duration - 0.001;
         if (done) upperCue = "";
         else forced = upperCue;
+      } else if (ride) {
+        forced = ride;
       }
       const split = legsWhileAiming(forced, gait !== "idle");
       if (holder.visible && dist < PLACE_STEP) {
@@ -609,7 +723,18 @@ export async function createPlayer() {
         lowerActions[name].setEffectiveTimeScale(scale);
       }
       if (forced && actions[forced]) actions[forced].setEffectiveTimeScale(1);
+      if (forced === "jumpIn") {
+        actions.jumpIn.setEffectiveTimeScale(
+          clipSpeedForMax(actions.jumpIn.getClip().duration, JUMP_MAX),
+        );
+      }
+      if (forced === "death") {
+        actions.death.setEffectiveTimeScale(
+          clipSpeedForMax(actions.death.getClip().duration, DEATH_RESPAWN_DELAY),
+        );
+      }
       for (const name of Object.keys(upperActions)) upperActions[name].setEffectiveTimeScale(1);
+      hideHeld(Boolean(ride === "jumpIn" || bodyCue === "death"));
       const aimW = actions.pistolAim.getEffectiveWeight() + upperActions.pistolAim.getEffectiveWeight();
       const shootW = actions.pistolShoot.getEffectiveWeight() + upperActions.pistolShoot.getEffectiveWeight();
       setWeight(leftIdle, LEFT_ARM_IDLE * (aimW + shootW));

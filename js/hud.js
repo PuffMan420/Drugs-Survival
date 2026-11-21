@@ -2,6 +2,19 @@
 // the export from UI/HUD/hud_export. A 1920x1080 layout is stretched to the
 // game picture, and that picture grows and shrinks with the window.
 
+import {
+  DRUG_TOAST_SECONDS,
+  FULE_FILE,
+  FULE_ID,
+  METH_FILE,
+  METH_ID,
+  drugEffect,
+  drugIcon,
+  drugName,
+  drugSide,
+  formatDrugChip,
+} from "./drugs.js";
+
 const REF_W = 1920;
 const REF_H = 1080;
 const rootUrl = new URL("../assets/hud_export/", import.meta.url);
@@ -25,6 +38,17 @@ let shownPrompt = null;
 let messageText = "";
 let messageUntil = 0;
 let promptText = "";
+let toastEl = null;
+let toastUntil = 0;
+let popEl = null;
+let popIcon = null;
+let popName = null;
+let popEffect = null;
+let popSide = null;
+let popUntil = 0;
+let popFadeUntil = 0;
+let chipsEl = null;
+let shownChips = "";
 let starEls = [];
 let shownStars = null;
 
@@ -125,6 +149,179 @@ function installStyle() {
     #game-hud [hidden] {
       display: none;
     }
+    #hud-toast {
+      display: none;
+    }
+    #hud-drug-pop {
+      position: absolute;
+      left: 50%;
+      top: 9%;
+      width: max-content;
+      max-width: 36%;
+      margin: 0;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      gap: 1.4cqh;
+      padding: 1.5cqh 3cqh 1.6cqh 1.6cqh;
+      background: url("assets/hud_export/misc/quest_tracker.png") center / 100% 100% no-repeat;
+      pointer-events: none;
+      transform: translate(-50%, 0);
+      transform-origin: 50% 50%;
+    }
+    #hud-drug-pop[hidden] {
+      display: none;
+    }
+    #hud-drug-pop .drug-icon {
+      flex: 0 0 auto;
+      width: 7.2cqh;
+      height: 7.2cqh;
+      object-fit: contain;
+      filter: drop-shadow(0 1px 2px #000);
+    }
+    #hud-drug-pop .drug-copy {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35cqh;
+    }
+    #hud-drug-pop .drug-name,
+    #hud-drug-pop .drug-effect,
+    #hud-drug-pop .drug-side {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 700;
+      text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 2px 2px #000,
+        0 0 8px #000;
+    }
+    #hud-drug-pop .drug-name {
+      font-size: 3.8cqh;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      transform-origin: left center;
+    }
+    #hud-drug-pop.meth .drug-name {
+      color: #9FE4FF;
+      text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 2px 2px #000,
+        0 0 10px #000,
+        0 0 16px rgba(159, 228, 255, 0.9);
+    }
+    #hud-drug-pop.fule .drug-name {
+      color: #FFE9B0;
+      text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 2px 2px #000,
+        0 0 10px #000,
+        0 0 16px rgba(255, 233, 176, 0.8);
+    }
+    #hud-drug-pop .drug-effect {
+      color: #D9C08A;
+      font-size: 1.7cqh;
+      line-height: 1.15;
+      letter-spacing: 0.08em;
+    }
+    #hud-drug-pop .drug-side {
+      color: #E0574A;
+      font-size: 1.7cqh;
+      line-height: 1.15;
+      font-style: italic;
+      letter-spacing: 0.08em;
+      text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 2px 2px #000,
+        0 0 8px #000;
+    }
+    @keyframes drug-pop-in {
+      0% { opacity: 0; transform: translate(-50%, 0) scale(0.62) rotate(-2deg); }
+      42% { opacity: 1; transform: translate(-50%, 0) scale(1.12) rotate(1.1deg); }
+      58% { transform: translate(-50%, 0) scale(0.96) rotate(-0.7deg); }
+      72% { transform: translate(-50%, 0) scale(1.04) translateX(0.5cqh); }
+      86% { transform: translate(-50%, 0) scale(0.99) translateX(-0.3cqh); }
+      100% { opacity: 1; transform: translate(-50%, 0) scale(1) rotate(0); }
+    }
+    @keyframes drug-name-pop {
+      0% { transform: scale(0.55); }
+      45% { transform: scale(1.2); }
+      62% { transform: scale(0.94) rotate(-1.4deg); }
+      78% { transform: scale(1.07) translateX(0.35cqh); }
+      90% { transform: scale(0.99) translateX(-0.2cqh); }
+      100% { transform: scale(1) rotate(0); }
+    }
+    @keyframes drug-pop-out {
+      from { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      to { opacity: 0; transform: translate(-50%, -1cqh) scale(0.96); }
+    }
+    #hud-drug-pop.show {
+      animation: drug-pop-in 0.48s cubic-bezier(0.2, 1.4, 0.35, 1) both;
+    }
+    #hud-drug-pop.show .drug-name {
+      animation: drug-name-pop 0.55s cubic-bezier(0.2, 1.5, 0.35, 1) both;
+    }
+    #hud-drug-pop.fade {
+      animation: drug-pop-out 0.35s ease forwards;
+    }
+    #hud-drug-chips {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.45cqh;
+      pointer-events: none;
+      transform: translate(-50%, -100%);
+    }
+    #hud-drug-chips[hidden],
+    #hud-drug-chips:empty {
+      display: none;
+    }
+    .hud-drug-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.55cqh;
+      padding: 0.3cqh 0.85cqh 0.3cqh 0.35cqh;
+      background: #6b2288;
+      border: 0.32cqh solid #9FE4FF;
+      border-radius: 0.35cqh;
+      box-shadow: 0 2px 6px #000;
+      color: #f3e6c0;
+      font: 700 1.65cqh/1 Georgia, "Times New Roman", serif;
+      letter-spacing: 0.08em;
+      text-shadow:
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000,
+        0 2px 2px #000;
+      white-space: nowrap;
+    }
+    .hud-drug-chip.meth {
+      border-color: #9FE4FF;
+      box-shadow: 0 2px 6px #000, 0 0 5px rgba(159, 228, 255, 0.55);
+    }
+    .hud-drug-chip.fule {
+      border-color: #FFE9B0;
+      box-shadow: 0 2px 6px #000, 0 0 5px rgba(255, 233, 176, 0.55);
+    }
+    .hud-drug-chip img {
+      width: 2.3cqh;
+      height: 2.3cqh;
+      object-fit: contain;
+    }
     #hud-high {
       position: absolute;
       margin: 0;
@@ -202,6 +399,7 @@ function build(layout) {
   label.style.left = `${((drugBox.x + drugBox.w / 2) / REF_W) * 100}%`;
   label.style.top = `${((drugBox.y + drugBox.h * fillBottom) / REF_H) * 100}%`;
   hudRoot.append(label);
+  placeDrugChips(drugBox);
 
   const prompt = layout.prompt_plate;
   addImage(prompt.file, prompt.x, prompt.y, prompt.w, prompt.h);
@@ -256,6 +454,111 @@ function message(text, seconds = 1.6) {
   messageUntil = performance.now() + seconds * 1000;
 }
 
+function assetUrl(file) {
+  return new URL(`../${file}`, import.meta.url).href;
+}
+
+function placeDrugChips(drugBox) {
+  if (!chipsEl || !drugBox) return;
+  const cx = drugBox.x + drugBox.w / 2;
+  const cy = drugBox.y - 6;
+  chipsEl.style.left = `${(cx / REF_W) * 100}%`;
+  chipsEl.style.top = `${(cy / REF_H) * 100}%`;
+}
+
+function ensureDrugPop() {
+  if (popEl || !hudRoot) return;
+  popEl = document.createElement("div");
+  popEl.id = "hud-drug-pop";
+  popEl.hidden = true;
+  popIcon = document.createElement("img");
+  popIcon.className = "drug-icon";
+  popIcon.alt = "";
+  popIcon.draggable = false;
+  const copy = document.createElement("div");
+  copy.className = "drug-copy";
+  popName = document.createElement("p");
+  popName.className = "drug-name";
+  popEffect = document.createElement("p");
+  popEffect.className = "drug-effect";
+  popSide = document.createElement("p");
+  popSide.className = "drug-side";
+  copy.append(popName, popEffect, popSide);
+  popEl.append(popIcon, copy);
+  hudRoot.append(popEl);
+}
+
+function ensureDrugChips() {
+  if (chipsEl || !hudRoot) return;
+  chipsEl = document.createElement("div");
+  chipsEl.id = "hud-drug-chips";
+  chipsEl.hidden = true;
+  hudRoot.append(chipsEl);
+}
+
+// Old one-line toast. The drug pickup uses showDrugPickup instead.
+function toast(text, _seconds = 3) {
+  if (text === METH_ID || text === FULE_ID) showDrugPickup(text);
+}
+
+// Ornate pickup card: name, buff, and side effect. Does not block input.
+function showDrugPickup(kind) {
+  ensureDrugPop();
+  if (!popEl) return;
+  const id = kind === FULE_ID ? FULE_ID : METH_ID;
+  popEl.classList.remove("show", "fade", "meth", "fule");
+  popEl.classList.add(id);
+  popIcon.src = assetUrl(drugIcon(id) || (id === FULE_ID ? FULE_FILE : METH_FILE));
+  popName.textContent = drugName(id);
+  popEffect.textContent = drugEffect(id);
+  popSide.textContent = drugSide(id);
+  popEl.hidden = false;
+  void popEl.offsetWidth;
+  popEl.classList.add("show");
+  popUntil = performance.now() + DRUG_TOAST_SECONDS * 1000;
+  popFadeUntil = 0;
+}
+
+function tickDrugPop() {
+  if (!popEl || popEl.hidden) return;
+  const now = performance.now();
+  if (popEl.classList.contains("show") && now >= popUntil) {
+    popEl.classList.remove("show");
+    popEl.classList.add("fade");
+    popFadeUntil = now + 350;
+  }
+  if (popEl.classList.contains("fade") && now >= popFadeUntil) {
+    popEl.hidden = true;
+    popEl.classList.remove("fade", "show");
+  }
+}
+
+// Persistent chips above the HIGH orb, one per active street-drug buff.
+function setDrugTimers(buffs) {
+  ensureDrugChips();
+  if (!chipsEl) return;
+  const rows = [];
+  if (buffs && buffs.meth > 0) rows.push({ kind: METH_ID, left: buffs.meth });
+  if (buffs && buffs.fule > 0) rows.push({ kind: FULE_ID, left: buffs.fule });
+  const key = rows.map((row) => formatDrugChip(row.kind, row.left)).join("|");
+  if (key === shownChips) return;
+  shownChips = key;
+  chipsEl.replaceChildren();
+  chipsEl.hidden = rows.length === 0;
+  for (const row of rows) {
+    const chip = document.createElement("div");
+    chip.className = `hud-drug-chip ${row.kind}`;
+    const icon = document.createElement("img");
+    icon.alt = "";
+    icon.draggable = false;
+    icon.src = assetUrl(drugIcon(row.kind));
+    const label = document.createElement("span");
+    label.textContent = formatDrugChip(row.kind, row.left);
+    chip.append(icon, label);
+    chipsEl.append(chip);
+  }
+}
+
 // The standing hint on the prompt plate, e.g. "Buy weed $20". "" clears it.
 function setPrompt(text) {
   promptText = String(text || "");
@@ -297,6 +600,7 @@ function setSlotDisabled(slot, on) {
 
 function sync(session) {
   followCanvas();
+  tickDrugPop();
   const player = session && session.player;
   paintFill(healthFill, healthFrac, player ? player.health : 0);
   paintFill(drugFill, drugFrac, player ? player.high : 0);
@@ -320,6 +624,8 @@ function mount() {
   hudRoot = document.createElement("div");
   hudRoot.id = "game-hud";
   document.body.append(hudRoot);
+  ensureDrugPop();
+  ensureDrugChips();
   followCanvas();
   window.addEventListener("resize", followCanvas);
   if (typeof ResizeObserver === "function") {
@@ -344,6 +650,9 @@ mount();
 
 export const hud = {
   message,
+  toast,
+  showDrugPickup,
+  setDrugTimers,
   setPrompt,
   setMixGlow,
   setSlotDisabled,

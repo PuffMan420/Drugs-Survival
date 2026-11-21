@@ -1,7 +1,11 @@
 // Pump shotgun. Five pellets in a cone, then a kick that eases back.
 // Hand local: +Y runs wrist to knuckles, +X toward the pinky, -Z is the palm.
-// The mesh barrel is +X and the stock is -X. SHOTGUN_EULER is applied Z, then
-// Y, then X, so the barrel leaves through the knuckles.
+// Mesh (shotgun.glb): the barrel tip is +X (x 2.18), the brown stock is the
+// back (x -2.73..-1.25, the butt drops toward -Y), the pump is the brown part
+// at x 0..1.1 and the top is +Y. SHOTGUN_EULER is the pistol's turn: mesh +X
+// to hand +Y (barrel out past the knuckles) and mesh +Y to hand -X (top up,
+// grip side down through the fist), so the gun stands upright in the hand
+// like the pistol and the SMG instead of lying on its side.
 
 export const SHOTGUN_PELLETS = 5;
 export const SHOTGUN_PELLET_DAMAGE = 1;
@@ -13,8 +17,10 @@ export const SHOTGUN_MAG = 6;
 export const SHOTGUN_KICK_BACK = 0.35;
 export const SHOTGUN_KICK_UP_DEG = 22;
 export const SHOTGUN_KICK_RETURN = 0.25;
-export const SHOTGUN_HAND = [0, 0.1, -0.03];
-export const SHOTGUN_EULER = [0, -Math.PI / 2, Math.PI / 2];
+// The fist closes on the wrist of the stock (mesh x ~ -1.4), just behind the
+// receiver, so the stock runs back along the forearm and the barrel forward.
+export const SHOTGUN_HAND = [0.02, 0.59, -0.09];
+export const SHOTGUN_EULER = [0, 0, Math.PI / 2];
 export const SHOTGUN_SCALE = 0.32;
 // Mesh space, before SHOTGUN_EULER. The flash sits at the barrel tip.
 export const SHOTGUN_MUZZLE = [2.15, 0.02, 0];

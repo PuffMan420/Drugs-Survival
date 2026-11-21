@@ -54,6 +54,8 @@ const GAIT_SPEED = {
 };
 const GAITS = ["idle", "walk", "jog", "sprint"];
 const REACTIONS = ["hitChest", "hitHead", "death"];
+const PUNCHES = ["punchJab", "punchCross"];
+const ONESHOTS = [...REACTIONS, ...PUNCHES];
 const CLIP_NAMES = {
   idle: "Idle_Loop",
   walk: "Walk_Loop",
@@ -62,6 +64,8 @@ const CLIP_NAMES = {
   hitChest: "Hit_Chest",
   hitHead: "Hit_Head",
   death: "Death01",
+  punchJab: "Punch_Jab",
+  punchCross: "Punch_Cross",
 };
 const CROWD = 1200;
 const BLOCK = 6;
@@ -180,7 +184,7 @@ function bindActions(mixer, clips) {
     action.play();
     actions[name] = action;
   }
-  for (const name of REACTIONS) {
+  for (const name of ONESHOTS) {
     actions[name].setLoop(LoopOnce, 1);
     actions[name].clampWhenFinished = true;
     actions[name].paused = true;
@@ -195,7 +199,7 @@ function showClip(ped, name) {
   if (live) {
     const from = live.actions[ped.playing];
     const to = live.actions[name];
-    const once = REACTIONS.includes(name);
+    const once = ONESHOTS.includes(name);
     to.paused = false;
     to.enabled = true;
     to.setEffectiveTimeScale(once || name === "idle" ? 1 : ped.vary);
@@ -208,6 +212,15 @@ function showClip(ped, name) {
     from.crossFadeTo(to, FADE, false);
   }
   ped.playing = name;
+}
+
+function playPunch(ped, name) {
+  if (!ped || !ped.live || !ped.live.actions[name]) return false;
+  ped.punching = true;
+  ped.punchClip = name;
+  ped.punchAge = 0;
+  showClip(ped, name);
+  return true;
 }
 
 function crowdTiles(cells, neighbors) {
@@ -464,7 +477,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
       action.setEffectiveWeight(name === ped.playing ? 1 : 0);
       action.play();
     }
-    for (const name of REACTIONS) {
+    for (const name of ONESHOTS) {
       const action = live.actions[name];
       action.enabled = true;
       action.paused = true;
@@ -989,6 +1002,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
       return list;
     },
     hurt,
+    playPunch,
     runOver,
     // Walking normally: on screen, alive, not ragdolled, not reacting to a
     // hit, and not panicking or fleeing. Only these will buy from the player.
@@ -1076,12 +1090,27 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
             ped.phase = null;
             ped.phaseTime = 0;
           }
+          if (ped.punching) {
+            ped.punchAge = (ped.punchAge || 0) + step;
+            if (ped.dx !== 0 || ped.dz !== 0) ped.live.holder.rotation.y = Math.atan2(ped.dx, ped.dz);
+            const punch = ped.punchClip || "punchJab";
+            showClip(ped, punch);
+            const punchDur = duration(ped, punch);
+            if (ped.punchAge < punchDur) {
+              ped.live.mixer.update(step);
+              ped.live.holder.position.set(ped.x, sole(ped.x, ped.z), ped.z);
+              continue;
+            }
+            ped.punching = false;
+            ped.punchClip = "";
+            ped.punchAge = 0;
+          }
           const gait = ped.copGait || "idle";
           if (ped.dx !== 0 || ped.dz !== 0) ped.live.holder.rotation.y = Math.atan2(ped.dx, ped.dz);
           showClip(ped, gait);
           // Cops jog at native Jog_Fwd_Loop speed (timeScale 1), same gait as
           // a pedestrian jog, so the feet match COP_SPEED (= PLAYER_SPEED).
-          if (!REACTIONS.includes(gait)) {
+          if (!ONESHOTS.includes(gait)) {
             ped.live.actions[gait].setEffectiveTimeScale(1);
           }
           ped.live.mixer.update(step);
@@ -1114,7 +1143,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
           advance(ped, GAIT_SPEED[gait] * ped.vary * step, playerX, playerZ);
         }
         showClip(ped, gait);
-        if (!REACTIONS.includes(ped.playing)) {
+        if (!ONESHOTS.includes(ped.playing)) {
           live.actions[ped.playing].setEffectiveTimeScale(ped.playing === "idle" ? 1 : ped.vary);
         }
         live.mixer.update(step);

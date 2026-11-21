@@ -13,6 +13,7 @@ import {
   JAB_POSE,
   PUNCH_REACH,
   PUNCH_SIDE,
+  nextCopPunch,
   nextPunch,
   punchHits,
   punchTiming,
@@ -46,4 +47,10 @@ test("a punch reaches in front and misses the side and the back", () => {
   assert.equal(punchHits(0, 0, 0, 1, 0, 40), false);
   assert.equal(punchHits(0, 0, 0, 1, 0, -4), false);
   assert.equal(punchHits(10, 20, 1, 0, 40, 20), true);
+});
+
+test("cops alternate a jab and a cross, and start on the jab", () => {
+  assert.equal(nextCopPunch(""), JAB);
+  assert.equal(nextCopPunch(JAB), CROSS);
+  assert.equal(nextCopPunch(CROSS), JAB);
 });

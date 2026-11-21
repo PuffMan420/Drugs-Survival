@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { aimChord, isLowerBone, legsWhileAiming, moveDirection, pistolPose, splitTrackNames } from "../js/pose-layers.js";
+import { aimChord, clipSpeedForMax, isLowerBone, legsWhileAiming, moveDirection, pistolPose, shouldPlayHit, splitTrackNames, JUMP_MAX } from "../js/pose-layers.js";
 
 test("legs and feet stay on the lower layer, and the gun arm stays on the upper", () => {
   assert.equal(isLowerBone("Hips"), true);
@@ -77,6 +77,27 @@ test("moving while aiming, shooting, or reloading keeps the gait on the legs", (
   assert.equal(legsWhileAiming("hitKnockback", true), false);
   assert.equal(legsWhileAiming("punchJab", true), true);
   assert.equal(legsWhileAiming("punchJab", false), true);
+  assert.equal(legsWhileAiming("hitChest", true), true);
+  assert.equal(legsWhileAiming("hitHead", false), true);
+});
+
+test("a hit react is skipped during a shot, a reload, a lock, or a cooldown", () => {
+  const base = { source: "police", pose: "idle", locked: false, cooldown: 0 };
+  assert.equal(shouldPlayHit(base), true);
+  assert.equal(shouldPlayHit({ ...base, source: "car" }), false);
+  assert.equal(shouldPlayHit({ ...base, source: "overdose" }), false);
+  assert.equal(shouldPlayHit({ ...base, pose: "pistolShoot" }), false);
+  assert.equal(shouldPlayHit({ ...base, pose: "pistolReload" }), false);
+  assert.equal(shouldPlayHit({ ...base, locked: true }), false);
+  assert.equal(shouldPlayHit({ ...base, cooldown: 0.2 }), false);
+});
+
+test("jump and death clips speed up only when they would last longer than the cap", () => {
+  assert.equal(clipSpeedForMax(0.3, JUMP_MAX), 1);
+  assert.equal(clipSpeedForMax(JUMP_MAX, JUMP_MAX), 1);
+  assert.ok(Math.abs(clipSpeedForMax(1.1, JUMP_MAX) - 1.1 / JUMP_MAX) < 1e-9);
+  assert.equal(clipSpeedForMax(2.375, 2), 2.375 / 2);
+  assert.equal(clipSpeedForMax(0, 0.55), 1);
 });
 
 function glbTrackNames(path, clipName) {

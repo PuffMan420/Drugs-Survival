@@ -50,6 +50,7 @@ import {
 import { createCarCrashSounds, playCarEnterSound, playCarExitSound } from "./car-damage.js";
 import { createTraffic } from "./cars.js";
 import { createDrive } from "./drive.js";
+import { HOP_LIFT } from "./drive-seat.js";
 import { createDriveEffects } from "./drive-effects.js";
 import { createPhysics } from "./physics.js";
 import { createPhysicsScene } from "./physics-scene.js";
@@ -66,7 +67,9 @@ import {
   healPlayer,
   respawnPlayer,
   stepPlayerVitals,
+  takeDamage,
 } from "./player-health.js";
+import { JUMP_MAX } from "./pose-layers.js";
 import { createRats, ratsFast } from "./rats.js";
 import { createSidewalkIndex } from "./sidewalk-height.js";
 import { createGlow } from "./glow.js";
@@ -87,6 +90,7 @@ import {
   stepEconomy,
 } from "./economy.js";
 import { createSupplierMarker } from "./supplier-marker.js";
+import { createDrugBags } from "./drug-bags.js";
 import { createPolice } from "./police.js";
 import {
   WANTED_DEAL_SEEN,
@@ -847,6 +851,14 @@ async function start() {
   const origin = lookPreview ? lookStand(map) : tileCenter(map.spawn.x, map.spawn.z);
   const player = { x: origin.x, z: origin.z, y: 0.6 };
   bindPlayerVitals(player, vitals);
+  const applyDamage = (amount, source) => {
+    const hit = takeDamage(vitals, amount, source);
+    if (hit.justDied) playerSprite.playDeath();
+    else if (hit.applied > 0) playerSprite.playHit(source);
+    return hit;
+  };
+  player.takeDamage = applyDamage;
+  playerSprite.takeDamage = applyDamage;
   // Cash, weed stock and heat live in economy.js. The HUD reads player.cash,
   // player.stock and player.maxStock.
   const economy = createEconomy();
@@ -910,6 +922,17 @@ async function start() {
   const supplierY = sidewalks.feetY(SUPPLIER_X, SUPPLIER_Z, traffic.roadHeight(SUPPLIER_X, SUPPLIER_Z, 0.6) ?? 0.6);
   const supplier = createSupplierMarker(SUPPLIER_X, supplierY + 0.4, SUPPLIER_Z, SUPPLIER_RANGE * 0.6);
   scene.add(supplier.group);
+  const spawnAt = tileCenter(map.spawn.x, map.spawn.z);
+  const drugs = await createDrugBags({
+    scene,
+    spawn: spawnAt,
+    feetY: (x, z, streetY) => sidewalks.feetY(x, z, streetY),
+    roadHeight: (x, z) => traffic.roadHeight(x, z, 0.6),
+    onConsume: () => playerSprite.playConsume(),
+    onPickup: (kind) => hud.showDrugPickup(kind),
+    listener: driveFx.listener,
+    avoid: [{ x: SUPPLIER_X, z: SUPPLIER_Z, radius: SUPPLIER_RANGE }],
+  });
 
   omitFromAmbientOcclusion(scene);
   const ambient = createAmbientOcclusion(renderer, scene, camera);
@@ -967,14 +990,46 @@ async function start() {
     set feel(value) {
       setFeel(value);
     },
+    get pose() {
+      return playerSprite.poseName;
+    },
+    get sprite() {
+      return playerSprite;
+    },
+    get drive() {
+      return drive;
+    },
+    get camera() {
+      return camera;
+    },
+    get cars() {
+      return traffic.cars();
+    },
+    get door() {
+      const car = drive.occupied || (enterHop && enterHop.car) || (exitDoor && exitDoor.car);
+      if (!car) return { hasDoor: false, angle: 0, phase: "none" };
+      return {
+        hasDoor: traffic.hasSwingDoor(car),
+        angle: car.doorAngle || 0,
+        openAngle: car.doorOpenAngle || 0,
+        phase: traffic.doorPhase(car),
+        side: car.doorSide || 0,
+      };
+    },
+    get player() {
+      return player;
+    },
   };
   session.minimap = minimap;
+  window.dsDebug.drugs = drugs;
   session.placeName = spawnPlaceName(map);
   placeEl.textContent = session.placeName;
 
   let fps = 0;
   let shakeX = 0;
   let shakeZ = 0;
+  let enterHop = null;
+  let exitDoor = null;
   let last = performance.now();
   let lastDraw = last;
 
@@ -1022,7 +1077,7 @@ async function start() {
           const amount = carHitDamage(motion.speed);
           if (amount > 0) {
             const hit = player.takeDamage(amount, "car");
-            if (hit && hit.applied > 0) playerSprite.playKnockback();
+            if (hit && hit.applied > 0 && !hit.justDied) playerSprite.playKnockback();
           }
         }
       }
@@ -1034,6 +1089,7 @@ async function start() {
 
   function respawnAtSpawn() {
     respawnPlayer(vitals);
+    drugs.clear(vitals);
     resetWanted(wanted);
     const loss = loseOnDeath(economy);
     if (loss.lost > 0 || loss.stockLost > 0) hud.message(`-$${loss.lost}${loss.stockLost ? `, lost ${loss.stockLost} weed` : ""}`, 3);
@@ -1043,6 +1099,8 @@ async function start() {
     player.z = spawn.z;
     player.y = footHeight();
     playerSprite.halt();
+    playerSprite.resetPose();
+    playerSprite.mesh.visible = true;
   }
 
   // E on foot: buy at the supplier, else sell to a calm pedestrian in reach.
@@ -1075,26 +1133,55 @@ async function start() {
     return "";
   }
 
+  function leaveCar(forced, opts = {}) {
+    const car = drive.occupied;
+    const spot = drive.exit((x, z) => footBlocked(map, x, z, half));
+    if (!spot) return false;
+    player.x = clamp(spot.x, half, city.mapW - half);
+    player.z = clamp(spot.z, half, city.mapH - half);
+    player.y = sidewalks.feetY(player.x, player.z, spot.y);
+    enterHop = null;
+    exitDoor = null;
+    playerSprite.ridePose("");
+    playerSprite.mesh.visible = true;
+    session.driving = false;
+    hintEl.textContent = hintWalk;
+    if (!forced && !opts.silent) playCarExitSound(crashSounds);
+    if (car && traffic.hasSwingDoor(car)) {
+      if (forced) traffic.snapDoorShut(car);
+      else traffic.closeDoor(car);
+    }
+    return true;
+  }
+
   session.use = () => {
     if (buildMode.isOpen()) return;
     if (drive.driving) {
+      if (exitDoor) return;
       const forced = drive.mustExit || vitals.dead;
-      const spot = drive.exit((x, z) => footBlocked(map, x, z, half));
-      if (!spot) return;
-      player.x = clamp(spot.x, half, city.mapW - half);
-      player.z = clamp(spot.z, half, city.mapH - half);
-      player.y = sidewalks.feetY(player.x, player.z, spot.y);
-      playerSprite.mesh.visible = true;
-      session.driving = false;
-      hintEl.textContent = hintWalk;
-      if (!forced) playCarExitSound(crashSounds);
+      const car = drive.occupied;
+      if (!forced && traffic.hasSwingDoor(car) && !enterHop) {
+        exitDoor = { car };
+        traffic.openDoor(car);
+        playCarExitSound(crashSounds);
+        return;
+      }
+      leaveCar(forced);
       return;
     }
-    if (vitals.dead) return;
+    if (vitals.dead || playerSprite.locked()) return;
     if (tryDeal()) return;
+    const fromX = player.x;
+    const fromZ = player.z;
+    const fromY = player.y;
     if (!drive.enter(traffic.cars(), player.x, player.z)) return;
-    playerSprite.mesh.visible = false;
     session.driving = true;
+    const car = drive.occupied;
+    const waitForDoor = traffic.hasSwingDoor(car);
+    if (waitForDoor) traffic.openDoor(car);
+    enterHop = { fromX, fromZ, fromY, age: 0, started: !waitForDoor, car };
+    playerSprite.ridePose(waitForDoor ? "" : "jumpIn");
+    playerSprite.mesh.visible = true;
     hintEl.textContent = "W drive · S brake, then reverse · A D steer · E exit";
     playCarEnterSound(crashSounds);
   };
@@ -1194,6 +1281,8 @@ async function start() {
     if (vitals.dead) {
       if (drive.driving) session.use();
       playerSprite.halt();
+    } else if (playerSprite.locked()) {
+      playerSprite.halt();
     } else if (drive.driving) {
       const pose = drive.pose();
       if (pose) {
@@ -1204,7 +1293,7 @@ async function start() {
       playerSprite.halt();
     } else {
       const wish = footWish();
-      const boost = buildMode.isOpen() ? 3 : 1;
+      const boost = (buildMode.isOpen() ? 3 : 1) * drugs.speed();
       playerSprite.guide(step, wish.x, wish.z, wish.gait, boost);
       const radius = half + 0.75;
       const stuck = (x, z) => footBlocked(map, x, z, half);
@@ -1277,15 +1366,55 @@ async function start() {
     reachZ = cover.z;
     coverW = view > 0 ? (cover.x * 2) / view : spanW;
     coverH = view > 0 ? (cover.z * 2) / view : spanH;
-    playerSprite.mesh.visible = !drive.driving;
-    playerSprite.update(player.x - previousX, player.z - previousZ, snappedX, snappedZ, player.y, step);
+    let drawX = snappedX;
+    let drawZ = snappedZ;
+    let drawY = player.y;
+    if (exitDoor && (traffic.doorIsOpen(exitDoor.car) || !drive.driving || drive.mustExit || vitals.dead)) {
+      leaveCar(drive.mustExit || vitals.dead, { silent: true });
+    }
+    if (drive.driving && enterHop) {
+      const target = drive.hopPose() || { x: player.x, y: player.y, z: player.z };
+      const faceX = target.x - enterHop.fromX;
+      const faceZ = target.z - enterHop.fromZ;
+      if (!enterHop.started) {
+        drawX = enterHop.fromX;
+        drawZ = enterHop.fromZ;
+        drawY = enterHop.fromY;
+        if (Math.hypot(faceX, faceZ) > 0.5) playerSprite.setFacing(Math.atan2(faceX, faceZ));
+        if (traffic.doorIsOpen(enterHop.car) || !traffic.hasSwingDoor(enterHop.car)) {
+          enterHop.started = true;
+          enterHop.age = 0;
+          playerSprite.ridePose("jumpIn");
+        }
+      } else {
+        enterHop.age += step;
+        const t = Math.min(1, enterHop.age / JUMP_MAX);
+        const lift = Math.sin(t * Math.PI) * HOP_LIFT;
+        drawX = enterHop.fromX + (target.x - enterHop.fromX) * t;
+        drawZ = enterHop.fromZ + (target.z - enterHop.fromZ) * t;
+        drawY = enterHop.fromY + (target.y - enterHop.fromY) * t + lift;
+        if (Math.hypot(faceX, faceZ) > 0.5) playerSprite.setFacing(Math.atan2(faceX, faceZ));
+        if (t >= 1) {
+          const car = enterHop.car;
+          enterHop = null;
+          playerSprite.ridePose("");
+          if (traffic.hasSwingDoor(car)) traffic.closeDoor(car);
+        }
+      }
+    }
+    playerSprite.mesh.visible = !drive.driving || Boolean(enterHop);
+    playerSprite.update(player.x - previousX, player.z - previousZ, drawX, drawZ, drawY, step);
     // Aim and shots read this pose, so the cursor stays exact while the view turns.
     placeCamera(camX, camZ);
     pistol.update(step);
     pedestrians.runOver(traffic.cars(), drive.driving ? drive.sample() : null);
     hitPlayerWithCars(traffic.cars(), drive.driving ? drive.sample() : null, previousX, previousZ);
+    drugs.update(realDt, player, vitals, { driving: drive.driving, dead: vitals.dead });
     const vitalStep = stepPlayerVitals(vitals, realDt);
-    if (vitalStep.justDied && drive.driving) session.use();
+    if (vitalStep.justDied) {
+      if (drive.driving) session.use();
+      playerSprite.playDeath();
+    }
     if (vitalStep.readyToRespawn) respawnAtSpawn();
     stepWanted(wanted, realDt, police.inSight());
     police.update(step, halfW, halfH);
@@ -1315,6 +1444,7 @@ async function start() {
     ambient.render();
     minimap.draw(camX, camZ, player.x, player.z, TILE, (spanW * view) / TILE, (spanH * view) / TILE, cameraYaw);
 
+    hud.setDrugTimers(drugs.buffs());
     hud.sync(session);
     const instant = 1 / Math.max(realDt, 1 / 240);
     fps = fps === 0 ? instant : fps + (instant - fps) * 0.1;

@@ -23,6 +23,7 @@ Values from `main` at `a6e9ccd`. Distances are **world units**, not meters: **on
 |---|---|---|---|
 | TILE | 48 | js/constants.js | Size of one map tile. Many ranges are written as a multiple of this. |
 | PLAYER_SIZE | 32 | js/constants.js | The player's collision box. Building bumping uses half of this (16). |
+| CONTEXT_RESTORE_WAIT | 5 | js/constants.js | Seconds the game waits for lost 3D graphics to come back before it shows a "Reload game" button. |
 
 ---
 

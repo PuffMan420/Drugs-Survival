@@ -203,3 +203,77 @@ test("a hood headlight drops its front half down the nose", () => {
     assert.equal(folded.positions[index * 3 + 2], source.positions[index * 3 + 2]);
   }
 });
+
+test("an inset hood lamp seats its crease on the body nose", () => {
+  // Same as hoodLamp, but the quad sits back from a body nose at z=1.2.
+  const positions = [
+    -0.2, 0.8, 0.7, -0.5, 0.8, 0.7, -0.5, 0.8, 0.9, -0.2, 0.8, 0.9,
+    -0.2, 0.8, 0.6, -0.5, 0.8, 0.6, -0.35, 0.8, 0.5,
+    -0.2, 0.6, 1.2, -0.5, 0.6, 1.2, -0.35, 0.4, 1.2,
+  ];
+  const uvs = new Array((positions.length / 3) * 2).fill(0.2);
+  for (let i = 0; i < 8; i += 1) uvs[i] = 0.9;
+  const source = {
+    positions: Float32Array.from(positions),
+    normals: new Float32Array(positions.length),
+    uvs: Float32Array.from(uvs),
+    indices: Uint32Array.from([0, 2, 1, 0, 3, 2, 4, 6, 5, 7, 8, 9]),
+    cats: [2, 2, 0, 0],
+    paint: null,
+  };
+  const folded = foldHeadlightGeometry(source);
+  const headTris = folded.cats.map((cat, tri) => (cat === 2 ? tri : -1)).filter((tri) => tri >= 0);
+  let crease = 0;
+  let maxZ = -Infinity;
+  for (const tri of headTris) {
+    for (let k = 0; k < 3; k += 1) {
+      const point = vec(folded.positions, folded.indices[tri * 3 + k]);
+      if (point[2] > maxZ) maxZ = point[2];
+      if (Math.abs(point[2] - 1.2) < 1e-3) crease += 1;
+    }
+  }
+  assert.ok(crease >= 2, `crease did not reach the body nose: maxZ=${maxZ}`);
+  assert.ok(Math.abs(maxZ - 1.2) < 1e-3, `lamp front is ${maxZ}, expected 1.2`);
+});
+
+test("a pack lamp seats on a low bumper and stays a short nose quad", () => {
+  // Hood lamp at y=0.8, z=0.7..0.9. The true nose is a bumper at y=0.3,
+  // z=1.2 — below the 0.22 lamp-height band, so the default snap misses
+  // it. seatAtSilhouette must still put the crease on that bumper, and
+  // shrink the hood half so the white sits tight on the nose.
+  const positions = [
+    -0.2, 0.8, 0.7, -0.5, 0.8, 0.7, -0.5, 0.8, 0.9, -0.2, 0.8, 0.9,
+    -0.2, 0.8, 0.6, -0.5, 0.8, 0.6, -0.35, 0.8, 0.5,
+    -0.2, 0.3, 1.2, -0.5, 0.3, 1.2, -0.35, 0.2, 1.2,
+  ];
+  const uvs = new Array((positions.length / 3) * 2).fill(0.2);
+  for (let i = 0; i < 8; i += 1) uvs[i] = 0.9;
+  const source = {
+    positions: Float32Array.from(positions),
+    normals: new Float32Array(positions.length),
+    uvs: Float32Array.from(uvs),
+    indices: Uint32Array.from([0, 2, 1, 0, 3, 2, 4, 6, 5, 7, 8, 9]),
+    cats: [2, 2, 0, 0],
+    paint: null,
+  };
+  const plain = foldHeadlightGeometry(source);
+  const packed = foldHeadlightGeometry(source, { seatAtSilhouette: true });
+  const lampStats = (mesh) => {
+    let maxZ = -Infinity;
+    let minZ = Infinity;
+    for (let tri = 0; tri < mesh.cats.length; tri += 1) {
+      if (mesh.cats[tri] !== 2) continue;
+      for (let k = 0; k < 3; k += 1) {
+        const z = mesh.positions[mesh.indices[tri * 3 + k] * 3 + 2];
+        if (z > maxZ) maxZ = z;
+        if (z < minZ) minZ = z;
+      }
+    }
+    return { maxZ, minZ, depth: maxZ - minZ };
+  };
+  const before = lampStats(plain);
+  const after = lampStats(packed);
+  assert.ok(after.maxZ > before.maxZ + 0.2, `silhouette snap did not move the lamp forward: ${before.maxZ} -> ${after.maxZ}`);
+  assert.ok(Math.abs(after.maxZ - 1.2) < 1e-3, `lamp front is ${after.maxZ}, expected 1.2`);
+  assert.ok(after.depth <= 0.21 + 1e-3, `hood half stayed long: depth=${after.depth}`);
+});

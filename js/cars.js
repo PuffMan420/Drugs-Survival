@@ -134,16 +134,21 @@ const CARS = [
   { name: "pack_school_bus", file: "pack-school-bus", w: 42, h: 129, lengthScale: 1 },
   { name: "pack_taxi", file: "pack-taxi", w: 33, h: 83, lengthScale: 1 },
   { name: "pack_tow_truck", file: "pack-tow-truck", w: 39, h: 113, lengthScale: 1 },
-  { name: "pack_compact", file: "pack-compact", w: 26, h: 53, lengthScale: 1, rollWheels: true },
-  { name: "pack_coupe", file: "pack-coupe", w: 31, h: 69, lengthScale: 1, rollWheels: true },
-  { name: "pack_hatchback", file: "pack-hatchback", w: 28, h: 64, lengthScale: 1, rollWheels: true },
-  { name: "pack_minivan", file: "pack-minivan", w: 30, h: 75, lengthScale: 1, rollWheels: true },
-  { name: "pack_offroad", file: "pack-offroad", w: 32, h: 64, lengthScale: 1, rollWheels: true },
-  { name: "pack_pickup", file: "pack-pickup", w: 34, h: 84, lengthScale: 1, rollWheels: true },
-  { name: "pack_sedan", file: "pack-sedan", w: 32, h: 71, lengthScale: 1, rollWheels: true },
-  { name: "pack_sport", file: "pack-sport", w: 29, h: 64, lengthScale: 1, rollWheels: true },
-  { name: "pack_suv", file: "pack-suv", w: 34, h: 75, lengthScale: 1, rollWheels: true },
-  { name: "pack_wagon", file: "pack-wagon", w: 32, h: 72, lengthScale: 1, rollWheels: true },
+  // Passenger pack footprints: keep each model's real width/length ratio
+  // (uniform scale) but size them next to a Kenney sedan (37x71). The
+  // raw meter sizes made the compact a toy (26x53) and the pickup a
+  // long thin bar (34x84). Pickup is widened slightly off-ratio so it
+  // does not look squashed beside the chunkier Kenney cars.
+  { name: "pack_compact", file: "pack-compact", w: 34, h: 69, lengthScale: 1, rollWheels: true },
+  { name: "pack_coupe", file: "pack-coupe", w: 34, h: 77, lengthScale: 1, rollWheels: true },
+  { name: "pack_hatchback", file: "pack-hatchback", w: 34, h: 77, lengthScale: 1, rollWheels: true },
+  { name: "pack_minivan", file: "pack-minivan", w: 34, h: 84, lengthScale: 1, rollWheels: true },
+  { name: "pack_offroad", file: "pack-offroad", w: 36, h: 72, lengthScale: 1, rollWheels: true },
+  { name: "pack_pickup", file: "pack-pickup", w: 38, h: 80, lengthScale: 1, rollWheels: true },
+  { name: "pack_sedan", file: "pack-sedan", w: 36, h: 80, lengthScale: 1, rollWheels: true },
+  { name: "pack_sport", file: "pack-sport", w: 34, h: 75, lengthScale: 1, rollWheels: true },
+  { name: "pack_suv", file: "pack-suv", w: 37, h: 82, lengthScale: 1, rollWheels: true },
+  { name: "pack_wagon", file: "pack-wagon", w: 36, h: 81, lengthScale: 1, rollWheels: true },
   // More Kenney Car Kit bodies. Same Kenney scale as the sedan above.
   { name: "flatbed_delivery", file: "delivery-flat", w: 42, h: 90, lengthScale: 1 },
   { name: "race_car", file: "race", w: 36, h: 71 },
@@ -396,11 +401,19 @@ function worldGeometry(mesh) {
 
 // Paint faces come from the original GLB's colormap UVs. The weathered file
 // has a new unwrap, so each triangle is matched by its vertex positions.
-function faceCatalog(scene) {
+function faceCatalog(scene, options = {}) {
   scene.updateMatrixWorld(true);
   const prepared = [];
+  const wheelBoxes = [];
   scene.traverse((obj) => {
-    if (!obj.isMesh || isWheel(obj)) return;
+    if (!obj.isMesh) return;
+    if (isWheel(obj)) {
+      const geometry = worldGeometry(obj);
+      geometry.computeBoundingBox();
+      if (geometry.boundingBox) wheelBoxes.push(geometry.boundingBox.clone());
+      geometry.dispose();
+      return;
+    }
     prepared.push({ name: catalogName(obj), geometry: worldGeometry(obj) });
   });
   let zMin = Infinity;
@@ -454,7 +467,13 @@ function faceCatalog(scene) {
       let cat = 0;
       if (cell === CELL_GLASS) cat = 1;
       else if (cell === CELL_HEAD) cat = 2;
-      else if (cell === CELL_TAIL) cat = 3;
+      else if (cell === CELL_TAIL) {
+        const cz = (position.getZ(i0) + position.getZ(i1) + position.getZ(i2)) / 3;
+        // Pack bakes used the tail colormap cell for both lamps. Tag the
+        // front ones as headlights so they fold over the nose. Kenney cars
+        // already use CELL_HEAD; this flag stays off for them.
+        cat = options.foldFrontTails && Math.abs(cz - zMax) < Math.abs(cz - zMin) ? 2 : 3;
+      }
       else if (cell === CELL_SIREN) cat = 7;
       else if (cell === CELL_TYRE) cat = 6;
       else if (cell === CELL_TRIM) cat = 5;
@@ -482,9 +501,156 @@ function faceCatalog(scene) {
     } else {
       catalog.set(part.name, keys);
     }
-    geometry.dispose();
   }
+  maskRearSpare(prepared, catalog, zMin, zMax, wheelBoxes);
+  for (const part of prepared) part.geometry.dispose();
   return catalog;
+}
+
+
+// A spare tyre baked into the body (pack_offroad) is not a wheel-* mesh, so
+// the paint mask treats it as body and the respray tints it. Find a rear,
+// mid-X disk with a tyre wall (radial faces) about the same size as the
+// rolling wheels, and keep those triangles unpainted (cat 6).
+function maskRearSpare(prepared, catalog, zMin, zMax, wheelBoxes) {
+  if (!wheelBoxes.length) return;
+  const radii = wheelBoxes.map((box) => 0.5 * Math.max(box.max.y - box.min.y, box.max.z - box.min.z));
+  radii.sort((a, b) => a - b);
+  const wr = radii[Math.floor(radii.length / 2)];
+  if (wr < 0.05) return;
+  let axleY = 0;
+  for (const box of wheelBoxes) axleY += (box.min.y + box.max.y) / 2;
+  axleY /= wheelBoxes.length;
+  const zCut = zMin + wr * 1.8;
+  const faces = [];
+  for (const part of prepared) {
+    const keys = catalog.get(part.name);
+    if (!keys) continue;
+    const { geometry } = part;
+    const index = geometry.getIndex();
+    const position = geometry.getAttribute("position");
+    const tris = triCountOf(geometry);
+    for (let tri = 0; tri < tris; tri += 1) {
+      const i0 = cornerIndex(index, tri, 0);
+      const i1 = cornerIndex(index, tri, 1);
+      const i2 = cornerIndex(index, tri, 2);
+      const key = triKey(position, i0, i1, i2);
+      const cat = keys.get(key);
+      if (cat !== 0 && cat !== 5) continue;
+      const ax = position.getX(i0);
+      const ay = position.getY(i0);
+      const az = position.getZ(i0);
+      const bx = position.getX(i1);
+      const by = position.getY(i1);
+      const bz = position.getZ(i1);
+      const cx = position.getX(i2);
+      const cy = position.getY(i2);
+      const cz = position.getZ(i2);
+      const abx = bx - ax;
+      const aby = by - ay;
+      const abz = bz - az;
+      const acx = cx - ax;
+      const acy = cy - ay;
+      const acz = cz - az;
+      const nx = aby * acz - abz * acy;
+      const ny = abz * acx - abx * acz;
+      const nz = abx * acy - aby * acx;
+      const len = Math.hypot(nx, ny, nz);
+      if (len < 1e-10) continue;
+      const area = 0.5 * len;
+      faces.push({
+        key,
+        keys,
+        cat,
+        x: (ax + bx + cx) / 3,
+        y: (ay + by + cy) / 3,
+        z: (az + bz + cz) / 3,
+        nx: nx / len,
+        ny: ny / len,
+        nz: nz / len,
+        area,
+      });
+    }
+  }
+  const paint = faces.filter((face) => (
+    face.cat === 0 && face.z <= zCut && Math.abs(face.nz) >= 0.5 && Math.abs(face.x) <= wr * 1.25
+  ));
+  if (paint.length < 12) return;
+  let yMin = Infinity;
+  let yMax = -Infinity;
+  let zLo = Infinity;
+  let zHi = -Infinity;
+  for (const face of paint) {
+    if (face.y < yMin) yMin = face.y;
+    if (face.y > yMax) yMax = face.y;
+    if (face.z < zLo) zLo = face.z;
+    if (face.z > zHi) zHi = face.z;
+  }
+  const expect = Math.PI * wr * wr;
+  let best = null;
+  for (let iy = 0; iy < 10; iy += 1) {
+    const cy = yMin + (yMax - yMin) * (iy + 0.5) / 10;
+    for (let iz = 0; iz < 8; iz += 1) {
+      const cz = zLo + (zHi - zLo) * (iz + 0.5) / 8;
+      let n = 0;
+      let area = 0;
+      let rMax = 0;
+      let rSum = 0;
+      for (const face of paint) {
+        const radial = Math.hypot(face.x, face.y - cy);
+        if (radial > wr * 1.08 || Math.abs(face.z - cz) > wr * 0.35) continue;
+        n += 1;
+        area += face.area;
+        rSum += radial;
+        if (radial > rMax) rMax = radial;
+      }
+      if (n < 12) continue;
+      if (rMax < wr * 0.55 || rMax > wr * 1.15) continue;
+      if (area < expect * 0.15 || area > expect * 1.6) continue;
+      const rMean = rSum / n;
+      if (rMean < wr * 0.25) continue;
+      const score = area * (1 - Math.abs(rMax - wr) / wr);
+      if (!best || score > best.score) best = { score, cy, cz, n, area, rMax };
+    }
+  }
+  if (!best) return;
+  if (best.cy < axleY + wr * 0.7) return;
+  let treadN = 0;
+  let treadArea = 0;
+  for (const face of faces) {
+    const dx = face.x;
+    const dy = face.y - best.cy;
+    const radial = Math.hypot(dx, dy);
+    if (Math.abs(radial - wr) > wr * 0.35) continue;
+    if (Math.abs(face.z - best.cz) > wr * 0.7) continue;
+    const nxy = Math.hypot(face.nx, face.ny);
+    if (nxy < 0.55 || radial < 1e-6) continue;
+    const align = (face.nx * dx + face.ny * dy) / (nxy * radial);
+    if (align > 0.4) {
+      treadN += 1;
+      treadArea += face.area;
+    }
+  }
+  if (treadN < 40 && treadArea < 0.5) return;
+  const marked = [];
+  for (const face of paint) {
+    const radial = Math.hypot(face.x, face.y - best.cy);
+    if (radial > wr * 1.08 || Math.abs(face.z - best.cz) > wr * 0.35) continue;
+    marked.push(face);
+  }
+  // Also keep the tyre wall (radial faces) unpainted.
+  for (const face of faces) {
+    if (face.cat !== 0) continue;
+    const dx = face.x;
+    const dy = face.y - best.cy;
+    const radial = Math.hypot(dx, dy);
+    if (Math.abs(radial - wr) > wr * 0.35) continue;
+    if (Math.abs(face.z - best.cz) > wr * 0.7) continue;
+    const nxy = Math.hypot(face.nx, face.ny);
+    if (nxy < 0.55) continue;
+    marked.push(face);
+  }
+  for (const face of marked) face.keys.set(face.key, 6);
 }
 
 function applyPaintMask(geometry, keys, label, samples) {
@@ -576,9 +742,11 @@ function installPaintShader(material, baseLum) {
         attribute float aPaint;
         attribute float aPaintT;
         attribute float aRecolor;
+        attribute float aLamp;
         varying float vPaint;
         varying float vPaintT;
         varying float vRecolor;
+        varying float vLamp;
         varying vec3 vTint;`,
       )
       .replace(
@@ -587,6 +755,7 @@ function installPaintShader(material, baseLum) {
         vPaint = aPaint;
         vPaintT = aPaintT;
         vRecolor = aRecolor;
+        vLamp = aLamp;
         #ifdef USE_INSTANCING_COLOR
           vTint = instanceColor;
         #else
@@ -600,6 +769,7 @@ function installPaintShader(material, baseLum) {
         varying float vPaint;
         varying float vPaintT;
         varying float vRecolor;
+        varying float vLamp;
         varying vec3 vTint;
         uniform float uPaintBase;`,
       )
@@ -612,12 +782,16 @@ function installPaintShader(material, baseLum) {
         vec3 carRespray = vTint * carWear * carShade;
         vec3 carKept = diffuseColor.rgb * carShade;
         vec3 carPainted = mix(carKept, carRespray, clamp(vRecolor, 0.0, 1.0));
-        diffuseColor.rgb = mix(diffuseColor.rgb, carPainted, step(0.5, vPaint));`,
+        diffuseColor.rgb = mix(diffuseColor.rgb, carPainted, step(0.5, vPaint));
+        // Pack headlamps: force a Kenney-like white so the nose quads show
+        // up in the top-down camera even on dusty weathered textures.
+        vec3 lampWhite = vec3(0.97, 0.96, 0.90);
+        diffuseColor.rgb = mix(diffuseColor.rgb, lampWhite, step(0.5, vLamp));`,
       );
   };
   material.customProgramCacheKey = function customProgramCacheKey() {
     const prior = MeshStandardMaterial.prototype.customProgramCacheKey.call(this);
-    return `${prior}|car-paint-1`;
+    return `${prior}|car-paint-2`;
   };
 }
 
@@ -820,7 +994,7 @@ function bakeDoorParts(parts, doorRig, cx, minY, cz) {
   };
 }
 
-function bakeLevel(scene, catalog, doorRig = null) {
+function bakeLevel(scene, catalog, doorRig = null, bakeOpts = {}) {
   scene.updateMatrixWorld(true);
   const parts = [];
   scene.traverse((obj) => {
@@ -872,10 +1046,40 @@ function bakeLevel(scene, catalog, doorRig = null) {
   const width = Math.max(0.001, maxX - minX);
   const length = Math.max(0.001, maxZ - minZ);
   for (const part of parts) {
-    foldBakedHeadlights(part.geometry, catalog && catalog.get(part.name));
+    foldBakedHeadlights(part.geometry, catalog && catalog.get(part.name), bakeOpts);
+    if (part.paintable && !part.geometry.getAttribute("aLamp")) {
+      const count = part.geometry.getAttribute("position").count;
+      part.geometry.setAttribute("aLamp", new Float32BufferAttribute(new Float32Array(count), 1));
+    }
     part.geometry.translate(-cx, -minY, -cz);
     // Kenney cars face +Z. A heading of 0 drives toward -Z, same as the sprites.
     part.geometry.rotateY(Math.PI);
+  }
+  if (bakeOpts.seatAtSilhouette || bakeOpts.housingInPlace) {
+    const extras = [];
+    for (const part of parts) {
+      if (!part.paintable) continue;
+      const lampGeom = extractHeadlamps(part.geometry);
+      if (!lampGeom) continue;
+      const material = new MeshStandardMaterial({
+        color: 0xf8f6e6,
+        emissive: 0xf8f6e6,
+        emissiveIntensity: 0.55,
+        roughness: 0.35,
+        metalness: 0,
+        toneMapped: false,
+      });
+      extras.push({
+        name: "headlamps",
+        geometry: lampGeom,
+        material,
+        paintable: false,
+        wheel: false,
+        front: false,
+        door: false,
+      });
+    }
+    parts.push(...extras);
   }
   let yMin = Infinity;
   let yMax = -Infinity;
@@ -933,10 +1137,103 @@ function bakeLevel(scene, catalog, doorRig = null) {
   return { parts, width, length, height, lift, door };
 }
 
+
+// Pickup and SUV: Ted's marks already sit on the folded-and-extracted
+// nose housings, so keep that path. Other pack cars below light the
+// model's own front-corner housings in place (no bumper fold).
+const NOSE_EXTRACT = new Set(["pack-pickup", "pack-suv"]);
+const HOUSING_LAMPS = new Set([
+  "pack-offroad",
+  "pack-sedan",
+  "pack-wagon",
+]);
+
+// In +Z-nose space, light only the front-outer cluster of head faces
+// so a long hood slash does not stay white — just the housing Ted marked.
+function markHousingHeads(position, index, cats, lamp) {
+  const sides = [[], []];
+  for (let tri = 0; tri < cats.length; tri += 1) {
+    if (cats[tri] !== 2) continue;
+    const i0 = index.getX(tri * 3);
+    const i1 = index.getX(tri * 3 + 1);
+    const i2 = index.getX(tri * 3 + 2);
+    const cx = (position.getX(i0) + position.getX(i1) + position.getX(i2)) / 3;
+    const cy = (position.getY(i0) + position.getY(i1) + position.getY(i2)) / 3;
+    const cz = (position.getZ(i0) + position.getZ(i1) + position.getZ(i2)) / 3;
+    sides[cx < 0 ? 0 : 1].push({ i0, i1, i2, cx, cy, cz });
+  }
+  const RADIUS = 0.15;
+  const r2 = RADIUS * RADIUS;
+  for (const side of sides) {
+    if (!side.length) continue;
+    let xMin = Infinity, xMax = -Infinity, zMin = Infinity, zMax = -Infinity;
+    for (const t of side) {
+      if (t.cx < xMin) xMin = t.cx;
+      if (t.cx > xMax) xMax = t.cx;
+      if (t.cz < zMin) zMin = t.cz;
+      if (t.cz > zMax) zMax = t.cz;
+    }
+    // A compact authored housing (sport, offroad) is used in full.
+    const compact = (xMax - xMin) < 0.28 && (zMax - zMin) < 0.20;
+    let keep = side;
+    if (!compact) {
+      let best = side[0];
+      let bestScore = -Infinity;
+      for (const t of side) {
+        const outer = t.cx < 0 ? -t.cx : t.cx;
+        const score = t.cz + 0.45 * outer;
+        if (score > bestScore) {
+          bestScore = score;
+          best = t;
+        }
+      }
+      keep = side.filter((t) => {
+        const dx = t.cx - best.cx;
+        const dy = t.cy - best.cy;
+        const dz = t.cz - best.cz;
+        return dx * dx + dy * dy + dz * dz <= r2;
+      });
+    }
+    for (const t of keep) {
+      lamp[t.i0] = 1;
+      lamp[t.i1] = 1;
+      lamp[t.i2] = 1;
+    }
+  }
+}
+
 // Headlight quads are exclusive vertices on the baked body. Folding them
 // after the paint mask (which matches on the original positions) and after
 // the bounds above keeps the body colour and the car footprint put.
-function foldBakedHeadlights(geometry, keys) {
+
+function extractHeadlamps(geometry) {
+  const index = geometry.getIndex();
+  const lamp = geometry.getAttribute("aLamp");
+  const position = geometry.getAttribute("position");
+  if (!index || !lamp || !position) return null;
+  const kept = [];
+  const lampTris = [];
+  const tris = index.count / 3;
+  for (let tri = 0; tri < tris; tri += 1) {
+    const i0 = index.getX(tri * 3);
+    const i1 = index.getX(tri * 3 + 1);
+    const i2 = index.getX(tri * 3 + 2);
+    const isLamp = lamp.getX(i0) > 0.5 && lamp.getX(i1) > 0.5 && lamp.getX(i2) > 0.5;
+    if (isLamp) lampTris.push(i0, i1, i2);
+    else kept.push(i0, i1, i2);
+  }
+  if (!lampTris.length) return null;
+  geometry.setIndex(new Uint32BufferAttribute(Uint32Array.from(kept), 1));
+  const lampGeom = geometry.clone();
+  lampGeom.setIndex(new Uint32BufferAttribute(Uint32Array.from(lampTris), 1));
+  // Drop paint attrs so this mesh can use a plain unlit material.
+  for (const name of ["aPaint", "aPaintT", "aRecolor", "aLamp"]) {
+    if (lampGeom.getAttribute(name)) lampGeom.deleteAttribute(name);
+  }
+  return lampGeom;
+}
+
+function foldBakedHeadlights(geometry, keys, bakeOpts = {}) {
   if (!keys) return;
   const index = geometry.getIndex();
   const position = geometry.getAttribute("position");
@@ -955,6 +1252,12 @@ function foldBakedHeadlights(geometry, keys) {
     if (cat === 2) any = true;
   }
   if (!any) return;
+  if (bakeOpts.housingInPlace) {
+    const lamp = new Float32Array(position.count);
+    markHousingHeads(position, index, cats, lamp);
+    geometry.setAttribute("aLamp", new Float32BufferAttribute(lamp, 1));
+    return;
+  }
   const paintAttr = geometry.getAttribute("aPaint");
   const folded = foldHeadlightGeometry({
     positions: position.array.slice(0, position.count * 3),
@@ -963,7 +1266,7 @@ function foldBakedHeadlights(geometry, keys) {
     indices: index.array.slice(0, index.count),
     cats,
     paint: paintAttr ? paintAttr.array.slice(0, paintAttr.count) : null,
-  });
+  }, bakeOpts);
   geometry.setAttribute("position", new Float32BufferAttribute(folded.positions, 3));
   geometry.setAttribute("normal", new Float32BufferAttribute(folded.normals, 3));
   geometry.setAttribute("uv", new Float32BufferAttribute(folded.uvs, 2));
@@ -971,6 +1274,18 @@ function foldBakedHeadlights(geometry, keys) {
   if (folded.paint) {
     geometry.setAttribute("aPaint", new Float32BufferAttribute(folded.paint, 1));
   }
+  // Pack weathered lamp texels are dull grey. Paint these faces bright
+  // white so the folded quads read as headlights from the game camera.
+  const lamp = new Float32Array(folded.positions.length / 3);
+  if (bakeOpts.seatAtSilhouette) {
+    for (let tri = 0; tri < folded.cats.length; tri += 1) {
+      if (folded.cats[tri] !== 2) continue;
+      lamp[folded.indices[tri * 3]] = 1;
+      lamp[folded.indices[tri * 3 + 1]] = 1;
+      lamp[folded.indices[tri * 3 + 2]] = 1;
+    }
+  }
+  geometry.setAttribute("aLamp", new Float32BufferAttribute(lamp, 1));
 }
 
 function disposeModel(scene) {
@@ -1079,17 +1394,30 @@ export async function createTraffic(scene, map, pieces = []) {
     );
     const maskScene = maskGltf.scene;
     splitMaterials(maskScene);
-    const catalog = faceCatalog(maskScene);
+    const lampFile = NOSE_EXTRACT.has(file) || HOUSING_LAMPS.has(file);
+    const catalog = faceCatalog(maskScene, { foldFrontTails: lampFile });
     const doorRig = collectDoorRig(maskScene, maskGltf, catalog);
     const levels = {};
     let measured = null;
     for (const level of levelsFor(file)) {
-      const weathered = await loadScene(
-        loader,
-        new URL(`../assets/cars3d/weathered/${file}-L${level}.glb`, import.meta.url).href,
-        `${file}-L${level}.glb`,
-      );
-      const built = bakeLevel(weathered, catalog, doorRig);
+      const label = `${file}-L${level}.glb`;
+      const url = new URL(`../assets/cars3d/weathered/${label}`, import.meta.url).href;
+      let weathered;
+      try {
+        weathered = await loadScene(loader, url, label);
+      } catch (err) {
+        // coupe/sport/suv/race only ship L2. If something still asks for
+        // L3, reuse the L2 bake instead of failing the whole traffic set.
+        if (level !== 2 && levels[2]) {
+          levels[level] = levels[2];
+          continue;
+        }
+        throw err;
+      }
+      const built = bakeLevel(weathered, catalog, doorRig, {
+        seatAtSilhouette: NOSE_EXTRACT.has(file),
+        housingInPlace: HOUSING_LAMPS.has(file),
+      });
       levels[level] = built.parts;
       if (level === 2) measured = built;
       releaseGeometries(weathered);

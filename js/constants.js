@@ -38,3 +38,6 @@ export const CHUNK = 20;
 // The main camera draws this layer. Ambient occlusion only reads layer 0,
 // so light cards, flat shadow sheets, and the build preview do not darken the ground.
 export const AO_SKIP_LAYER = 1;
+// If the browser has not given the 3D drawing back this many seconds after
+// losing it, the game offers a reload button.
+export const CONTEXT_RESTORE_WAIT = 5;

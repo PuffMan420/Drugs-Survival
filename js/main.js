@@ -74,6 +74,7 @@ import { createRats, ratsFast } from "./rats.js";
 import { createSidewalkIndex } from "./sidewalk-height.js";
 import { createGlow } from "./glow.js";
 import { createMinimap } from "./minimap.js";
+import { createContextGuard } from "./context-guard.js";
 import { hud } from "./hud.js";
 import {
   MAX_STOCK,
@@ -730,7 +731,10 @@ function spawnPlaceName(map) {
 async function start() {
   const renderer = new WebGLRenderer({
     canvas,
-    antialias: true,
+    // Every frame goes through the composer, whose scene target already has
+    // MSAA. The canvas only gets one full-screen quad from the output pass,
+    // so its own MSAA buffers never smoothed anything and only took GPU memory.
+    antialias: false,
     alpha: false,
     depth: true,
     stencil: false,
@@ -740,6 +744,9 @@ async function start() {
     showError("WebGL is not available in this browser.");
     return;
   }
+  // Pauses the game while the browser has taken the 3D drawing away.
+  // Three.js rebuilds its GPU copies of the scene and effect targets on restore.
+  const contextGuard = createContextGuard(canvas);
 
   installMaxAnisotropy(renderer);
   renderer.outputColorSpace = SRGBColorSpace;
@@ -1240,6 +1247,12 @@ async function start() {
   function frame(now) {
     // The intro and the menu share this pause. The city waits until Play.
     if (menuIsOpen()) {
+      last = now;
+      requestAnimationFrame(frame);
+      return;
+    }
+    // No drawing, no physics, no clock while the 3D context is lost.
+    if (contextGuard.lost) {
       last = now;
       requestAnimationFrame(frame);
       return;

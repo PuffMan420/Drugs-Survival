@@ -13,11 +13,15 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 // Library 1 skeleton (UAL bone names: root, pelvis, spine_01..03, neck_01,
 // Head, clavicle/upperarm/lowerarm/hand_l/_r, thigh/calf/foot/ball_l/_r).
 // Every file carries the same UAL1 clips under the same names.
-// The player is MainCharacter_v1 in the Medium + leaf style. Crowd and cops stay on the modular files.
-export const PLAYER_MODEL = "../06 Player Character/Main Character/MainCharacter_v1_medium_leaf_v3.glb";
+// The player is the hoodie criminal (hood down). Crowd uses the two casual modular files plus the four new concept models. Cops stay on their own files.
+export const PLAYER_MODEL = "../06 Player Character/Modular/men_Hoodie_criminal_UAL.glb";
 export const PED_MODELS = [
   "../06 Player Character/Modular/men_Casual_Hoodie_UAL.glb",
   "../06 Player Character/Modular/women_Casual_UAL.glb",
+  "../06 Player Character/Modular/men_Hoodie_criminal_UAL.glb",
+  "../06 Player Character/Modular/men_Hoodie_criminal_brown_UAL.glb",
+  "../06 Player Character/Modular/women_Punk_night_UAL.glb",
+  "../06 Player Character/Modular/women_Punk_night_brown_UAL.glb",
 ];
 // Cop bodies: Vera's dusty police, approved by Ted. Index 0 is the normal
 // cop with the helmet, index 1 the cowboy-hat cop (police.js picks one per

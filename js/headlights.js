@@ -138,7 +138,7 @@ function rotateFirst(slot, ids, spans) {
 }
 
 // One lamp per side of the nose. `group` is the headlight triangles there.
-function foldSide(state, group) {
+function foldSide(state, group, options = {}) {
   const { base, positions, normals, uvs, indices, cats, paint, bodyAt, bodyList } = state;
   const tris = group.map((entry) => {
     const offset = entry.tri * 3;
@@ -198,8 +198,29 @@ function foldSide(state, group) {
   }
   if (tMax - tMin < 1e-4) return;
   const mid = (tMin + tMax) / 2;
-  // The forward (hood lamp) or upper (front lamp) edge is the nose corner.
+  // The forward (hood lamp) or upper (front lamp) edge is the crease, then
+  // slide it to the body nose at this height if the lamp was authored inset
+  // (pack cars). Kenney lamps already sit on the hood corner, so this is a
+  // no-op there and the unit tests keep the same crease.
   const origin = add(center, scale(depth, tMax));
+  // Pack cars: seat the crease on the true top-down front (bumper
+  // included), not just body at lamp height. Kenney keeps the tight
+  // lamp-height snap so its hood-corner crease stays put.
+  const noseZ = options.seatAtSilhouette
+    ? silhouetteFrontZ(state, center)
+    : bodyFrontZ(state, center);
+  if (noseZ != null && noseZ > origin[2] + (options.seatAtSilhouette ? 0 : 0.05)) {
+    origin[2] = noseZ;
+  }
+  const rawHalf = (tMax - tMin) / 2;
+  // Cap the visible hood half so the white sits as a tight quad on the
+  // nose, like Kenney. Skip huge over-tagged clusters (deep service
+  // chrome wrongly marked as lamps).
+  const PACK_LAMP_HALF = 0.10;
+  let spanScale = 1;
+  if (options.seatAtSilhouette && rawHalf > PACK_LAMP_HALF && rawHalf < 0.8) {
+    spanScale = PACK_LAMP_HALF / rawHalf;
+  }
 
   const hoodNormal = surfaceNormal(state, center, (normal) => normal[1] > 0.7) || [0, 1, 0];
   const frontNormal = surfaceNormal(state, center, (normal) => normal[2] > 0.7) || [0, 0, 1];
@@ -210,7 +231,7 @@ function foldSide(state, group) {
   if (faceDir[1] > 0) faceDir = scale(faceDir, -1);
   const creaseNormal = normalize(add(hoodNormal, frontNormal)) || hoodNormal;
 
-  const spanOf = (index) => dot(sub(read3(base, index), center), depth) - mid;
+  const spanOf = (index) => (dot(sub(read3(base, index), center), depth) - mid) * spanScale;
   const acrossOf = (index) => dot(sub(read3(base, index), center), edge);
   const foldedAt = (index) => {
     const span = spanOf(index);
@@ -339,6 +360,32 @@ function foldSide(state, group) {
   }
 }
 
+function bodyFrontZ(state, center, yBand = 0.22, xWindow = 0.55) {
+  const { base, indices, cats } = state;
+  const side = center[0] < 0;
+  let zMax = -Infinity;
+  const tris = state.triCount;
+  for (let tri = 0; tri < tris; tri += 1) {
+    if (cats[tri] === 2) continue;
+    const offset = tri * 3;
+    const ids = [indices[offset], indices[offset + 1], indices[offset + 2]];
+    for (const index of ids) {
+      const point = read3(base, index);
+      if (Math.abs(point[0] - center[0]) > xWindow) continue;
+      if (yBand != null && Math.abs(point[1] - center[1]) > yBand) continue;
+      if ((point[0] < 0) !== side && Math.abs(point[0]) > 0.05) continue;
+      if (point[2] > zMax) zMax = point[2];
+    }
+  }
+  return Number.isFinite(zMax) ? zMax : null;
+}
+
+// Top-down silhouette front: any height near this lamp's X, so a bumper
+// that sits lower than the lamp still counts as the nose.
+function silhouetteFrontZ(state, center) {
+  return bodyFrontZ(state, center, null, 0.75);
+}
+
 function surfaceNormal(state, center, accept) {
   const { base, indices, cats } = state;
   const side = center[0] < 0;
@@ -421,7 +468,32 @@ function collectBody(base, indices, uvs, cats) {
   return { bodyAt, bodyList };
 }
 
-export function foldHeadlightGeometry(mesh) {
+function hideLeftoverHeads(state, leftover) {
+  const { base, uvs, cats, paint, bodyAt, bodyList } = state;
+  for (const head of leftover) {
+    cats[head.tri] = 0;
+    const slot = head.tri * 3;
+    for (let k = 0; k < 3; k += 1) {
+      const index = state.indices[slot + k];
+      const sample = bodySample(bodyAt, bodyList, read3(base, index));
+      if (!sample) continue;
+      uvs[index * 2] = sample.u;
+      uvs[index * 2 + 1] = sample.v;
+    }
+  }
+}
+
+function noseLampHeads(heads) {
+  if (!heads.length) return heads;
+  let zMax = -Infinity;
+  for (const head of heads) {
+    if (head.cz > zMax) zMax = head.cz;
+  }
+  const kept = heads.filter((head) => head.cz >= zMax - 0.55);
+  return kept.length ? kept : heads;
+}
+
+export function foldHeadlightGeometry(mesh, options = {}) {
   const cats = Array.from(mesh.cats);
   let any = false;
   for (let i = 0; i < cats.length; i += 1) {
@@ -453,12 +525,21 @@ export function foldHeadlightGeometry(mesh) {
     const i1 = indices[tri * 3 + 1];
     const i2 = indices[tri * 3 + 2];
     const cx = (base[i0 * 3] + base[i1 * 3] + base[i2 * 3]) / 3;
-    heads.push({ tri, cx });
+    const cz = (base[i0 * 3 + 2] + base[i1 * 3 + 2] + base[i2 * 3 + 2]) / 3;
+    heads.push({ tri, cx, cz });
   }
-  const left = heads.filter((head) => head.cx < 0);
-  const right = heads.filter((head) => head.cx >= 0);
-  if (left.length) foldSide(state, left);
-  if (right.length) foldSide(state, right);
+  // Pack bakes tagged every front-half tail cell as a lamp. Only fold
+  // the cluster actually on the nose. Recolour leftover mid-body
+  // mis-tags as body so they do not stay behind as inset lamp quads.
+  const frontHeads = options.seatAtSilhouette ? noseLampHeads(heads) : heads;
+  if (options.seatAtSilhouette && frontHeads.length < heads.length) {
+    const folded = new Set(frontHeads.map((head) => head.tri));
+    hideLeftoverHeads(state, heads.filter((head) => !folded.has(head.tri)));
+  }
+  const left = frontHeads.filter((head) => head.cx < 0);
+  const right = frontHeads.filter((head) => head.cx >= 0);
+  if (left.length) foldSide(state, left, options);
+  if (right.length) foldSide(state, right, options);
 
   return {
     positions: Float32Array.from(state.positions),

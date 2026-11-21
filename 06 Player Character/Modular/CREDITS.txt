@@ -6,6 +6,11 @@ Animations: Quaternius "Universal Animation Library" (UAL1 Standard, CC0).
   https://quaternius.com/packs/universalanimationlibrary.html
 
 Blenda moved each body onto the UAL skeleton in Blender and exported:
-  men_Casual_Hoodie_UAL.glb  player, crowd man, and cops for now (COP_MODEL in js/characters.js)
+  men_Casual_Hoodie_UAL.glb  crowd man
   women_Casual_UAL.glb       crowd woman
   ual-bat.glb                Bat_Shoulder, Bat_Hang, Bat_Swing on the UAL skeleton (clips only)
+
+Cops (COP_MODELS in js/characters.js), Blenda's builds from the same Modular
+Men parts on the UAL skeleton, dust and colors by Vera:
+  cop_v1d_vera1_UAL.glb      normal cop with helmet (85% of cops)
+  cop_v2f_vera1_UAL.glb      cowboy-hat cop (15% of cops, COP_COWBOY_CHANCE in js/police.js)

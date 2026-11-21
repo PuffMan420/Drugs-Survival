@@ -1,5 +1,5 @@
 // Police v1: foot cops chase the player while the wanted level is 1 or more.
-// The cops are pedestrians (same rig and clips, dark blue outfit) made by
+// The cops are pedestrians (same rig and clips, Vera's police bodies) made by
 // pedestrians.spawnCop; this module only steers them and runs the rules.
 // The pure rules at the top run in node (tests/police.test.mjs).
 //
@@ -34,6 +34,15 @@ export const BUST_HEALTH = 30;
 export const BUST_CASH_LOSS = 0.5;
 // Spawn and despawn distance past the visible half-diagonal.
 export const OFFSCREEN_MARGIN = 80;
+// Share of cops that spawn as the cowboy-hat cop (0.15 = 15%). The rest are
+// the normal helmet cop. 0 means never, 1 means always.
+export const COP_COWBOY_CHANCE = 0.15;
+
+// Which cop body to spawn: 0 normal (helmet), 1 cowboy hat.
+// roll is a number from 0 up to 1 (Math.random() in the game).
+export function pickCopVariant(roll = Math.random(), chance = COP_COWBOY_CHANCE) {
+  return roll < chance ? 1 : 0;
+}
 
 // True when any living cop is within range of (px, pz). Dead cops do not count.
 export function copInSight(cops, px, pz, range = COP_SIGHT) {
@@ -86,7 +95,7 @@ export function createPolice({ pedestrians, player, wanted, economy, onBusted })
     const angle = Math.random() * Math.PI * 2;
     const x = player.x + Math.cos(angle) * radius;
     const z = player.z + Math.sin(angle) * radius;
-    const ped = pedestrians.spawnCop(x, z, COP_HP);
+    const ped = pedestrians.spawnCop(x, z, COP_HP, pickCopVariant());
     if (ped) cops.push({ ped, cooldown: 0, leaving: false, lastPunch: "" });
   }
 

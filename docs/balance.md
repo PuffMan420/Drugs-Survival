@@ -225,6 +225,7 @@ Cops jog at the player's jog speed, so you can outrun them by sprinting (`PLAYER
 | BUST_HEALTH | 30 | js/police.js | Below this health, cops stop punching and try to arrest you instead. |
 | BUST_CASH_LOSS | 0.5 | js/police.js | Fraction of cash lost on a bust (rounded down). All stock is lost too. |
 | OFFSCREEN_MARGIN | 80 | js/police.js | Extra distance past the visible area where cops spawn and despawn, in units. |
+| COP_COWBOY_CHANCE | 0.15 | js/police.js | Share of cops that spawn as the cowboy-hat cop (`cop_v2f_vera1`). The rest are the normal helmet cop (`cop_v1d_vera1`). 0 = never, 1 = always. Both bodies are in `COP_MODELS` in js/characters.js and keep their own colors. |
 
 ---
 

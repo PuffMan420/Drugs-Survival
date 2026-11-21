@@ -19,10 +19,14 @@ export const PED_MODELS = [
   "../06 Player Character/Modular/men_Casual_Hoodie_UAL.glb",
   "../06 Player Character/Modular/women_Casual_UAL.glb",
 ];
-// Every cop's body. Ted has not picked a cop look yet; drop the new file's
-// path in here when he does. For now cops are the hoodie man in the old
-// police colors (COP_LOOK in js/pedestrians.js).
-export const COP_MODEL = "../06 Player Character/Modular/men_Casual_Hoodie_UAL.glb";
+// Cop bodies: Vera's dusty police, approved by Ted. Index 0 is the normal
+// cop with the helmet, index 1 the cowboy-hat cop (police.js picks one per
+// cop, see COP_COWBOY_CHANCE). Cops keep the files' own colors and dust;
+// they are not recolored like the crowd.
+export const COP_MODELS = [
+  "../06 Player Character/Modular/cop_v1d_vera1_UAL.glb",
+  "../06 Player Character/Modular/cop_v2f_vera1_UAL.glb",
+];
 // Bat_Shoulder, Bat_Hang and Bat_Swing on the UAL skeleton (clips only).
 export const BAT_CLIPS_MODEL = "../06 Player Character/Modular/ual-bat.glb";
 export const UAL2_CLIPS_MODEL = "../assets/player/ual2-clips.glb";

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { PLAYER_SPEED } from "../js/constants.js";
 import {
-  desiredCops, stepBust, applyBust, copInSight,
+  desiredCops, stepBust, applyBust, copInSight, pickCopVariant, COP_COWBOY_CHANCE,
   MAX_COPS, BUST_TIME, BUST_HEALTH, COP_SPEED, COP_SIGHT, COP_CHASE_GAIT,
 } from "../js/police.js";
 
@@ -35,4 +35,12 @@ assert.equal(copInSight([{ x: COP_SIGHT, z: 0 }], 0, 0), true);
 assert.equal(copInSight([{ x: COP_SIGHT + 1, z: 0 }], 0, 0), false);
 assert.equal(copInSight([{ x: 0, z: 0, dead: true }], 0, 0), false);
 assert.equal(copInSight([], 0, 0), false);
+// Cop body pick: below COP_COWBOY_CHANCE is the cowboy-hat cop (1), else the normal cop (0).
+assert.equal(COP_COWBOY_CHANCE, 0.15);
+assert.equal(pickCopVariant(0), 1);
+assert.equal(pickCopVariant(COP_COWBOY_CHANCE - 0.001), 1);
+assert.equal(pickCopVariant(COP_COWBOY_CHANCE), 0);
+assert.equal(pickCopVariant(0.99), 0);
+assert.equal(pickCopVariant(0.5, 1), 1);
+assert.equal(pickCopVariant(0, 0), 0);
 console.log("police tests passed");

@@ -12,7 +12,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { carContact, carVelocity } from "./car-strike.js";
 import {
-  COP_MODEL,
+  COP_MODELS,
   PED_MODELS,
   fitCharacter,
   matteMaterials,
@@ -90,16 +90,9 @@ const PED_LOOKS = PED_LOOK_HEX.map((row) => ({
   skin: new Color(row.skin),
 }));
 
-// Police outfit for police.js cops: dark blue shirt and trousers.
-const COP_LOOK = {
-  shirt: new Color(0x1f2f66),
-  pants: new Color(0x141b38),
-  shoes: new Color(0x0d0d0d),
-  hair: new Color(0x1a1a1a),
-  skin: new Color(0xd7a67a),
-};
 let copSalt = 50000;
-// prototypes[] index of the cop body (COP_MODEL in js/characters.js).
+// prototypes[] index of the first cop body (COP_MODELS in js/characters.js).
+// Cop variant n uses COP_PROTO + n.
 const COP_PROTO = PED_MODELS.length;
 
 // pedSlot (see mergeFigure): 0 shirt, 1 pants, 2 shoes, 3 skin, 4 hair,
@@ -391,9 +384,8 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     ? createRagdolls(rig.physics, { limit: rig.mobile ? 4 : 8, near: 800 })
     : null;
   const { span } = graph;
-  // Crowd bodies first (man, woman), the cop body last. The player's file is
-  // the first one, so the browser fetches it once.
-  const paths = [...PED_MODELS, COP_MODEL];
+  // Crowd bodies first (man, woman), the cop bodies last (normal, cowboy).
+  const paths = [...PED_MODELS, ...COP_MODELS];
   const unique = [...new Set(paths)];
   let loaded;
   try {
@@ -411,8 +403,8 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
   // Head.scale is a rest hold at 1, and the mixer would write it back
   // over the smaller head.
   dropHeadScaleTracks(clips);
-  // A file listed twice (the cop is the crowd man for now) is prepared once
-  // and shared; each prototype still has its own pool.
+  // A file listed twice is prepared once and shared; each prototype still
+  // has its own pool.
   const prepared = new Map();
   const prototypes = files.map((gltf) => {
     if (!prepared.has(gltf)) prepared.set(gltf, prepareTemplate(gltf));
@@ -466,7 +458,8 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
       live.actions = bindActions(live.mixer, prototype.clips);
     }
     const mesh = bodyMesh(live.model);
-    mesh.material = sharedClothMaterial(prototype.material, ped.look);
+    // A cop has no look: it keeps the file's own colors and dust.
+    mesh.material = ped.look ? sharedClothMaterial(prototype.material, ped.look) : prototype.material;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     for (const name of GAITS) {
@@ -1011,11 +1004,14 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     },
     // A cop is a pedestrian police.js steers: it sets x, z, dx, dz and
     // copGait each frame; update() only animates it. Hurt like anyone else.
-    spawnCop(x, z, hp = PED_HP) {
+    // variant picks the body: 0 normal cop, 1 cowboy-hat cop (COP_MODELS).
+    spawnCop(x, z, hp = PED_HP, variant = 0) {
       copSalt += 1;
+      const kind = Math.min(COP_MODELS.length - 1, Math.max(0, Math.floor(Number(variant) || 0)));
       const ped = {
-        proto: COP_PROTO,
-        look: COP_LOOK,
+        proto: COP_PROTO + kind,
+        copVariant: kind,
+        look: null,
         vary: 1,
         salt: copSalt,
         hp,

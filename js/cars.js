@@ -707,8 +707,10 @@ function collectDoorRig(scene, gltf, catalog) {
 }
 
 function splitDoorParts(parts, doorRig) {
-  if (!doorRig) return parts;
-  if (parts.some((part) => part.door)) return parts;
+  // bakeLevel clears `parts` and copies this result back in, so early
+  // returns must be a new array, not the same one.
+  if (!doorRig) return parts.slice();
+  if (parts.some((part) => part.door)) return parts.slice();
   const next = [];
   for (const part of parts) {
     if (part.wheel) {

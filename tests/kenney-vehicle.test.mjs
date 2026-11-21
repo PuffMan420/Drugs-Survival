@@ -257,5 +257,8 @@ test("traffic engines are quieter, rumble when bulky, and keep the nearest four"
     "school_bus",
     "swat_van",
     "taco_truck",
+    "flatbed_delivery",
+    "tractor",
+    "shovel_tractor",
   ]);
 });

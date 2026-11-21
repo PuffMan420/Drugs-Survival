@@ -121,9 +121,49 @@ const CARS = [
   { name: "city_police", file: "citypack-police", w: CITYPACK_POLICE_W, h: CITYPACK_POLICE_H, rollWheels: true },
   { name: "city_van", file: "citypack-van", w: CITYPACK_VAN_W, h: CITYPACK_VAN_H },
   { name: "city_bus", file: "citypack-bus", w: CITYPACK_BUS_W, h: CITYPACK_BUS_H },
+  // Generic service and passenger packs (tools/bake_pack_cars.py). Real proportions:
+  // the pack sedan is as long as the Kenney sedan (71). lengthScale shrinks only the
+  // length (1 = real length; about 0.5 puts a bus at the old 79 maximum).
+  { name: "pack_ambulance", file: "pack-ambulance", w: 42, h: 113, lengthScale: 1 },
+  { name: "pack_city_bus", file: "pack-city-bus", w: 41, h: 163, lengthScale: 1 },
+  { name: "pack_fire_truck", file: "pack-fire-truck", w: 42, h: 136, lengthScale: 1 },
+  { name: "pack_garbage_truck", file: "pack-garbage-truck", w: 43, h: 125, lengthScale: 1 },
+  { name: "pack_police", file: "pack-police", w: 33, h: 85, lengthScale: 1 },
+  { name: "pack_post_van", file: "pack-post-van", w: 35, h: 87, lengthScale: 1 },
+  { name: "pack_road_service", file: "pack-road-service", w: 37, h: 87, lengthScale: 1 },
+  { name: "pack_school_bus", file: "pack-school-bus", w: 42, h: 129, lengthScale: 1 },
+  { name: "pack_taxi", file: "pack-taxi", w: 33, h: 83, lengthScale: 1 },
+  { name: "pack_tow_truck", file: "pack-tow-truck", w: 39, h: 113, lengthScale: 1 },
+  { name: "pack_compact", file: "pack-compact", w: 26, h: 53, lengthScale: 1, rollWheels: true },
+  { name: "pack_coupe", file: "pack-coupe", w: 31, h: 69, lengthScale: 1, rollWheels: true },
+  { name: "pack_hatchback", file: "pack-hatchback", w: 28, h: 64, lengthScale: 1, rollWheels: true },
+  { name: "pack_minivan", file: "pack-minivan", w: 30, h: 75, lengthScale: 1, rollWheels: true },
+  { name: "pack_offroad", file: "pack-offroad", w: 32, h: 64, lengthScale: 1, rollWheels: true },
+  { name: "pack_pickup", file: "pack-pickup", w: 34, h: 84, lengthScale: 1, rollWheels: true },
+  { name: "pack_sedan", file: "pack-sedan", w: 32, h: 71, lengthScale: 1, rollWheels: true },
+  { name: "pack_sport", file: "pack-sport", w: 29, h: 64, lengthScale: 1, rollWheels: true },
+  { name: "pack_suv", file: "pack-suv", w: 34, h: 75, lengthScale: 1, rollWheels: true },
+  { name: "pack_wagon", file: "pack-wagon", w: 32, h: 72, lengthScale: 1, rollWheels: true },
+  // More Kenney Car Kit bodies. Same Kenney scale as the sedan above.
+  { name: "flatbed_delivery", file: "delivery-flat", w: 42, h: 90, lengthScale: 1 },
+  { name: "race_car", file: "race", w: 36, h: 71 },
+  { name: "tractor", file: "tractor", w: 37, h: 61 },
+  { name: "shovel_tractor", file: "tractor-shovel", w: 46, h: 69 },
 ];
+for (const car of CARS) {
+  if (car.lengthScale) car.h = Math.round(car.h * car.lengthScale);
+}
 
-const RARE = new Set(["police", "ambulance", "fire_truck", "city_police"]);
+const RARE = new Set([
+  "police",
+  "ambulance",
+  "fire_truck",
+  "city_police",
+  "pack_ambulance",
+  "pack_fire_truck",
+  "pack_police",
+  "race_car",
+]);
 // Job and service liveries stay on the colours baked into the weathered model.
 const SERVICE = new Set([
   "ambulance",
@@ -138,9 +178,23 @@ const SERVICE = new Set([
   "swat_van",
   "taco_truck",
   "taxi",
+  "pack_ambulance",
+  "pack_city_bus",
+  "pack_fire_truck",
+  "pack_garbage_truck",
+  "pack_police",
+  "pack_post_van",
+  "pack_road_service",
+  "pack_school_bus",
+  "pack_taxi",
+  "pack_tow_truck",
+  "flatbed_delivery",
+  "tractor",
+  "shovel_tractor",
 ]);
-// Sports bodies only have an L2 bake. Every other Kenney file has L2 and L3.
-const SPORTS = new Set(["hatchback-sports", "sedan-sports"]);
+// Sports and upscale bodies only have an L2 bake, with light dust.
+// Every other file has L2 and L3.
+const SPORTS = new Set(["hatchback-sports", "sedan-sports", "race", "pack-sport", "pack-coupe", "pack-suv"]);
 // KayKit cars are one baked model. They are not rare and they are not police jobs.
 const PLAIN = new Set(["kaykit-hatch", "kaykit-sedan", "kaykit-wagon", "kaykit-taxi", "kaykit-police"]);
 const BUCKET = 96;

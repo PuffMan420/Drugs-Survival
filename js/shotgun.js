@@ -14,6 +14,29 @@ export const SHOTGUN_RANGE = 144;
 export const SHOTGUN_SPREAD_DEG = 20;
 export const SHOTGUN_FIRE_DELAY = 1.0;
 export const SHOTGUN_MAG = 6;
+// Half a second longer than the pistol / Scorpion reload (1.67s).
+export const SHOTGUN_RELOAD_TIME = 2.17;
+// Shot variants, heavier then extra-heavy, picked at random like other gun clips.
+export const SHOTGUN_SOUND_FILES = ["shotgun-shot-1.mp3", "shotgun-shot-2.mp3"];
+export const SHOTGUN_SOUND_VOLUME = 0.4;
+export const SHOTGUN_RELOAD_SOUND_FILES = ["shotgun-reload.mp3"];
+export const SHOTGUN_RELOAD_SOUND_VOLUME = 0.35;
+// Closing-rack variants, picked at random when a shotgun reload actually finishes.
+export const SHOTGUN_RELOAD_END_SOUND_FILES = ["shotgun-reload-end-1.mp3", "shotgun-reload-end-2.mp3"];
+export const SHOTGUN_RELOAD_END_SOUND_VOLUME = 0.3;
+// Pump-rack variants, played when the pump starts moving after a shot.
+export const SHOTGUN_PUMP_SOUND_FILES = ["shotgun-pump-1.mp3", "shotgun-pump-2.mp3"];
+export const SHOTGUN_PUMP_SOUND_VOLUME = 0.3;
+// Never picks the last clip if another one is available (same as reloads / crashes).
+export function pickShotgunClip(lastIndex, count, random = Math.random()) {
+  const n = Math.max(1, count | 0);
+  if (n === 1) return 0;
+  if (lastIndex == null || lastIndex < 0 || lastIndex >= n) {
+    return Math.floor(random * n) % n;
+  }
+  const skip = Math.floor(random * (n - 1)) % (n - 1);
+  return skip >= lastIndex ? skip + 1 : skip;
+}
 export const SHOTGUN_KICK_BACK = 0.35;
 export const SHOTGUN_KICK_UP_DEG = 22;
 export const SHOTGUN_KICK_RETURN = 0.25;

@@ -76,15 +76,26 @@ import {
   SHOTGUN_PORT_DROP,
   SHOTGUN_PUMP,
   SHOTGUN_PUMP_MIN_X,
+  SHOTGUN_PUMP_SOUND_FILES,
+  SHOTGUN_PUMP_SOUND_VOLUME,
+  SHOTGUN_PUMP_START,
   SHOTGUN_PUMP_TRAVEL,
   SHOTGUN_RANGE,
   SHOTGUN_RELOAD_ROLL_DEG,
+  SHOTGUN_RELOAD_END_SOUND_FILES,
+  SHOTGUN_RELOAD_END_SOUND_VOLUME,
+  SHOTGUN_RELOAD_SOUND_FILES,
+  SHOTGUN_RELOAD_SOUND_VOLUME,
+  SHOTGUN_RELOAD_TIME,
   SHOTGUN_RIFLE_KICK,
   SHOTGUN_SCALE,
+  SHOTGUN_SOUND_FILES,
+  SHOTGUN_SOUND_VOLUME,
   SHOTGUN_SPREAD_DEG,
   SHOTGUN_THICK_SCALE,
   carryDirection,
   kickBlend,
+  pickShotgunClip,
   pumpSlide,
   reloadHand,
   spreadFlat,
@@ -806,6 +817,59 @@ export async function createPistol({
       shotVoices[i].setVolume(0.4);
     }
   });
+  const SHOTGUN_SHOT_VOICES = 2;
+  const shotgunShotVoices = [];
+  for (let i = 0; i < SHOTGUN_SHOT_VOICES; i += 1) shotgunShotVoices.push(new Audio(listener));
+  let shotgunShotVoice = 0;
+  const shotgunShotBuffers = SHOTGUN_SOUND_FILES.map(() => null);
+  let lastShotgunShotIndex = -1;
+  SHOTGUN_SOUND_FILES.forEach((name, i) => {
+    const url = new URL(`../assets/sound/${name}`, import.meta.url).href;
+    new AudioLoader().load(url, (buffer) => {
+      shotgunShotBuffers[i] = buffer;
+    }, undefined, (error) => {
+      console.error("The shotgun shot sound failed to load:", name, error);
+    });
+  });
+  const shotgunReloadSound = new Audio(listener);
+  shotgunReloadSound.setLoop(false);
+  shotgunReloadSound.setVolume(SHOTGUN_RELOAD_SOUND_VOLUME);
+  const shotgunReloadBuffers = SHOTGUN_RELOAD_SOUND_FILES.map(() => null);
+  SHOTGUN_RELOAD_SOUND_FILES.forEach((name, i) => {
+    const url = new URL(`../assets/audio/${name}`, import.meta.url).href;
+    new AudioLoader().load(url, (buffer) => {
+      shotgunReloadBuffers[i] = buffer;
+    }, undefined, (error) => {
+      console.error("The shotgun reload sound failed to load:", name, error);
+    });
+  });
+  const shotgunReloadEndSound = new Audio(listener);
+  shotgunReloadEndSound.setLoop(false);
+  shotgunReloadEndSound.setVolume(SHOTGUN_RELOAD_END_SOUND_VOLUME);
+  const shotgunReloadEndBuffers = SHOTGUN_RELOAD_END_SOUND_FILES.map(() => null);
+  let lastShotgunReloadEndIndex = -1;
+  SHOTGUN_RELOAD_END_SOUND_FILES.forEach((name, i) => {
+    const url = new URL(`../assets/audio/${name}`, import.meta.url).href;
+    new AudioLoader().load(url, (buffer) => {
+      shotgunReloadEndBuffers[i] = buffer;
+    }, undefined, (error) => {
+      console.error("The shotgun reload-end sound failed to load:", name, error);
+    });
+  });
+  const SHOTGUN_PUMP_VOICES = 2;
+  const shotgunPumpVoices = [];
+  for (let i = 0; i < SHOTGUN_PUMP_VOICES; i += 1) shotgunPumpVoices.push(new Audio(listener));
+  let shotgunPumpVoice = 0;
+  const shotgunPumpBuffers = SHOTGUN_PUMP_SOUND_FILES.map(() => null);
+  let lastShotgunPumpIndex = -1;
+  SHOTGUN_PUMP_SOUND_FILES.forEach((name, i) => {
+    const url = new URL(`../assets/audio/${name}`, import.meta.url).href;
+    new AudioLoader().load(url, (buffer) => {
+      shotgunPumpBuffers[i] = buffer;
+    }, undefined, (error) => {
+      console.error("The shotgun pump sound failed to load:", name, error);
+    });
+  });
   const meleeHit = new Audio(listener);
   let meleeReady = false;
   const meleeUrl = new URL("../assets/sound/melee-hit.ogg", import.meta.url).href;
@@ -885,6 +949,9 @@ export async function createPistol({
     shootLeft = 0;
     poseLeft = 0;
     if (reloadSound.isPlaying) reloadSound.stop();
+    if (shotgunReloadSound.isPlaying) shotgunReloadSound.stop();
+    if (shotgunReloadEndSound.isPlaying) shotgunReloadEndSound.stop();
+    stopShotgunPumpSounds();
     reloadLeft = 0;
     swinging = false;
     swingAge = 0;
@@ -951,6 +1018,95 @@ export async function createPistol({
     }
   }
 
+  function pickLoadedClip(buffers, lastIndex) {
+    const loaded = [];
+    for (let i = 0; i < buffers.length; i += 1) {
+      if (buffers[i]) loaded.push(i);
+    }
+    if (loaded.length === 0) return -1;
+    const localLast = loaded.indexOf(lastIndex);
+    return loaded[pickShotgunClip(localLast < 0 ? -1 : localLast, loaded.length)];
+  }
+
+  function playShotgunSound() {
+    const pick = pickLoadedClip(shotgunShotBuffers, lastShotgunShotIndex);
+    if (pick < 0) return;
+    const voice = shotgunShotVoices[shotgunShotVoice];
+    shotgunShotVoice = (shotgunShotVoice + 1) % shotgunShotVoices.length;
+    const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;
+    if (!(master > 0)) return;
+    const playback = 1 + (Math.random() * 2 - 1) * 0.05;
+    try {
+      if (voice.isPlaying) voice.stop();
+      voice.setBuffer(shotgunShotBuffers[pick]);
+      voice.setLoop(false);
+      voice.setVolume(SHOTGUN_SOUND_VOLUME);
+      voice.setPlaybackRate(playback);
+      voice.play();
+      lastShotgunShotIndex = pick;
+    } catch (error) {
+      console.error("The shotgun shot failed to play", error);
+    }
+  }
+
+  function playShotgunReloadSound() {
+    const pick = pickLoadedClip(shotgunReloadBuffers, -1);
+    if (pick < 0) return;
+    const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;
+    if (!(master > 0)) return;
+    try {
+      if (shotgunReloadSound.isPlaying) shotgunReloadSound.stop();
+      shotgunReloadSound.setBuffer(shotgunReloadBuffers[pick]);
+      shotgunReloadSound.setVolume(SHOTGUN_RELOAD_SOUND_VOLUME);
+      shotgunReloadSound.play();
+    } catch (error) {
+      console.error("The shotgun reload sound failed to play", error);
+    }
+  }
+
+  function stopShotgunPumpSounds() {
+    for (const voice of shotgunPumpVoices) {
+      if (voice.isPlaying) voice.stop();
+    }
+  }
+
+  function playShotgunReloadEndSound() {
+    if (weapon !== "shotgun" || busy()) return;
+    const pick = pickLoadedClip(shotgunReloadEndBuffers, lastShotgunReloadEndIndex);
+    if (pick < 0) return;
+    const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;
+    if (!(master > 0)) return;
+    try {
+      if (shotgunReloadEndSound.isPlaying) shotgunReloadEndSound.stop();
+      shotgunReloadEndSound.setBuffer(shotgunReloadEndBuffers[pick]);
+      shotgunReloadEndSound.setVolume(SHOTGUN_RELOAD_END_SOUND_VOLUME);
+      shotgunReloadEndSound.play();
+      lastShotgunReloadEndIndex = pick;
+    } catch (error) {
+      console.error("The shotgun reload-end sound failed to play", error);
+    }
+  }
+
+  function playShotgunPumpSound() {
+    if (weapon !== "shotgun" || reloadLeft > 0 || busy()) return;
+    const pick = pickLoadedClip(shotgunPumpBuffers, lastShotgunPumpIndex);
+    if (pick < 0) return;
+    const voice = shotgunPumpVoices[shotgunPumpVoice];
+    shotgunPumpVoice = (shotgunPumpVoice + 1) % shotgunPumpVoices.length;
+    const master = typeof listener.getMasterVolume === "function" ? listener.getMasterVolume() : 1;
+    if (!(master > 0)) return;
+    try {
+      if (voice.isPlaying) voice.stop();
+      voice.setBuffer(shotgunPumpBuffers[pick]);
+      voice.setLoop(false);
+      voice.setVolume(SHOTGUN_PUMP_SOUND_VOLUME);
+      voice.play();
+      lastShotgunPumpIndex = pick;
+    } catch (error) {
+      console.error("The shotgun pump sound failed to play", error);
+    }
+  }
+
   function playReloadSound() {
     const loaded = [];
     for (let i = 0; i < reloadBuffers.length; i += 1) {
@@ -973,9 +1129,14 @@ export async function createPistol({
   }
 
   function beginReload() {
+    if (weapon === "shotgun") {
+      reloadLeft = SHOTGUN_RELOAD_TIME;
+      reloadShells = Math.max(1, SHOTGUN_MAG - rounds.shotgun);
+      stopShotgunPumpSounds();
+      playShotgunReloadSound();
+      return;
+    }
     reloadLeft = RELOAD_TIME;
-    // The shotgun loads one shell per empty slot inside the same reload time.
-    if (weapon === "shotgun") reloadShells = Math.max(1, SHOTGUN_MAG - rounds.shotgun);
     playReloadSound();
   }
 
@@ -1888,7 +2049,7 @@ export async function createPistol({
     shellAim.z = aim.z;
     shotgunShellIn = 0.3;
     worldSoundDone = false;
-    playShot(0.7);
+    playShotgunSound();
     scareCrowd();
     let carMarked = false;
     for (let i = 0; i < SHOTGUN_PELLETS; i += 1) {
@@ -2148,12 +2309,20 @@ export async function createPistol({
         ? player.twoHandedWeight || 0 : 0;
       // Share of it that is the low-ready carry (hold clip, also the reload).
       const carry = twoHands > 0 ? player.carryShare || 0 : 0;
+      const prevPumpAge = pumpAge;
       pumpAge += step;
+      if (prevPumpAge < SHOTGUN_PUMP_START && pumpAge >= SHOTGUN_PUMP_START) {
+        playShotgunPumpSound();
+      }
+      if (weapon !== "shotgun" || reloadLeft > 0 || busy()) {
+        if (shotgunPumpVoices.some((voice) => voice.isPlaying)) stopShotgunPumpSounds();
+      }
       const slide = pumpSlide(pumpAge);
       if (shotgunPump) shotgunPump.position.x = shotgunPump.userData.restX - slide * SHOTGUN_PUMP_TRAVEL;
       const kick = kickBlend(kickAge) * (1 + (SHOTGUN_RIFLE_KICK - 1) * twoHands);
+      const reloadDur = weapon === "shotgun" ? SHOTGUN_RELOAD_TIME : RELOAD_TIME;
       const loadHand = twoHands > 0 && reloadLeft > 0
-        ? reloadHand(RELOAD_TIME - reloadLeft, RELOAD_TIME, reloadShells) : null;
+        ? reloadHand(reloadDur - reloadLeft, reloadDur, reloadShells) : null;
       shotgunRoot.position.copy(sgRestPos);
       shotgunRoot.quaternion.copy(shotgunBaseQuat);
       if (twoHands > 0) {
@@ -2241,7 +2410,12 @@ export async function createPistol({
       stepFlights(step);
       if (reloadLeft > 0) {
         reloadLeft = Math.max(0, reloadLeft - step);
-        if (reloadLeft === 0 && rounds[weapon] != null) rounds[weapon] = magSize();
+        if (reloadLeft === 0 && rounds[weapon] != null) {
+          rounds[weapon] = magSize();
+          // Only when the shotgun reload actually finishes (not canceled by a
+          // weapon switch, which zeros reloadLeft without reaching here).
+          if (weapon === "shotgun" && !busy()) playShotgunReloadEndSound();
+        }
       }
       const want = aiming ? 1 : 0;
       aimBlend += (want - aimBlend) * (1 - Math.exp(-step / AIM_TAU));

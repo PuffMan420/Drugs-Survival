@@ -1,14 +1,26 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import {
   SHOTGUN_FIRE_DELAY,
   SHOTGUN_KICK_RETURN,
   SHOTGUN_MAG,
   SHOTGUN_PELLET_DAMAGE,
   SHOTGUN_PELLETS,
+  SHOTGUN_PUMP_SOUND_FILES,
+  SHOTGUN_PUMP_SOUND_VOLUME,
+  SHOTGUN_PUMP_START,
   SHOTGUN_RANGE,
+  SHOTGUN_RELOAD_END_SOUND_FILES,
+  SHOTGUN_RELOAD_END_SOUND_VOLUME,
+  SHOTGUN_RELOAD_SOUND_FILES,
+  SHOTGUN_RELOAD_SOUND_VOLUME,
+  SHOTGUN_RELOAD_TIME,
+  SHOTGUN_SOUND_FILES,
+  SHOTGUN_SOUND_VOLUME,
   SHOTGUN_SPREAD_DEG,
   kickBlend,
+  pickShotgunClip,
   spreadDirection,
   spreadFlat,
 } from "../js/shotgun.js";
@@ -85,15 +97,57 @@ test("the pump racks back and home after a shot, inside the fire delay", async (
 
 test("a reload pushes one shell per empty slot and ends with the hand back on the pump", async () => {
   const { reloadHand } = await import("../js/shotgun.js");
-  assert.equal(reloadHand(0, 1.67, 3).lead, 0);
-  assert.equal(reloadHand(1.67, 1.67, 3).lead, 0);
+  assert.equal(SHOTGUN_RELOAD_TIME, 2.17);
+  assert.equal(reloadHand(0, SHOTGUN_RELOAD_TIME, 3).lead, 0);
+  assert.equal(reloadHand(SHOTGUN_RELOAD_TIME, SHOTGUN_RELOAD_TIME, 3).lead, 0);
   let pushes = 0;
   let pushing = false;
-  for (let t = 0; t <= 1.67; t += 0.005) {
-    const hand = reloadHand(t, 1.67, 3);
+  for (let t = 0; t <= SHOTGUN_RELOAD_TIME; t += 0.005) {
+    const hand = reloadHand(t, SHOTGUN_RELOAD_TIME, 3);
     assert.ok(hand.away >= 0 && hand.away <= 1);
     if (hand.push > 0.5 && !pushing) pushes += 1;
     pushing = hand.push > 0.5;
   }
   assert.equal(pushes, 3);
+  pushes = 0;
+  pushing = false;
+  for (let t = 0; t <= SHOTGUN_RELOAD_TIME; t += 0.005) {
+    const hand = reloadHand(t, SHOTGUN_RELOAD_TIME, 6);
+    if (hand.push > 0.5 && !pushing) pushes += 1;
+    pushing = hand.push > 0.5;
+  }
+  assert.equal(pushes, 6);
+});
+
+test("the shotgun shot, reload, and pump clips are in place and pick without a repeat", () => {
+  assert.deepEqual(SHOTGUN_SOUND_FILES, ["shotgun-shot-1.mp3", "shotgun-shot-2.mp3"]);
+  assert.equal(SHOTGUN_SOUND_VOLUME, 0.4);
+  assert.deepEqual(SHOTGUN_RELOAD_SOUND_FILES, ["shotgun-reload.mp3"]);
+  assert.equal(SHOTGUN_RELOAD_SOUND_VOLUME, 0.35);
+  assert.deepEqual(SHOTGUN_RELOAD_END_SOUND_FILES, ["shotgun-reload-end-1.mp3", "shotgun-reload-end-2.mp3"]);
+  assert.equal(SHOTGUN_RELOAD_END_SOUND_VOLUME, 0.3);
+  assert.deepEqual(SHOTGUN_PUMP_SOUND_FILES, ["shotgun-pump-1.mp3", "shotgun-pump-2.mp3"]);
+  assert.equal(SHOTGUN_PUMP_SOUND_VOLUME, 0.3);
+  assert.equal(SHOTGUN_PUMP_START, 0.16);
+  for (const name of SHOTGUN_SOUND_FILES) {
+    const data = readFileSync(new URL(`../assets/sound/${name}`, import.meta.url));
+    assert.ok(data.byteLength > 1000, name);
+  }
+  for (const name of SHOTGUN_RELOAD_SOUND_FILES) {
+    const data = readFileSync(new URL(`../assets/audio/${name}`, import.meta.url));
+    assert.ok(data.byteLength > 1000, name);
+  }
+  for (const name of SHOTGUN_RELOAD_END_SOUND_FILES) {
+    const data = readFileSync(new URL(`../assets/audio/${name}`, import.meta.url));
+    assert.ok(data.byteLength > 1000, name);
+  }
+  for (const name of SHOTGUN_PUMP_SOUND_FILES) {
+    const data = readFileSync(new URL(`../assets/audio/${name}`, import.meta.url));
+    assert.ok(data.byteLength > 1000, name);
+  }
+  assert.equal(pickShotgunClip(-1, 2, 0), 0);
+  assert.equal(pickShotgunClip(-1, 2, 0.99), 1);
+  assert.equal(pickShotgunClip(0, 2, 0), 1);
+  assert.equal(pickShotgunClip(1, 2, 0), 0);
+  assert.equal(pickShotgunClip(0, 1, 0.99), 0);
 });

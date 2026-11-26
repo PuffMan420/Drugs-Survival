@@ -162,6 +162,9 @@ export function groundTint(x, z) {
 }
 
 export function createGroundTemplate(texture) {
+  // Y already sits above the city lots. This mild offset only helps the
+  // stamp win at glancing angles; it is weaker than road/signal offsets
+  // so a yard does not poke through a road.
   const material = new MeshLambertMaterial({
     map: texture,
     toneMapped: false,

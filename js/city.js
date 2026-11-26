@@ -12,6 +12,7 @@ import { CHUNK, GROUND_H, GROUND_W, PLAYER_SIZE, TILE } from "./constants.js";
 import { tileHash } from "./cells.js";
 import { clearBuildingsFromRoads, planKenneyRoads } from "./kenney-road-plan.js";
 import { createTextures } from "./textures.js";
+import { CITY_Y } from "./piece-surface.js";
 
 // Water sits below the ground. The old quay used this same height.
 const WATER_Y = -58;
@@ -97,8 +98,8 @@ function addTree(buf, x, z) {
     [0.22, 0.46, 0.26],
     [0.13, 0.34, 0.18],
   ];
-  addColoredBox(buf, cx - 3, 0, cz - 3, cx + 3, trunkH, cz + 3, [0.38, 0.24, 0.13]);
-  const gy = trunkH - 2;
+  addColoredBox(buf, cx - 3, CITY_Y, cz - 3, cx + 3, CITY_Y + trunkH, cz + 3, [0.38, 0.24, 0.13]);
+  const gy = CITY_Y + trunkH - 2;
   addColoredBox(buf, cx - canopy / 2, gy, cz - canopy / 2, cx + canopy / 2, gy + canopy * 0.55, cz + canopy / 2, greens[h % 3]);
 }
 
@@ -123,7 +124,7 @@ function buildChunk(map, cx, cz, materials, plan) {
         buf = { pos: [], uv: [], idx: [] };
         groundBufs.set(key, buf);
       }
-      const groundY = cell === "~" ? WATER_Y : 0;
+      const groundY = cell === "~" ? WATER_Y : CITY_Y;
       addGroundQuad(buf, x * TILE, z * TILE, (x + 1) * TILE, (z + 1) * TILE, 0, 0, 1, 1, groundY);
     }
   }

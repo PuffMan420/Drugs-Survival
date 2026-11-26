@@ -6,9 +6,15 @@
 import { Color, InstancedMesh, Matrix4, Object3D } from "three";
 import { groundTint } from "./ground-pieces.js";
 import { CHUNK, GROUND_H, GROUND_W, TILE } from "./constants.js";
+import {
+  assignGroundLayers,
+  GROUND_PIECE_Y,
+  GROUND_STACK_STEP,
+  isGroundRecord,
+  ROAD_Y,
+} from "./piece-surface.js";
 
 const UNIT = 4 * TILE;
-const GROUND_Y = 0.2;
 const HIDDEN = new Matrix4().makeTranslation(0, -10000, 0);
 
 function chunkKey(x, z) {
@@ -25,9 +31,9 @@ export function pieceYaw(record) {
   return turn * Math.PI / 2;
 }
 
-function pieceMatrix(record, target) {
+function pieceMatrix(record, target, y = ROAD_Y) {
   const size = (record.unit > 0 ? record.unit : UNIT) * (record.scale ?? 1);
-  target.position.set((record.x + 0.5) * TILE, GROUND_Y, (record.z + 0.5) * TILE);
+  target.position.set((record.x + 0.5) * TILE, y, (record.z + 0.5) * TILE);
   target.rotation.set(0, pieceYaw(record), 0);
   target.scale.set(record.mirror ? -size : size, size, size);
   target.updateMatrix();
@@ -157,9 +163,11 @@ export function createRoadBatches(parent) {
 
   function commit(list) {
     records = list;
+    const layers = assignGroundLayers(list);
     const next = new Map();
     for (const record of list) {
       if (omitted.has(record)) continue;
+      if (isGroundRecord(record) && (layers.get(record) ?? -1) < 0) continue;
       const template = templates.get(record);
       if (!template) continue;
       const key = chunkKey(record.x, record.z);
@@ -234,7 +242,10 @@ export function createRoadBatches(parent) {
         for (const mesh of batch.meshes) mesh.userData.records = group;
         for (let i = 0; i < group.length; i += 1) {
           const record = group[i];
-          pieceMatrix(record, dummy);
+          const surfaceY = isGroundRecord(record)
+            ? GROUND_PIECE_Y + (layers.get(record) || 0) * GROUND_STACK_STEP
+            : ROAD_Y;
+          pieceMatrix(record, dummy, surfaceY);
           minX = Math.min(minX, dummy.position.x - UNIT);
           maxX = Math.max(maxX, dummy.position.x + UNIT);
           minZ = Math.min(minZ, dummy.position.z - UNIT);

@@ -25,6 +25,7 @@ import { PARTS_KIT } from "./part-pieces.js";
 import { isBuildingFile, setModelBounds } from "./model-shell.js";
 import { layoutFrom, roadKey, roadRecord } from "./kenney-roads.js";
 import { createRoadBatches, pieceYaw } from "./road-batch.js";
+import { ROAD_Y, visualPieceY } from "./piece-surface.js";
 import { outerCurbSamples, sideRoadUV } from "./road-side-skin.js";
 import {
   assignSignalMaterials,
@@ -62,7 +63,6 @@ function kitsWithParts(kits) {
   return next;
 }
 const BUILD_KITS = kitsWithParts([GROUND_KIT, FENCE_KIT, CITYPACK_KIT, ...KITS]);
-const GROUND_Y = 0.2;
 // The pole foot's top is the same height as the curb top, so the two fight.
 // This drops the foot just under that surface. It is not a shadow bias.
 const SIGNAL_SINK = 0.4;
@@ -1218,8 +1218,13 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     root.scale.set(flipped ? -size : size, size, size);
   }
 
-  function pieceY(file) {
-    return isSignalFile(file) ? GROUND_Y - SIGNAL_SINK : GROUND_Y;
+  function pieceY(spec, x, z) {
+    const file = typeof spec === "string" ? spec : spec?.file;
+    if (isSignalFile(file)) return ROAD_Y - SIGNAL_SINK;
+    const record = typeof spec === "string"
+      ? { kit: isGroundFile(file) ? "ground" : "roads", file, x, z, turn, scale: selection?.scale ?? 1, mirror }
+      : spec;
+    return visualPieceY(record, pieces) ?? ROAD_Y;
   }
 
   function wrapper(template, spec) {
@@ -1228,7 +1233,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     const unit = spec.unit ?? unitFor(spec.kit, spec.file);
     root.userData.unit = unit;
     applyScale(root, spec.scale ?? 1, spec.mirror === true, unit);
-    root.position.set((spec.x + 0.5) * TILE, pieceY(spec.file), (spec.z + 0.5) * TILE);
+    root.position.set((spec.x + 0.5) * TILE, pieceY(spec), (spec.z + 0.5) * TILE);
     root.rotation.y = pieceYaw(spec);
     return root;
   }
@@ -1263,7 +1268,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     const mats = assignSignalMaterials(root);
     const lamps = attachSignalLenses(inner, record.file);
     applyScale(root, record.scale ?? 1, record.mirror === true);
-    root.position.set((record.x + 0.5) * TILE, pieceY(record.file), (record.z + 0.5) * TILE);
+    root.position.set((record.x + 0.5) * TILE, pieceY(record), (record.z + 0.5) * TILE);
     root.rotation.y = pieceYaw(record);
     root.userData.piece = record;
     group.add(root);
@@ -1476,7 +1481,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   }
 
   function poseRoot(root, record) {
-    root.position.set((record.x + 0.5) * TILE, pieceY(record.file), (record.z + 0.5) * TILE);
+    root.position.set((record.x + 0.5) * TILE, pieceY(record), (record.z + 0.5) * TILE);
     root.rotation.y = pieceYaw(record);
   }
 
@@ -1687,7 +1692,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     if (movingFree(file) && cell.wx != null) {
       const x = clampTile(cell.wx / TILE - 0.5, map.cols);
       const z = clampTile(cell.wz / TILE - 0.5, map.rows);
-      preview.position.set((x + 0.5) * TILE, pieceY(file), (z + 0.5) * TILE);
+      preview.position.set((x + 0.5) * TILE, pieceY(file, x, z), (z + 0.5) * TILE);
       preview.rotation.y = pieceYaw({ turn, yaw });
       return;
     }
@@ -1695,7 +1700,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       turn = snappedTurn({ turn, yaw });
       yaw = null;
     }
-    preview.position.set((cell.x + 0.5) * TILE, pieceY(file), (cell.z + 0.5) * TILE);
+    preview.position.set((cell.x + 0.5) * TILE, pieceY(file, cell.x, cell.z), (cell.z + 0.5) * TILE);
     preview.rotation.y = shownTurn(file, cell.x, cell.z, turn) * Math.PI / 2;
   }
 
@@ -2162,7 +2167,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     }
     const box = boxFrom(a, b);
     boxMarker.scale.set(box.w * TILE, box.d * TILE, 1);
-    boxMarker.position.set((box.x0 + box.w / 2) * TILE, GROUND_Y + 2, (box.z0 + box.d / 2) * TILE);
+    boxMarker.position.set((box.x0 + box.w / 2) * TILE, ROAD_Y + 2, (box.z0 + box.d / 2) * TILE);
     if (!boxMarker.parent) scene.add(boxMarker);
   }
 

@@ -8,11 +8,11 @@
 // like the pistol) and mesh +X to hand +Z.
 
 export const SMG_DAMAGE = 1;
-export const SMG_RANGE = 200;
+export const SMG_RANGE = 240;
 export const SMG_FIRE_RATE = 12;
 export const SMG_MAG = 20;
 // Widest angle a bullet can leave the aim line, in degrees.
-export const SMG_SPREAD_DEG = 6;
+export const SMG_SPREAD_DEG = 2.5;
 // The fist closes on the upper half of the brown grip, where the pistol grip sits.
 export const SMG_HAND = [-0.2, 0.5, -0.09];
 export const SMG_EULER = [Math.PI / 2, 0, Math.PI / 2];

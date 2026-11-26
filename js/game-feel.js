@@ -29,7 +29,7 @@ export const HIT_FLASH_TIME = 0.08;
 export const KNOCK_TIME = 0.15;
 export const KNOCK_PUNCH = 8;
 export const KNOCK_PISTOL = 6;
-export const KNOCK_SMG = 1.5;
+export const KNOCK_SMG = 3;
 export const KNOCK_SHOTGUN_PELLET = 7;
 export const KNOCK_BAT = 18;
 export const KNOCK_BAT_HEAVY = 30;
@@ -57,7 +57,7 @@ export const MUZZLE_LIGHT_DECAY = 0;
 export const MUZZLE_LIGHT_TIME = 0.05;
 
 export const TRACER_TIME = 0.07;
-export const TRACER_WIDTH = 2;
+export const TRACER_WIDTH = 1;
 export const TRACER_POOL = 12;
 
 export const HITMARK_SCALE = 1.3;

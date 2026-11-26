@@ -71,7 +71,7 @@ test("flat spread stays on the ground and inside the angle", () => {
 test("the scorpion is full auto with a 20 round mag", () => {
   assert.equal(SMG_FIRE_RATE, 12);
   assert.equal(SMG_MAG, 20);
-  assert.equal(SMG_SPREAD_DEG, 6);
+  assert.equal(SMG_SPREAD_DEG, 2.5);
 });
 
 test("the pump racks back and home after a shot, inside the fire delay", async () => {

@@ -140,7 +140,12 @@ const SHADOW_ROOF = 360;
 const lookPreview = parseLookPreview(window.location.search);
 const SUN_DIR = sunDirection(lookPreview?.afternoon === true);
 // ?fx=off skips the diorama stack so the plain picture can be compared.
-const fxOn = new URLSearchParams(window.location.search).get("fx") !== "off";
+// ?nobloom=1, ?nossao=1 and ?novsm=1 isolate one fx=on feature at a time.
+const params = new URLSearchParams(window.location.search);
+const fxOn = params.get("fx") !== "off";
+const bloomOn = fxOn && params.get("nobloom") !== "1";
+const ssaoOn = fxOn && params.get("nossao") !== "1";
+const vsmOn = fxOn && params.get("novsm") !== "1";
 // Composer targets are multisampled. 4 samples plus the SMAA pass keep edges
 // smooth; 8 doubled the cost of every scene pixel for little visible gain.
 const MSAA_SAMPLES = 4;
@@ -494,7 +499,7 @@ function createSun(scene, afternoon) {
   sun.shadow.bias = -0.0005;
   sun.shadow.normalBias = 0.02;
   // Radius is in shadow-map texels, so half the map size takes half the radius.
-  sun.shadow.radius = fxOn ? 3 : 1.5;
+  sun.shadow.radius = vsmOn ? 3 : 1.5;
   sun.shadow.blurSamples = 8;
   sun.shadow.intensity = 1;
   sun.shadow.camera.near = 50;
@@ -623,38 +628,42 @@ function createAmbientOcclusion(renderer, scene, camera) {
     // the whole scene four times (sampleLevel 2) on top of MSAA and SMAA.
     chain.addPass(new RenderPass(scene, camera));
 
-    ssao = new SSAOPass(scene, view);
-    hideSpritesFromAmbientOcclusion(ssao);
-    // minDistance and maxDistance are a fraction of this camera's near-to-far
-    // span. 0.002 and 0.08 are the example-camera values, scaled so a curb
-    // still reads and the shade stays local.
-    const exampleSpan = 600;
-    const span = FAR - NEAR;
-    ssao.kernelRadius = 16;
-    ssao.minDistance = 0.002 * exampleSpan / span;
-    ssao.maxDistance = 0.08 * exampleSpan / span;
-    ssao.normalMaterial.side = DoubleSide;
-    const aoStrength = 1.6;
-    ssao.copyMaterial.uniforms.strength = { value: aoStrength };
-    ssao.copyMaterial.fragmentShader = `
-      uniform sampler2D tDiffuse;
-      uniform float strength;
-      varying vec2 vUv;
-      void main() {
-        float ao = texture2D(tDiffuse, vUv).r;
-        ao = clamp(1.0 - (1.0 - ao) * strength, 0.0, 1.0);
-        gl_FragColor = vec4(vec3(ao), 1.0);
-      }
-    `;
-    ssao.copyMaterial.needsUpdate = true;
-    ssao.blurMaterial.fragmentShader = ssao.blurMaterial.fragmentShader.replace(
-      "* texelSize",
-      "* texelSize * 3.0",
-    );
-    ssao.blurMaterial.needsUpdate = true;
-    chain.addPass(ssao);
+    if (ssaoOn) {
+      ssao = new SSAOPass(scene, view);
+      hideSpritesFromAmbientOcclusion(ssao);
+      // minDistance and maxDistance are a fraction of this camera's near-to-far
+      // span. 0.002 and 0.08 are the example-camera values, scaled so a curb
+      // still reads and the shade stays local.
+      const exampleSpan = 600;
+      const span = FAR - NEAR;
+      ssao.kernelRadius = 16;
+      ssao.minDistance = 0.002 * exampleSpan / span;
+      ssao.maxDistance = 0.08 * exampleSpan / span;
+      ssao.normalMaterial.side = DoubleSide;
+      const aoStrength = 1.6;
+      ssao.copyMaterial.uniforms.strength = { value: aoStrength };
+      ssao.copyMaterial.fragmentShader = `
+        uniform sampler2D tDiffuse;
+        uniform float strength;
+        varying vec2 vUv;
+        void main() {
+          float ao = texture2D(tDiffuse, vUv).r;
+          ao = clamp(1.0 - (1.0 - ao) * strength, 0.0, 1.0);
+          gl_FragColor = vec4(vec3(ao), 1.0);
+        }
+      `;
+      ssao.copyMaterial.needsUpdate = true;
+      ssao.blurMaterial.fragmentShader = ssao.blurMaterial.fragmentShader.replace(
+        "* texelSize",
+        "* texelSize * 3.0",
+      );
+      ssao.blurMaterial.needsUpdate = true;
+      chain.addPass(ssao);
+    }
     chain.addPass(new SMAAPass());
-    chain.addPass(new UnrealBloomPass(new Vector2(bufferW, bufferH), 0.25, 0.6, 0.85));
+    if (bloomOn) {
+      chain.addPass(new UnrealBloomPass(new Vector2(bufferW, bufferH), 0.25, 0.6, 0.85));
+    }
     tiltH = new ShaderPass(HorizontalTiltShiftShader);
     tiltV = new ShaderPass(VerticalTiltShiftShader);
     tiltH.uniforms.r.value = 0.5;
@@ -737,7 +746,7 @@ async function start() {
   renderer.toneMapping = fxOn ? ACESFilmicToneMapping : AgXToneMapping;
   renderer.toneMappingExposure = fxOn ? 1.05 : 1.0;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = fxOn ? VSMShadowMap : PCFSoftShadowMap;
+  renderer.shadowMap.type = vsmOn ? VSMShadowMap : PCFSoftShadowMap;
   // The occlusion pass renders the scene again for normals. Shadows are
   // already current after the beauty pass, so that second render skips them.
   renderer.shadowMap.autoUpdate = false;

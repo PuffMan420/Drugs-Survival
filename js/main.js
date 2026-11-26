@@ -29,6 +29,7 @@ import { HorizontalTiltShiftShader } from "three/addons/shaders/HorizontalTiltSh
 import { VerticalTiltShiftShader } from "three/addons/shaders/VerticalTiltShiftShader.js";
 import { installMaxAnisotropy } from "./anisotropy.js";
 import { hideSpritesFromAmbientOcclusion, omitFromAmbientOcclusion } from "./ao-skip.js";
+import { guardBloomPass } from "./bloom-guard.js";
 import {
   AO_SKIP_LAYER,
   CAMERA_ANGLE,
@@ -662,7 +663,9 @@ function createAmbientOcclusion(renderer, scene, camera) {
     }
     chain.addPass(new SMAAPass());
     if (bloomOn) {
-      chain.addPass(new UnrealBloomPass(new Vector2(bufferW, bufferH), 0.25, 0.6, 0.85));
+      const bloomPass = new UnrealBloomPass(new Vector2(bufferW, bufferH), 0.25, 0.6, 0.85);
+      guardBloomPass(bloomPass);
+      chain.addPass(bloomPass);
     }
     tiltH = new ShaderPass(HorizontalTiltShiftShader);
     tiltV = new ShaderPass(VerticalTiltShiftShader);

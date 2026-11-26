@@ -20,7 +20,7 @@ export const SHOTGUN_RELOAD_TIME = 2.17;
 export const SHOTGUN_SOUND_FILES = ["shotgun-shot-1.mp3", "shotgun-shot-2.mp3"];
 export const SHOTGUN_SOUND_VOLUME = 0.4;
 export const SHOTGUN_RELOAD_SOUND_FILES = ["shotgun-reload.mp3"];
-export const SHOTGUN_RELOAD_SOUND_VOLUME = 0.35;
+export const SHOTGUN_RELOAD_SOUND_VOLUME = 0.45;
 // Closing-rack variants, picked at random when a shotgun reload actually finishes.
 export const SHOTGUN_RELOAD_END_SOUND_FILES = ["shotgun-reload-end-1.mp3", "shotgun-reload-end-2.mp3"];
 export const SHOTGUN_RELOAD_END_SOUND_VOLUME = 0.3;

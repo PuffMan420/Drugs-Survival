@@ -123,7 +123,7 @@ test("the shotgun shot, reload, and pump clips are in place and pick without a r
   assert.deepEqual(SHOTGUN_SOUND_FILES, ["shotgun-shot-1.mp3", "shotgun-shot-2.mp3"]);
   assert.equal(SHOTGUN_SOUND_VOLUME, 0.4);
   assert.deepEqual(SHOTGUN_RELOAD_SOUND_FILES, ["shotgun-reload.mp3"]);
-  assert.equal(SHOTGUN_RELOAD_SOUND_VOLUME, 0.35);
+  assert.equal(SHOTGUN_RELOAD_SOUND_VOLUME, 0.45);
   assert.deepEqual(SHOTGUN_RELOAD_END_SOUND_FILES, ["shotgun-reload-end-1.mp3", "shotgun-reload-end-2.mp3"]);
   assert.equal(SHOTGUN_RELOAD_END_SOUND_VOLUME, 0.3);
   assert.deepEqual(SHOTGUN_PUMP_SOUND_FILES, ["shotgun-pump-1.mp3", "shotgun-pump-2.mp3"]);

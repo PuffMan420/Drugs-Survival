@@ -3,6 +3,8 @@
 // applyCarDamage(); the traffic update plays the wreck once and later removes
 // the shell. Enter and exit door clips also live here, on the same listener.
 
+import { skipAmbientOcclusion } from "./ao-skip.js";
+
 // Every car starts with this many hit points, including parked and driven cars.
 export const CAR_HP = 100;
 // Weapon damage to a car. The pistol still shows its spark.
@@ -408,7 +410,7 @@ export async function createCarDamageFx(scene) {
     [1, "rgba(255,80,0,0)"],
   ], 128);
 
-  function makePool(map, count, additive, layer) {
+  function makePool(map, count, additive) {
     const material = new Three.SpriteMaterial({
       map,
       color: 0xffffff,
@@ -422,7 +424,7 @@ export async function createCarDamageFx(scene) {
       const sprite = new Three.Sprite(material.clone());
       sprite.visible = false;
       sprite.renderOrder = 4;
-      if (layer != null) sprite.layers.enable(layer);
+      skipAmbientOcclusion(sprite);
       scene.add(sprite);
       sprites.push({ sprite, life: 0, max: 0.4, vx: 0, vy: 0, vz: 0, size: 8 });
     }
@@ -440,6 +442,7 @@ export async function createCarDamageFx(scene) {
   }));
   flash.visible = false;
   flash.renderOrder = 5;
+  skipAmbientOcclusion(flash);
   scene.add(flash);
   let flashLife = 0;
   const FLASH_MAX = 0.28;

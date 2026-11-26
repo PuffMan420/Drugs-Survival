@@ -50,6 +50,11 @@ import {
   rotatePrefab,
   stampSpecs,
 } from "./prefabs.js";
+import { prefetchWithConcurrency, TEMPLATE_PREFETCH_CONCURRENCY, uniqueInOrder } from "./prefetch.js";
+
+// Unique map templates load in parallel at boot, then pieces are placed
+// in the original saved order so ground layering stays the same.
+export { TEMPLATE_PREFETCH_CONCURRENCY };
 
 // One Kenney unit is the same 4-tile module as the road pieces.
 // Scale is uniform so a building keeps the height in the file.
@@ -1332,6 +1337,17 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
 
   async function loadSaved() {
     const skipped = [];
+    const unique = uniqueInOrder(
+      layout.pieces.map((raw) => normalize(raw)).filter(Boolean),
+      (spec) => `${spec.kit}/${spec.file}`,
+    );
+    await prefetchWithConcurrency(unique, async (spec) => {
+      try {
+        await loadTemplate(spec.kit, spec.file);
+      } catch {
+        // The placement loop reports the failure in saved order.
+      }
+    }, TEMPLATE_PREFETCH_CONCURRENCY);
     for (const raw of layout.pieces) {
       const spec = normalize(raw);
       const label = `${raw?.kit || "?"}/${raw?.file || "?"}`;

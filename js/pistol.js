@@ -41,6 +41,7 @@ import {
   BOTTLES,
 } from "./bottle.js";
 import { TILE } from "./constants.js";
+import { skipAmbientOcclusion } from "./ao-skip.js";
 import { HOOK, HOOK_DAMAGE_MULT, nextPunch, punchHits, punchTiming } from "./punch.js";
 import {
   SMG_DAMAGE,
@@ -698,6 +699,7 @@ export async function createPistol({
   flash.scale.set(FLASH_BASE, FLASH_BASE, 1);
   flash.visible = false;
   flash.renderOrder = 3;
+  skipAmbientOcclusion(flash);
   scene.add(flash);
   let flashIndex = 0;
   let flashLife = 0;
@@ -731,6 +733,7 @@ export async function createPistol({
     dust.visible = false;
     dust.renderOrder = 3;
     dust.raycast = () => {};
+    skipAmbientOcclusion(dust);
     scene.add(dust);
     const spark = new Sprite(new SpriteMaterial({
       transparent: true,
@@ -741,6 +744,7 @@ export async function createPistol({
     spark.visible = false;
     spark.renderOrder = 4;
     spark.raycast = () => {};
+    skipAmbientOcclusion(spark);
     scene.add(spark);
     impacts.push({ dust, spark, age: IMPACT_TIME, size: IMPACT_SIZE });
   }
@@ -980,6 +984,7 @@ export async function createPistol({
     sprite.position.set(x, y, z);
     sprite.scale.set(36 * 0.7 * 0.6, 36 * 0.7 * 0.6, 1);
     sprite.renderOrder = 3;
+    skipAmbientOcclusion(sprite);
     scene.add(sprite);
     puffs.push({ sprite, frame: 0, age: 0 });
   }
@@ -995,6 +1000,7 @@ export async function createPistol({
     sprite.position.set(x, y, z);
     sprite.scale.set(CAR_HIT_SCALE, CAR_HIT_SCALE, 1);
     sprite.renderOrder = 3;
+    skipAmbientOcclusion(sprite);
     scene.add(sprite);
     carHits.push({ sprite, age: 0 });
   }
@@ -1090,6 +1096,7 @@ export async function createPistol({
     sprite.renderOrder = 3;
     sprite.userData.bottleFx = true;
     sprite.raycast = () => {};
+    skipAmbientOcclusion(sprite);
     scene.add(sprite);
     splashes.push({ sprite, age: 0 });
   }

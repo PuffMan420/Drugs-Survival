@@ -1,5 +1,4 @@
 import {
-  AdditiveBlending,
   ACESFilmicToneMapping,
   AgXToneMapping,
   DirectionalLight,
@@ -29,6 +28,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { HorizontalTiltShiftShader } from "three/addons/shaders/HorizontalTiltShiftShader.js";
 import { VerticalTiltShiftShader } from "three/addons/shaders/VerticalTiltShiftShader.js";
 import { installMaxAnisotropy } from "./anisotropy.js";
+import { hideSpritesFromAmbientOcclusion, omitFromAmbientOcclusion } from "./ao-skip.js";
 import {
   AO_SKIP_LAYER,
   CAMERA_ANGLE,
@@ -110,7 +110,6 @@ import { consumePlayerPush, feelOn, sampleShake, setFeel, worldScale } from "./g
 import { createBuildMode, loadNamedMap } from "./build-mode.js";
 import { placeBlueZone } from "./blue-zone.js";
 import { placeSampleBuildings } from "./sample-buildings.js";
-import { placeTexturedTest } from "./textured-test.js";
 import { parseLookPreview, previewRadius, sunDirection, LOOK_CORNER } from "./look-preview.js";
 import { markMenuFailed, markMenuReady, menuIsOpen } from "./start-menu.js";
 import { bindPistolTouch, cameraWish, displayFrame, isTouchScreen, mountTouchUi } from "./touch-ui.js";
@@ -563,22 +562,6 @@ function placeSun(sun, playerX, playerZ, viewX, viewZ, halfW, halfH) {
   target.add(shadowShift);
 }
 
-function skipsAmbientOcclusion(material) {
-  if (!material) return false;
-  if (material.isShaderMaterial) return true;
-  if (material.blending === AdditiveBlending) return true;
-  return material.transparent === true && material.depthWrite === false;
-}
-
-function omitFromAmbientOcclusion(root) {
-  root.traverse((obj) => {
-    if (!obj.isMesh) return;
-    const source = obj.material;
-    const list = Array.isArray(source) ? source : [source];
-    if (list.some(skipsAmbientOcclusion)) obj.layers.set(AO_SKIP_LAYER);
-  });
-}
-
 const VignetteShader = {
   name: "Vignette",
   uniforms: {
@@ -641,6 +624,7 @@ function createAmbientOcclusion(renderer, scene, camera) {
     chain.addPass(new RenderPass(scene, camera));
 
     ssao = new SSAOPass(scene, view);
+    hideSpritesFromAmbientOcclusion(ssao);
     // minDistance and maxDistance are a fraction of this camera's near-to-far
     // span. 0.002 and 0.08 are the example-camera values, scaled so a curb
     // still reads and the shade stays local.
@@ -777,7 +761,7 @@ async function start() {
   scene.fog = new Fog(DAY_HAZE, FOG_NEAR, FOG_FAR);
   const city = await buildCity(scene, map);
   const zoneRoot = await placeSampleBuildings(scene, map, renderer, savedLayout.pieces, savedLayout.zoneBuildings);
-  await placeTexturedTest(scene, renderer);
+  // The textured-test house file is not in the repo, so it is not loaded at boot.
   // await placeBlueZone(scene, map, renderer); // blue zone turned off for now
   city.playerMesh.removeFromParent();
   city.playerMesh.geometry.dispose();

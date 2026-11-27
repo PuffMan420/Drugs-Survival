@@ -2,7 +2,7 @@ export const TILE = 48;
 // 5% nearer than the first camera distance (2800). The framed ground shrinks by the same amount.
 const CAMERA_DISTANCE = 0.95;
 // Extra frame on top of CAMERA_DISTANCE. 1 is the view before these scales.
-export const FOOT_VIEW = 1.05;
+export const FOOT_VIEW = 0.80;
 export const CAR_VIEW = 1.20;
 // Seconds to ease between the foot and car frames, both ways.
 export const VIEW_EASE = 2;

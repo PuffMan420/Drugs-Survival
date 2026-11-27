@@ -49,6 +49,9 @@ export function modelUrl(path) {
 // old player measured in game (sedan 71 long), so punch reach, sell range
 // and car hits keep their tuning.
 export const CHARACTER_HEIGHT = 37.35;
+// Extra width and depth on every fitted figure (player, pedestrians, cops).
+// Height stays CHARACTER_HEIGHT; X and Z are multiplied by this after the height fit.
+export const CHARACTER_WIDTH_SCALE = 1.30;
 
 export const RIGHT_HAND = "hand_r";
 // Pistol, bottle and bat offsets were tuned in the old hand's frame: +Y wrist
@@ -194,13 +197,16 @@ export function posedBounds(root) {
   return box;
 }
 
-// Scales the bind pose to CHARACTER_HEIGHT and stands the soles on y = 0.
+// Scales the bind pose to CHARACTER_HEIGHT, then applies CHARACTER_WIDTH_SCALE
+// on X and Z so figures stay the same height but get wider and deeper, and
+// stands the soles on y = 0.
 export function fitCharacter(model, height = CHARACTER_HEIGHT) {
   model.scale.setScalar(1);
   model.position.set(0, 0, 0);
   const bounds = posedBounds(model);
   const measured = Math.max(0.001, bounds.max.y - bounds.min.y);
-  model.scale.setScalar(height / measured);
+  const fit = height / measured;
+  model.scale.set(fit * CHARACTER_WIDTH_SCALE, fit, fit * CHARACTER_WIDTH_SCALE);
   const fitted = posedBounds(model);
   model.position.y -= fitted.min.y;
   model.updateMatrixWorld(true);

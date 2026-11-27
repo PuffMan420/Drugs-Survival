@@ -13,7 +13,10 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 // Library 1 skeleton (UAL bone names: root, pelvis, spine_01..03, neck_01,
 // Head, clavicle/upperarm/lowerarm/hand_l/_r, thigh/calf/foot/ball_l/_r).
 // Every file carries the same UAL1 clips under the same names.
-// The player is the hoodie criminal (hood down). Crowd uses the two casual modular files plus the four new concept models. Cops stay on their own files.
+// The player stays on MainCharacter_v1_medium_leaf_v3. Crowd uses the casual
+// modular files, the concept models, and the added style7 street gangster men
+// plus style6 v2 bare-leg night women (multi-head files; one head is picked
+// per prototype before merge). Cops stay on their own files.
 export const PLAYER_MODEL = "../06 Player Character/Main Character/MainCharacter_v1_medium_leaf_v3.glb";
 export const PED_MODELS = [
   "../06 Player Character/Modular/men_Casual_Hoodie_UAL.glb",
@@ -22,6 +25,14 @@ export const PED_MODELS = [
   "../06 Player Character/Modular/men_Hoodie_criminal_brown_UAL.glb",
   "../06 Player Character/Modular/women_Punk_night_UAL.glb",
   "../06 Player Character/Modular/women_Punk_night_brown_UAL.glb",
+  "../06 Player Character/Modular/style7_gangster_hoodie_UAL.glb",
+  "../06 Player Character/Modular/style7_gangster_hoodie_brown_UAL.glb",
+  "../06 Player Character/Modular/style7_gangster_tee_UAL.glb",
+  "../06 Player Character/Modular/style7_gangster_tee_brown_UAL.glb",
+  "../06 Player Character/Modular/style7_gangster_vest_UAL.glb",
+  "../06 Player Character/Modular/style7_gangster_vest_brown_UAL.glb",
+  "../06 Player Character/Modular/women_Punk_night6_bare_v2_UAL.glb",
+  "../06 Player Character/Modular/women_Punk_night6_bare_v2_brown_UAL.glb",
 ];
 // Cop bodies: Vera's dusty police, approved by Ted. Index 0 is the normal
 // cop with the helmet, index 1 the cowboy-hat cop (police.js picks one per
@@ -44,6 +55,16 @@ export const SHOTGUN_CLIPS_MODEL = "../assets/player/shotgun-clips.glb";
 export function modelUrl(path) {
   return new URL(path, import.meta.url).href;
 }
+
+export {
+  applyCharacterVariant,
+  characterVariantCount,
+  characterVariantOptions,
+  characterVariantOptionsFromNames,
+  isTogglePart,
+  meshNames,
+  pickCharacterVariant,
+} from "./character-variants.js";
 
 // Standing (bind pose) height in car units, sole to crown. This is what the
 // old player measured in game (sedan 71 long), so punch reach, sell range
@@ -78,8 +99,8 @@ function slotFor(partName, materialName) {
     if (mat === "swat") return SLOT.shirt;
     return SLOT.keep;
   }
-  if (part.includes("body")) return SLOT.shirt;
-  if (part.includes("legs")) return SLOT.pants;
+  if (part.includes("body") || part.startsWith("top_")) return SLOT.shirt;
+  if (part.includes("legs") || part.startsWith("pants_")) return SLOT.pants;
   // The hoodie man's soles are White; the rest of a shoe takes the look.
   if (part.includes("feet")) return mat === "white" ? SLOT.keep : SLOT.shoes;
   return SLOT.keep;

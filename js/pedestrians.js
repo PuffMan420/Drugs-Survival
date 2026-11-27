@@ -14,10 +14,14 @@ import { carContact, carVelocity } from "./car-strike.js";
 import {
   COP_MODELS,
   PED_MODELS,
+  applyCharacterVariant,
+  characterVariantCount,
+  characterVariantOptions,
   fitCharacter,
   matteMaterials,
   mergeFigure,
   modelUrl,
+  pickCharacterVariant,
 } from "./characters.js";
 import { dropHeadScaleTracks, shrinkHead } from "./head-scale.js";
 import { createRagdolls } from "./ped-ragdoll.js";
@@ -91,9 +95,6 @@ const PED_LOOKS = PED_LOOK_HEX.map((row) => ({
 }));
 
 let copSalt = 50000;
-// prototypes[] index of the first cop body (COP_MODELS in js/characters.js).
-// Cop variant n uses COP_PROTO + n.
-const COP_PROTO = PED_MODELS.length;
 
 // pedSlot (see mergeFigure): 0 shirt, 1 pants, 2 shoes, 3 skin, 4 hair,
 // anything else keeps the file's own color.
@@ -285,8 +286,11 @@ function figureMaterial() {
   });
 }
 
-function prepareTemplate(gltf) {
-  const model = gltf.scene;
+function prepareTemplate(gltf, variant) {
+  // Variant files are cloned so each head/pants mix can strip parts without
+  // changing the loaded scene. Single-head files keep the scene itself.
+  const model = variant ? cloneSkeleton(gltf.scene) : gltf.scene;
+  applyCharacterVariant(model, variant);
   matteMaterials(model);
   const figure = mergeFigure(model, figureMaterial());
   figure.castShadow = true;
@@ -384,34 +388,56 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     ? createRagdolls(rig.physics, { limit: rig.mobile ? 4 : 8, near: 800 })
     : null;
   const { span } = graph;
-  // Crowd bodies first (man, woman), the cop bodies last (normal, cowboy).
-  const paths = [...PED_MODELS, ...COP_MODELS];
-  const unique = [...new Set(paths)];
+  // Crowd bodies first, then the cop bodies (normal, cowboy). Multi-head
+  // crowd files expand into one prototype per base head (hats, pants and
+  // the gold chain rotate with that index). Cops stay one prototype each.
+  const pedPaths = [...PED_MODELS];
+  const copPaths = [...COP_MODELS];
+  const unique = [...new Set([...pedPaths, ...copPaths])];
   let loaded;
   try {
     loaded = await Promise.all(unique.map((path) => loader.loadAsync(modelUrl(path))));
   } catch {
     throw new Error("The pedestrian rig failed to load.");
   }
-  const files = paths.map((path) => loaded[unique.indexOf(path)]);
+  const loadedOf = (path) => loaded[unique.indexOf(path)];
   // Every file is on the UAL skeleton with the same bone names, so one set of
   // clips drives them all.
   const clips = {};
   for (const [key, name] of Object.entries(CLIP_NAMES)) {
-    clips[key] = clipNamed(files[0].animations, name);
+    clips[key] = clipNamed(loadedOf(pedPaths[0]).animations, name);
   }
   // Head.scale is a rest hold at 1, and the mixer would write it back
   // over the smaller head.
   dropHeadScaleTracks(clips);
-  // A file listed twice is prepared once and shared; each prototype still
+  // A file+variant pair is prepared once and shared; each prototype still
   // has its own pool.
   const prepared = new Map();
-  const prototypes = files.map((gltf) => {
-    if (!prepared.has(gltf)) prepared.set(gltf, prepareTemplate(gltf));
-    const template = prepared.get(gltf);
-    return { template, clips, material: bodyMesh(template).material };
+  function templateFor(gltf, variant) {
+    const key = `${gltf.scene.uuid}:${variant ? JSON.stringify(variant) : ""}`;
+    if (!prepared.has(key)) prepared.set(key, prepareTemplate(gltf, variant));
+    return prepared.get(key);
+  }
+  const crowdEntries = [];
+  for (const path of pedPaths) {
+    const gltf = loadedOf(path);
+    const options = characterVariantOptions(gltf.scene);
+    const count = characterVariantCount(options);
+    for (let index = 0; index < count; index += 1) {
+      crowdEntries.push({ gltf, variant: pickCharacterVariant(options, index), path, variantIndex: index });
+    }
+  }
+  const entries = [
+    ...crowdEntries,
+    ...copPaths.map((path) => ({ gltf: loadedOf(path), variant: null, path, variantIndex: 0 })),
+  ];
+  const prototypes = entries.map((entry) => {
+    const template = templateFor(entry.gltf, entry.variant);
+    return { template, clips, material: bodyMesh(template).material, path: entry.path, variant: entry.variant };
   });
-  const crowdKinds = PED_MODELS.length;
+  const crowdKinds = crowdEntries.length;
+  // prototypes[] index of the first cop body (COP_MODELS in js/characters.js).
+  const COP_PROTO = crowdKinds;
 
   const tiles = crowdTiles(graph.cells, graph.neighbors);
   const people = [];

@@ -4,6 +4,7 @@
 // the body does not jitter. The world steps while one of these is still simulating.
 
 import { GROUP, groups } from "./physics.js";
+import { ragdollLinvel } from "./gunfight-fx.js";
 
 export const RAGDOLL_LIFE = 10;
 export const RAGDOLL_NEAR = 800;
@@ -264,19 +265,40 @@ export function createPedRagdoll(RAPIER, world, physics, segments, kick) {
     joints.push(joint);
   }
   const torso = parts.get("torso");
-  if (torso && kick) {
-    const speed = Math.hypot(kick.x, kick.z) || 1;
-    const scale = Math.min(26 + speed * 0.28, 70) / speed;
-    const up = Math.min(12 + speed * 0.05, 26);
-    const vx = kick.x * scale;
-    const vz = kick.z * scale;
-    torso.body.setLinvel({ x: vx, y: up, z: vz }, true);
-    torso.body.setAngvel({ x: vz * 0.03, y: 0.4, z: -vx * 0.03 }, true);
+  function applyKick(kick, blend = 1) {
+    const torso = parts.get("torso");
+    if (!torso || !kick) return;
+    const vel = ragdollLinvel(kick);
+    const vx = vel.x * blend;
+    const vy = vel.y * blend;
+    const vz = vel.z * blend;
+    if (blend >= 1) {
+      torso.body.setLinvel({ x: vx, y: vy, z: vz }, true);
+    } else {
+      const cur = torso.body.linvel();
+      torso.body.setLinvel({ x: cur.x + vx, y: cur.y + vy, z: cur.z + vz }, true);
+    }
+    const spin = torso.body.angvel();
+    torso.body.setAngvel({
+      x: (blend >= 1 ? 0 : spin.x) + vz * 0.03,
+      y: (blend >= 1 ? 0 : spin.y) + 0.4 * blend,
+      z: (blend >= 1 ? 0 : spin.z) - vx * 0.03,
+    }, true);
     for (const part of parts.values()) {
       if (part === torso) continue;
-      part.body.setLinvel({ x: vx * 0.7, y: up * 0.45, z: vz * 0.7 }, true);
+      if (blend >= 1) {
+        part.body.setLinvel({ x: vx * 0.7, y: vy * 0.45, z: vz * 0.7 }, true);
+      } else {
+        const cur = part.body.linvel();
+        part.body.setLinvel({
+          x: cur.x + vx * 0.55,
+          y: cur.y + vy * 0.35,
+          z: cur.z + vz * 0.55,
+        }, true);
+      }
     }
   }
+  applyKick(kick, 1);
   const doll = {
     parts,
     joints,
@@ -295,6 +317,9 @@ export function createPedRagdoll(RAPIER, world, physics, segments, kick) {
     },
     hips() {
       return torso ? torso.body.translation() : null;
+    },
+    impulse(kick) {
+      applyKick(kick, 0.7);
     },
     dispose(physicsTrack) {
       if (!doll.sim && joints.length === 0 && parts.size === 0) return;

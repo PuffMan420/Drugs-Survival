@@ -29,6 +29,7 @@ import { GROUND_H, GROUND_W, PLAYER_SPEED, TILE } from "./constants.js";
 import { PED_LOOK_HEX, pedLookIndex } from "./ped-looks.js";
 import { walkableCells } from "./pedestrian-walk.js";
 import { HIT_FLASH_TIME, KILL_KNOCK_MULT, KNOCK_TIME, feelOn } from "./game-feel.js";
+import { ragdollKickFromShot } from "./gunfight-fx.js";
 
 // Same height fit as the player (fitCharacter), so these figures stand with him.
 const FEET_Y = 0.6;
@@ -882,12 +883,12 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     return segments;
   }
 
-  function startRagdoll(ped, kickX, kickZ) {
+  function startRagdoll(ped, kickX, kickZ, kick = null) {
     if (!ragdolls) return false;
     const model = ped.live.model;
     const segments = measureSegments(model);
     if (!segments) return false;
-    const doll = ragdolls.spawn(segments, { x: kickX, z: kickZ });
+    const doll = ragdolls.spawn(segments, kick || { x: kickX, z: kickZ });
     const binds = [];
     for (const seg of segments) {
       seg.bone.getWorldQuaternion(ragWorldQuat);
@@ -1074,6 +1075,20 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
     },
     scare,
     shove,
+    bulletRagdoll(ped, dirX, dirZ, knock, kill = true) {
+      if (!ped || !ped.live) return false;
+      if (ped.ragdoll && ped.ragdoll.sim) {
+        ped.ragdoll.impulse(ragdollKickFromShot(dirX, dirZ, knock, kill));
+        return true;
+      }
+      const kick = ragdollKickFromShot(dirX, dirZ, knock, kill);
+      return startRagdoll(ped, kick.x, kick.z, kick);
+    },
+    impulseRagdoll(ped, dirX, dirZ, knock) {
+      if (!ped || !ped.ragdoll || !ped.ragdoll.sim) return false;
+      ped.ragdoll.impulse(ragdollKickFromShot(dirX, dirZ, knock, false));
+      return true;
+    },
     setPanic,
     ragdollFocus(x, z) {
       if (!rig || !rig.physicsScene) return;

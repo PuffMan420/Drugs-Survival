@@ -77,20 +77,20 @@ export const KICK_DECAY = 14;
 export const FLASH_JITTER = 0.2;
 
 // Where a bullet stops on the ground or a wall: a dust puff and a spark.
-export const IMPACT_POOL = 24;
-export const IMPACT_TIME = 0.32;
-export const IMPACT_SIZE = 9;
+export const IMPACT_POOL = 20;
+export const IMPACT_TIME = 0.45;
+export const IMPACT_SIZE = 11;
 export const IMPACT_GROW = 2.2;
-export const IMPACT_SPARK_SIZE = 7;
-export const IMPACT_SPARK_TIME = 0.06;
+export const IMPACT_SPARK_SIZE = 0.2;
+export const IMPACT_SPARK_TIME = 0.12;
 
-// Empty shells thrown out of the gun's right side.
-export const SHELL_POOL = 32;
-export const SHELL_LIFE = 1.2;
-export const SHELL_SPEED = 55;
-export const SHELL_UP = 45;
-export const SHELL_GRAVITY = 260;
-export const SHELL_SIZE = [2.4, 1.1, 1.1];
+// Empty shells thrown out of the gun's right side. They linger on the street.
+export const SHELL_POOL = 80;
+export const SHELL_LIFE = 10;
+export const SHELL_SPEED = 58;
+export const SHELL_UP = 52;
+export const SHELL_GRAVITY = 240;
+export const SHELL_SIZE = [2.1, 0.58, 0.58];
 
 let feel = true;
 let trauma = 0;

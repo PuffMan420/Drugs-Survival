@@ -36,6 +36,7 @@ import {
   nextWeapon,
   pickBottle,
   throwVelocity,
+  WEAPONS,
   carContains,
   carRayHit,
   BOTTLES,
@@ -164,6 +165,31 @@ import {
   markHit,
   requestPlayerPush,
 } from "./game-feel.js";
+import {
+  IMPACT_CONCRETE,
+  IMPACT_FLESH,
+  IMPACT_METAL,
+  SHELL_COLOR_BRASS,
+  SHELL_COLOR_SHOTGUN,
+  SHELL_FADE,
+  SHELL_KIND_BRASS,
+  SHELL_KIND_SHOTGUN,
+  SMOKE_COLOR,
+  SMOKE_LIFE,
+  SMOKE_POOL,
+  SHOTGUN_SHELL_SIZE,
+  asphaltTopY,
+  fleshStreaks,
+  gunsmokeWisp,
+  impactBurst,
+  shellColorFor,
+  shellEjectVelocity,
+  shellRadius,
+  shellRestY,
+  stepGunsmoke,
+  stepImpactParticle,
+  stepShellPhysics,
+} from "./gunfight-fx.js";
 import { aimChord, pistolPose } from "./pose-layers.js";
 import { menuIsOpen } from "./start-menu.js";
 import { aimAlongStick, cameraWish, isTouchScreen, syncGunButtons } from "./touch-ui.js";
@@ -173,10 +199,12 @@ import {
   AudioLoader,
   Box3,
   BoxGeometry,
+  CylinderGeometry,
   DoubleSide,
   Group,
   Mesh,
   MeshBasicMaterial,
+  MeshStandardMaterial,
   Matrix3,
   Matrix4,
   MeshLambertMaterial,
@@ -699,6 +727,7 @@ export async function createPistol({
     "car-hit-1.png", "car-hit-2.png", "car-hit-3.png",
     "car-hit-4.png", "car-hit-5.png", "car-hit-6.png",
   ]).map(loadTexture));
+  const smokeTexture = await loadTexture(new URL("../assets/kenney-racing/smoke.png", import.meta.url).href);
 
   const flash = new Sprite(new SpriteMaterial({
     map: flashTextures[0],
@@ -732,49 +761,164 @@ export async function createPistol({
     mesh.visible = false;
     mesh.renderOrder = 3;
     mesh.raycast = () => {};
+    skipAmbientOcclusion(mesh);
     scene.add(mesh);
     tracers.push({ mesh, life: 0 });
   }
   let tracerCursor = 0;
 
-  // Bullet impacts: a dust puff (car-hit smoke, tinted) plus a short spark. Pooled.
+  // Bullet impacts: dust, metallic sparks, and small debris chips. Pooled.
+  function makeSprite(materialOpts, order) {
+    const sprite = new Sprite(new SpriteMaterial(materialOpts));
+    sprite.visible = false;
+    sprite.renderOrder = order;
+    sprite.raycast = () => {};
+    skipAmbientOcclusion(sprite);
+    scene.add(sprite);
+    return sprite;
+  }
   const impacts = [];
   for (let i = 0; i < IMPACT_POOL; i += 1) {
-    const dust = new Sprite(new SpriteMaterial({ transparent: true, depthWrite: false, toneMapped: false }));
-    dust.visible = false;
-    dust.renderOrder = 3;
-    dust.raycast = () => {};
-    skipAmbientOcclusion(dust);
-    scene.add(dust);
-    const spark = new Sprite(new SpriteMaterial({
+    const dust = makeSprite({ transparent: true, depthWrite: false, toneMapped: false, fog: false }, 3);
+    const spark = makeSprite({
       transparent: true,
       depthWrite: false,
       toneMapped: false,
       blending: AdditiveBlending,
-    }));
-    spark.visible = false;
-    spark.renderOrder = 4;
-    spark.raycast = () => {};
-    skipAmbientOcclusion(spark);
-    scene.add(spark);
-    impacts.push({ dust, spark, age: IMPACT_TIME, size: IMPACT_SIZE });
+      fog: false,
+    }, 4);
+    impacts.push({ dust, spark, extras: [], age: IMPACT_TIME, size: IMPACT_SIZE });
   }
-  let impactCursor = 0;
-  let worldSoundDone = false;
-
-  // Empty shells. One shared box and material, positions stepped by hand.
-  const shellGeo = new BoxGeometry(SHELL_SIZE[0], SHELL_SIZE[1], SHELL_SIZE[2]);
-  const shellMat = new MeshBasicMaterial({ color: 0xd9a43a });
-  const shells = [];
-  for (let i = 0; i < SHELL_POOL; i += 1) {
-    const mesh = new Mesh(shellGeo, shellMat);
+  const sparkGeo = new BoxGeometry(1, 1, 1);
+  sparkGeo.translate(0, 0, -0.5);
+  const sparkPool = [];
+  for (let i = 0; i < 96; i += 1) {
+    const mesh = new Mesh(sparkGeo, new MeshBasicMaterial({
+      color: 0xfff6e0,
+      transparent: true,
+      blending: AdditiveBlending,
+      depthWrite: false,
+      toneMapped: false,
+      fog: false,
+    }));
+    mesh.visible = false;
+    mesh.frustumCulled = false;
+    mesh.renderOrder = 5;
+    mesh.raycast = () => {};
+    mesh.castShadow = false;
+    skipAmbientOcclusion(mesh);
+    scene.add(mesh);
+    sparkPool.push({ mesh, age: 0, life: 0, length: 5, thick: 0.16 });
+  }
+  let sparkCursor = 0;
+  const sparkLook = new Vector3();
+  function orientSpark(mesh, vx, vy, vz) {
+    sparkLook.set(vx, vy, vz);
+    if (sparkLook.lengthSq() < 1e-8) return;
+    mesh.lookAt(mesh.position.x + sparkLook.x, mesh.position.y + sparkLook.y, mesh.position.z + sparkLook.z);
+  }
+  const debrisGeo = new BoxGeometry(1, 1, 1);
+  const debrisPool = [];
+  for (let i = 0; i < 64; i += 1) {
+    const mesh = new Mesh(debrisGeo, new MeshBasicMaterial({ color: 0xb8b0a4, toneMapped: false }));
     mesh.visible = false;
     mesh.raycast = () => {};
     mesh.castShadow = false;
+    skipAmbientOcclusion(mesh);
     scene.add(mesh);
-    shells.push({ mesh, age: SHELL_LIFE, vx: 0, vy: 0, vz: 0, spin: 0, floor: 0, bounces: 0 });
+    debrisPool.push({ mesh, age: 0, life: 0, vx: 0, vy: 0, vz: 0, size: 1 });
+  }
+  let debrisCursor = 0;
+  const streakPool = [];
+  for (let i = 0; i < 32; i += 1) {
+    streakPool.push({
+      sprite: makeSprite({
+        color: 0x8a1e1e,
+        transparent: true,
+        depthWrite: false,
+        toneMapped: false,
+        fog: false,
+      }, 4),
+      age: 0,
+      life: 0,
+    });
+  }
+  let streakCursor = 0;
+  let impactCursor = 0;
+  let worldSoundDone = false;
+
+  // Empty brass and red shotgun hulls. Small metallic cylinders, pooled so a
+  // shootout leaves them on the street. Cylinder height is the casing length.
+  const brassMat = new MeshStandardMaterial({
+    color: SHELL_COLOR_BRASS,
+    metalness: 0.78,
+    roughness: 0.28,
+    emissive: 0x8a6a18,
+    emissiveIntensity: 0.32,
+  });
+  const shotgunShellMat = new MeshStandardMaterial({
+    color: SHELL_COLOR_SHOTGUN,
+    metalness: 0.18,
+    roughness: 0.46,
+    emissive: 0x220808,
+    emissiveIntensity: 0.1,
+  });
+  const brassRad = shellRadius(SHELL_SIZE);
+  const brassGeo = new CylinderGeometry(brassRad, brassRad, SHELL_SIZE[0], 12);
+  const sgLen = SHOTGUN_SHELL_SIZE[0];
+  const sgRad = shellRadius(SHOTGUN_SHELL_SIZE);
+  const sgBaseLen = 0.38;
+  const sgHullLen = Math.max(0.8, sgLen - sgBaseLen);
+  const sgHullGeo = new CylinderGeometry(sgRad, sgRad * 0.92, sgHullLen, 12);
+  const sgBaseGeo = new CylinderGeometry(sgRad, sgRad, sgBaseLen, 12);
+  const shells = [];
+  for (let i = 0; i < SHELL_POOL; i += 1) {
+    const brass = new Mesh(brassGeo, brassMat);
+    const hull = new Mesh(sgHullGeo, shotgunShellMat);
+    const base = new Mesh(sgBaseGeo, brassMat);
+    hull.position.y = (sgLen * 0.5) - (sgHullLen * 0.5);
+    base.position.y = -(sgLen * 0.5) + (sgBaseLen * 0.5);
+    hull.visible = false;
+    base.visible = false;
+    const mesh = new Group();
+    mesh.add(brass, hull, base);
+    mesh.visible = false;
+    mesh.raycast = () => {};
+    mesh.castShadow = false;
+    mesh.frustumCulled = false;
+    skipAmbientOcclusion(mesh);
+    mesh.traverse((obj) => skipAmbientOcclusion(obj));
+    scene.add(mesh);
+    shells.push({
+      mesh, brass, hull, base,
+      age: SHELL_LIFE, vx: 0, vy: 0, vz: 0, spin: 0, floor: 0, bounces: 0,
+      kind: SHELL_KIND_BRASS, x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, scale: 1, alive: false,
+    });
   }
   let shellCursor = 0;
+
+  function showCasing(slot, shotgun) {
+    slot.brass.visible = !shotgun;
+    slot.hull.visible = shotgun;
+    slot.base.visible = shotgun;
+  }
+
+  const smokeSprites = [];
+  for (let i = 0; i < SMOKE_POOL; i += 1) {
+    const sprite = makeSprite({
+      map: smokeTexture,
+      color: SMOKE_COLOR,
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+      fog: false,
+    }, 3);
+    smokeSprites.push({
+      sprite, age: 0, life: 0, vx: 0, vy: 0, vz: 0, curl: 0, size: 1, baseSize: 1,
+      rotation: 0, opacity: 0, alive: false,
+    });
+  }
+  let smokeCursor = 0;
   let shotgunShellIn = 0;
   const shellAim = { x: 0, z: 1 };
   const shotHit = { ped: false, kill: false };
@@ -1467,19 +1611,21 @@ export async function createPistol({
     });
   }
 
-  function bleed(hurt) {
+  function bleed(hurt, dirX = 0, dirZ = 1) {
     puffAt(hurt.x, hurt.y, hurt.z);
+    const aim = Math.atan2(dirX, dirZ);
     const n = 2 + Math.floor(Math.random() * 2);
     for (let i = 0; i < n; i += 1) {
-      const ang = Math.random() * Math.PI * 2;
+      const ang = aim + (Math.random() - 0.5) * 0.9;
       const dist = 3 + Math.random() * 8;
       splatAt(
-        hurt.x + Math.cos(ang) * dist,
+        hurt.x + Math.sin(ang) * dist,
         hurt.ground,
-        hurt.z + Math.sin(ang) * dist,
+        hurt.z + Math.cos(ang) * dist,
         6 + Math.random() * 4,
       );
     }
+    spawnFleshHit(hurt.x, hurt.y, hurt.z, dirX, dirZ);
   }
 
   function startSwing(name, heavy) {
@@ -1641,7 +1787,7 @@ export async function createPistol({
     }
   }
 
-  function showFlash(scale) {
+  function showFlash(scale, aimX = 0, aimZ = 1, heat = 1) {
     flashIndex = (flashIndex + 1) % flashTextures.length;
     flash.material.map = flashTextures[flashIndex];
     flash.material.needsUpdate = true;
@@ -1657,6 +1803,7 @@ export async function createPistol({
     lightLife = MUZZLE_LIGHT_TIME;
     muzzleLight.intensity = MUZZLE_LIGHT_INTENSITY;
     muzzleLight.position.copy(muzzlePos);
+    emitGunsmoke(muzzlePos.x, muzzlePos.y, muzzlePos.z, aimX, aimZ, heat);
   }
 
   function spawnTracer(x, y, z) {
@@ -1684,30 +1831,121 @@ export async function createPistol({
     return y == null ? feet : y;
   }
 
-  // Dust puff plus spark where a bullet stops. wall = true for buildings/props.
-  function spawnImpact(x, y, z, wall) {
+  function takeSpark() {
+    const slot = sparkPool[sparkCursor];
+    sparkCursor = (sparkCursor + 1) % sparkPool.length;
+    return slot;
+  }
+
+  function takeDebris() {
+    const slot = debrisPool[debrisCursor];
+    debrisCursor = (debrisCursor + 1) % debrisPool.length;
+    return slot;
+  }
+
+  function takeStreak() {
+    const slot = streakPool[streakCursor];
+    streakCursor = (streakCursor + 1) % streakPool.length;
+    return slot;
+  }
+
+  function writeParticle(slot, part) {
+    slot.age = 0;
+    slot.life = part.life;
+    slot.x = part.x;
+    slot.y = part.y;
+    slot.z = part.z;
+    slot.vx = part.vx;
+    slot.vy = part.vy;
+    slot.vz = part.vz;
+    slot.size = part.size;
+    slot.baseSize = part.size;
+    slot.length = part.length || part.size;
+    slot.baseLength = part.length || part.size;
+    slot.thick = part.thick || part.size;
+    slot.color = part.color;
+    slot.kind = part.kind;
+    slot.alive = true;
+    const obj = slot.sprite || slot.mesh;
+    obj.position.set(part.x, part.y, part.z);
+    if (slot.sprite) {
+      slot.sprite.material.color.setHex(part.color);
+      if (part.kind === "dust") {
+        slot.sprite.material.map = carHitTextures[Math.floor(Math.random() * carHitTextures.length)];
+      }
+      slot.sprite.material.rotation = Math.random() * Math.PI * 2;
+      slot.sprite.material.opacity = 1;
+      slot.sprite.material.needsUpdate = true;
+      slot.sprite.scale.set(part.size, part.size, 1);
+      slot.sprite.visible = true;
+    } else if (part.kind === "spark") {
+      slot.mesh.material.color.setHex(part.color);
+      slot.mesh.material.opacity = 1;
+      slot.mesh.scale.set(slot.thick, slot.thick, slot.length);
+      orientSpark(slot.mesh, slot.vx, slot.vy, slot.vz);
+      slot.mesh.visible = true;
+    } else {
+      slot.mesh.material.color.setHex(part.color);
+      slot.mesh.scale.setScalar(part.size);
+      slot.mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      slot.mesh.visible = true;
+    }
+  }
+
+  function emitGunsmoke(x, y, z, aimX, aimZ, heat) {
     if (!feelOn()) return;
+    const count = heat >= 1.1 ? 3 : 2;
+    for (let i = 0; i < count; i += 1) {
+      const slot = smokeSprites[smokeCursor];
+      smokeCursor = (smokeCursor + 1) % smokeSprites.length;
+      const wisp = gunsmokeWisp({ x, y, z }, aimX, aimZ, Math.random, heat);
+      Object.assign(slot, wisp, { alive: true });
+      slot.sprite.position.set(wisp.x, wisp.y, wisp.z);
+      slot.sprite.material.rotation = wisp.rotation;
+      slot.sprite.material.opacity = 0;
+      slot.sprite.scale.set(wisp.size, wisp.size, 1);
+      slot.sprite.visible = true;
+    }
+  }
+
+  function spawnFleshHit(x, y, z, dirX, dirZ) {
+    if (!feelOn()) return;
+    const streaks = fleshStreaks({ x, y, z }, dirX, dirZ);
+    for (const part of streaks) writeParticle(takeStreak(), part);
+  }
+
+  // Dust, sparks, and chips where a bullet stops. surface is metal, concrete, or flesh.
+  function spawnImpact(x, y, z, surface, normal) {
+    if (!feelOn()) return;
+    const kind = surface === true ? IMPACT_CONCRETE : (surface || IMPACT_CONCRETE);
+    const n = normal && Number.isFinite(normal.x)
+      ? normal
+      : (kind === IMPACT_CONCRETE ? { x: 0, y: 1, z: 0 } : { x: 0, y: 0.5, z: 0 });
+    const burst = impactBurst({ x, y, z }, n, kind);
     const slot = impacts[impactCursor];
     impactCursor = (impactCursor + 1) % impacts.length;
     slot.age = 0;
-    slot.size = IMPACT_SIZE * (0.8 + Math.random() * 0.4) * (wall ? 1.2 : 1);
-    const dust = slot.dust;
-    dust.material.map = carHitTextures[Math.floor(Math.random() * carHitTextures.length)];
-    dust.material.color.setHex(wall ? 0xd8d0c4 : 0xcdb68a);
-    dust.material.rotation = Math.random() * Math.PI * 2;
-    dust.material.opacity = 0.95;
-    dust.material.needsUpdate = true;
-    dust.position.set(x, y + 2, z);
-    dust.scale.set(slot.size, slot.size, 1);
-    dust.visible = true;
-    const spark = slot.spark;
-    spark.material.map = flashTextures[Math.floor(Math.random() * flashTextures.length)];
-    spark.material.rotation = Math.random() * Math.PI * 2;
-    spark.material.opacity = 1;
-    spark.material.needsUpdate = true;
-    spark.position.set(x, y + 3, z);
-    spark.scale.set(IMPACT_SPARK_SIZE, IMPACT_SPARK_SIZE, 1);
-    spark.visible = true;
+    const dustPart = burst.particles.find((part) => part.kind === "dust");
+    if (dustPart) {
+      writeParticle({
+        sprite: slot.dust,
+        mesh: null,
+        age: 0,
+        life: dustPart.life,
+      }, dustPart);
+      slot.size = dustPart.size;
+      slot.dustPart = dustPart;
+    } else {
+      slot.dust.visible = false;
+      slot.dustPart = null;
+    }
+    // Never reuse the old soft flash-sprite for sparks — those read as cotton balls.
+    slot.spark.visible = false;
+    for (const part of burst.particles) {
+      if (part.kind === "spark") writeParticle(takeSpark(), part);
+      else if (part.kind === "debris") writeParticle(takeDebris(), part);
+      else if (part.kind === "streak") writeParticle(takeStreak(), part);
+    }
   }
 
   // A miss stops at the first wall or prop under the bullet's ray, else on the
@@ -1741,30 +1979,78 @@ export async function createPistol({
   }
 
   // Throws one shell out of the gun's right side (aim is the flat shot direction).
-  function ejectShell(aimX, aimZ) {
+  function ejectShell(aimX, aimZ, kind = SHELL_KIND_BRASS) {
     if (!feelOn()) return;
     const slot = shells[shellCursor];
     shellCursor = (shellCursor + 1) % shells.length;
     const from = player.mesh.position;
+    const shotgun = kind === SHELL_KIND_SHOTGUN;
+    const size = shotgun ? SHOTGUN_SHELL_SIZE : SHELL_SIZE;
     // Ejection port: 60% of the way from the chest to the muzzle.
-    slot.mesh.position.set(
-      from.x + (muzzlePos.x - from.x) * 0.6,
-      muzzlePos.y,
-      from.z + (muzzlePos.z - from.z) * 0.6,
-    );
-    const rightX = -aimZ;
-    const rightZ = aimX;
-    const speed = SHELL_SPEED * (0.8 + Math.random() * 0.4);
-    slot.vx = rightX * speed - aimX * 12;
-    slot.vz = rightZ * speed - aimZ * 12;
-    slot.vy = SHELL_UP * (0.8 + Math.random() * 0.4);
-    slot.spin = (Math.random() * 2 - 1) * 20;
-    slot.floor = from.y + SHELL_SIZE[1] * 0.5;
+    const x = from.x + (muzzlePos.x - from.x) * 0.6;
+    const y = muzzlePos.y;
+    const z = from.z + (muzzlePos.z - from.z) * 0.6;
+    const vel = shellEjectVelocity(aimX, aimZ, Math.random, SHELL_SPEED, SHELL_UP);
+    const roadY = groundAt(x, z);
+    slot.kind = shotgun ? SHELL_KIND_SHOTGUN : SHELL_KIND_BRASS;
+    slot.x = x;
+    slot.y = y;
+    slot.z = z;
+    slot.vx = vel.vx;
+    slot.vy = vel.vy;
+    slot.vz = vel.vz;
+    slot.spin = vel.spin;
+    slot.rx = Math.random() * Math.PI;
+    slot.ry = Math.atan2(aimX, aimZ);
+    slot.rz = Math.PI / 2;
+    slot.floor = shellRestY(roadY, shellRadius(size));
     slot.bounces = 0;
     slot.age = 0;
-    slot.mesh.rotation.set(0, Math.atan2(aimX, aimZ), 0);
+    slot.scale = 1;
+    slot.alive = true;
+    showCasing(slot, shotgun);
+    slot.mesh.position.set(x, y, z);
+    slot.mesh.rotation.set(slot.rx, slot.ry, slot.rz);
     slot.mesh.scale.setScalar(1);
     slot.mesh.visible = true;
+  }
+
+  function hideParticle(slot) {
+    slot.alive = false;
+    slot.life = 0;
+    if (slot.sprite) slot.sprite.visible = false;
+    if (slot.mesh) slot.mesh.visible = false;
+  }
+
+  function stepPooled(list, step, floorOf) {
+    for (let i = 0; i < list.length; i += 1) {
+      const slot = list[i];
+      if (!(slot.life > 0) && !slot.alive) continue;
+      if (!feelOn()) {
+        hideParticle(slot);
+        continue;
+      }
+      const floor = floorOf ? floorOf(slot) : slot.floor;
+      stepImpactParticle(slot, step, floor);
+      const obj = slot.sprite || slot.mesh;
+      if (!slot.alive) {
+        hideParticle(slot);
+        continue;
+      }
+      obj.position.set(slot.x, slot.y, slot.z);
+      if (slot.sprite) {
+        slot.sprite.material.opacity = Math.max(0, slot.opacity);
+        slot.sprite.scale.set(slot.size, slot.size, 1);
+      } else if (slot.kind === "spark") {
+        slot.mesh.material.opacity = Math.max(0, slot.opacity);
+        slot.mesh.scale.set(slot.thick || 0.16, slot.thick || 0.16, slot.length || slot.size || 5);
+        orientSpark(slot.mesh, slot.vx, slot.vy, slot.vz);
+      } else {
+        slot.mesh.scale.setScalar(slot.size);
+        slot.mesh.rotation.x += step * 8;
+        slot.mesh.rotation.z += step * 6;
+      }
+    }
   }
 
   function stepFx(step) {
@@ -1785,35 +2071,63 @@ export async function createPistol({
       slot.dust.position.y += step * 6;
       if (slot.age >= IMPACT_SPARK_TIME) slot.spark.visible = false;
     }
+    stepPooled(sparkPool, step, (slot) => shellRestY(groundAt(slot.x || slot.mesh.position.x, slot.z || slot.mesh.position.z), 0));
+    stepPooled(debrisPool, step, (slot) => shellRestY(groundAt(slot.mesh.position.x, slot.mesh.position.z), 0.4));
+    stepPooled(streakPool, step, (slot) => shellRestY(groundAt(slot.x || slot.sprite.position.x, slot.z || slot.sprite.position.z), 0));
+    for (let i = 0; i < smokeSprites.length; i += 1) {
+      const slot = smokeSprites[i];
+      if (!slot.alive && !(slot.life > 0)) continue;
+      if (!feelOn()) {
+        slot.alive = false;
+        slot.life = 0;
+        slot.sprite.visible = false;
+        continue;
+      }
+      stepGunsmoke(slot, step);
+      if (!slot.alive) {
+        slot.sprite.visible = false;
+        continue;
+      }
+      slot.sprite.position.set(slot.x, slot.y, slot.z);
+      slot.sprite.material.opacity = Math.max(0, slot.opacity);
+      slot.sprite.material.rotation = slot.rotation;
+      slot.sprite.scale.set(slot.size, slot.size, 1);
+    }
     for (let i = 0; i < shells.length; i += 1) {
       const slot = shells[i];
-      if (slot.age >= SHELL_LIFE) continue;
-      slot.age += step;
-      const mesh = slot.mesh;
-      if (slot.age >= SHELL_LIFE || !feelOn()) {
+      if (!slot.alive && slot.age >= SHELL_LIFE) continue;
+      if (!feelOn()) {
         slot.age = SHELL_LIFE;
+        slot.alive = false;
+        slot.mesh.visible = false;
+        continue;
+      }
+      const size = slot.kind === SHELL_KIND_SHOTGUN ? SHOTGUN_SHELL_SIZE : SHELL_SIZE;
+      slot.floor = shellRestY(groundAt(slot.x || slot.mesh.position.x, slot.z || slot.mesh.position.z), shellRadius(size));
+      if (slot.x == null) {
+        slot.x = slot.mesh.position.x;
+        slot.y = slot.mesh.position.y;
+        slot.z = slot.mesh.position.z;
+      }
+      stepShellPhysics(slot, step, slot.floor, {
+        life: SHELL_LIFE,
+        fade: SHELL_FADE,
+        gravity: SHELL_GRAVITY,
+      });
+      if ((slot.bounces || 0) < 3) slot.rx = (slot.rx || 0) + (slot.spin || 0) * step;
+      const mesh = slot.mesh;
+      if (!slot.alive) {
         mesh.visible = false;
         continue;
       }
-      if (slot.bounces < 3) {
-        slot.vy -= SHELL_GRAVITY * step;
-        mesh.position.x += slot.vx * step;
-        mesh.position.y += slot.vy * step;
-        mesh.position.z += slot.vz * step;
-        mesh.rotation.y += slot.spin * step;
-        mesh.rotation.z += slot.spin * 0.5 * step;
-        if (mesh.position.y <= slot.floor && slot.vy < 0) {
-          mesh.position.y = slot.floor;
-          slot.vy = -slot.vy * 0.35;
-          slot.vx *= 0.45;
-          slot.vz *= 0.45;
-          slot.spin *= 0.5;
-          slot.bounces += 1;
-          if (slot.bounces >= 3) mesh.rotation.z = 0;
-        }
+      mesh.position.set(slot.x, slot.y, slot.z);
+      if (slot.bounces >= 3) {
+        mesh.rotation.set(Math.PI / 2, slot.ry || 0, 0);
+      } else {
+        mesh.rotation.set(slot.rx || 0, slot.ry || 0, Math.PI / 2);
       }
-      const fadeStart = SHELL_LIFE - 0.25;
-      if (slot.age > fadeStart) mesh.scale.setScalar(Math.max(0.01, 1 - (slot.age - fadeStart) / 0.25));
+      mesh.scale.setScalar(slot.scale);
+      mesh.visible = true;
     }
     if (shotgunShellIn > 0) {
       shotgunShellIn -= step;
@@ -1821,7 +2135,7 @@ export async function createPistol({
         shotgunShellIn = 0;
         if (weapon === "shotgun") {
           shotgunMuzzle.getWorldPosition(muzzlePos);
-          ejectShell(shellAim.x, shellAim.z);
+          ejectShell(shellAim.x, shellAim.z, SHELL_KIND_SHOTGUN);
         }
       }
     }
@@ -1939,6 +2253,13 @@ export async function createPistol({
         if (traffic.bulletHit && car.car) traffic.bulletHit(car.car, dealt(PISTOL_CAR_DAMAGE), car.x, car.z);
       }
       spawnTracer(car.x, car.y, car.z);
+      {
+        const nx = -dir.x;
+        const ny = 0.45;
+        const nz = -dir.z;
+        const nl = Math.hypot(nx, ny, nz) || 1;
+        spawnImpact(car.x + (nx / nl) * 2, car.y + (ny / nl) * 2, car.z + (nz / nl) * 2, IMPACT_METAL, { x: nx, y: ny, z: nz });
+      }
       return "car";
     }
     if (hit) {
@@ -1947,13 +2268,17 @@ export async function createPistol({
       const awayX = hit.ped.x - from.x;
       const awayZ = hit.ped.z - from.z;
       if (hurt) {
-        bleed(hurt);
+        bleed(hurt, awayX, awayZ);
         pedestrians.shove(hit.ped, awayX, awayZ, knock, Boolean(killBoost) && hit.ped.dead);
+        if (hit.ped.dead && pedestrians.bulletRagdoll) {
+          pedestrians.bulletRagdoll(hit.ped, awayX, awayZ, knock, true);
+        }
         shotHit.ped = true;
         if (hit.ped.dead) shotHit.kill = true;
         spawnTracer(hurt.x, hurt.y, hurt.z);
       } else if (killBoost && hit.ped.dead) {
         pedestrians.shove(hit.ped, awayX, awayZ, knock, true);
+        if (pedestrians.impulseRagdoll) pedestrians.impulseRagdoll(hit.ped, awayX, awayZ, knock);
         shotHit.ped = true;
         shotHit.kill = true;
         spawnTracer(hit.ped.x, muzzlePos.y, hit.ped.z);
@@ -1984,12 +2309,12 @@ export async function createPistol({
     const ray = aimRay();
     const dir = { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z };
     const aim = readAim();
-    showFlash(FLASH_SCALE_PISTOL);
+    showFlash(FLASH_SCALE_PISTOL, aim.x, aim.z, 1);
     addShake(SHAKE_PISTOL);
     playShot(1);
     scareCrowd();
     addKick(aim.x, aim.z, KICK_PISTOL);
-    ejectShell(aim.x, aim.z);
+    ejectShell(aim.x, aim.z, SHELL_KIND_BRASS);
     worldSoundDone = false;
     const kind = shootAlong(dir, PISTOL_RANGE, PISTOL_DAMAGE, true, KNOCK_PISTOL, false, aim);
     if (shotHit.ped) hitStop(HITSTOP_PISTOL_HIT + (shotHit.kill ? HITSTOP_KILL_BONUS : 0));
@@ -2012,10 +2337,10 @@ export async function createPistol({
     const aim = readAim();
     const bullet = spreadShot(aim, origin, SMG_SPREAD_DEG);
     bullet.flat.dist = aim.dist;
-    showFlash(FLASH_SCALE_SMG);
+    showFlash(FLASH_SCALE_SMG, aim.x, aim.z, 1.35);
     addShake(SHAKE_SMG);
     addKick(aim.x, aim.z, KICK_SMG);
-    ejectShell(aim.x, aim.z);
+    ejectShell(aim.x, aim.z, SHELL_KIND_BRASS);
     playShot(1);
     scareCrowd();
     worldSoundDone = false;
@@ -2040,7 +2365,7 @@ export async function createPistol({
     const base = { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z };
     const read = readAim();
     const aim = { x: read.x, z: read.z, dist: read.dist };
-    showFlash(FLASH_SCALE_SHOTGUN);
+    showFlash(FLASH_SCALE_SHOTGUN, aim.x, aim.z, 1.5);
     addShake(SHAKE_SHOTGUN);
     requestPlayerPush(-aim.x, -aim.z, SHOTGUN_PLAYER_PUSH);
     addKick(aim.x, aim.z, KICK_SHOTGUN);
@@ -2228,6 +2553,28 @@ export async function createPistol({
     },
     cycle() {
       return cycleWeapon();
+    },
+    equip(name) {
+      if (busy()) return weapon;
+      const want = WEAPONS.includes(name) ? name : null;
+      if (!want) return weapon;
+      let guard = WEAPONS.length + 1;
+      while (weapon !== want && guard > 0) {
+        const prev = weapon;
+        cycleWeapon();
+        if (weapon === prev) break;
+        guard -= 1;
+      }
+      return weapon;
+    },
+    aimAt(x, z) {
+      const px = player.mesh.position.x;
+      const pz = player.mesh.position.z;
+      aimDir = { x: x - px, z: z - pz };
+      aiming = true;
+      pointer = true;
+      if (typeof player.aimAt === "function") player.aimAt(x, z);
+      return true;
     },
     get aiming() {
       return aiming;

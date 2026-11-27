@@ -48,6 +48,7 @@ import {
   PLAYER_SIZE,
   TILE,
 } from "./constants.js";
+import { createManualYaw, isTypingTarget, pointerDelta, wrapAngle } from "./camera-yaw.js";
 import { createCarCrashSounds, playCarEnterSound, playCarExitSound } from "./car-damage.js";
 import { createTraffic } from "./cars.js";
 import { createDrive } from "./drive.js";
@@ -266,9 +267,8 @@ let wayYaw = 0;
 let wayHeld = 0;
 let waySet = false;
 
-function wrapAngle(rad) {
-  return Math.atan2(Math.sin(rad), Math.cos(rad));
-}
+const manualYaw = createManualYaw();
+let lastYawClientX = null;
 
 // target null means hold: the turn slows down softly instead of stopping dead.
 function easeCamera(dt, target) {
@@ -979,6 +979,7 @@ async function start() {
   fitDisplay(renderer);
 
   session.ready = true;
+  session.buildOpen = () => buildMode.isOpen();
   canvas.tabIndex = 0;
   markMenuReady();
   if (ratsFast) {
@@ -991,7 +992,7 @@ async function start() {
   session.map = map;
   session.player = player;
   // Console helpers for Ted. F9 hurts, Shift+F9 heals, F10 adds HIGH.
-  // Avoided digits, Q, Tab, F, and G — those are reserved for the HUD/belt.
+  // Avoided digits, Tab, F, and G — those are reserved for the HUD/belt. Q holds manual camera turn.
   window.dsDebug = {
     hurt(amount = PISTOL_PLAYER_DAMAGE, source = "debug") {
       return player.takeDamage(amount, source);
@@ -1014,6 +1015,15 @@ async function start() {
     },
     get wanted() {
       return wanted;
+    },
+    get cameraYaw() {
+      return cameraYaw;
+    },
+    get footView() {
+      return FOOT_VIEW;
+    },
+    get yawHeld() {
+      return manualYaw.held;
     },
     setWanted(level) {
       wanted.level = Math.max(0, Math.min(5, Number(level) || 0));
@@ -1273,6 +1283,11 @@ async function start() {
   }
 
   function stepCameraYaw(dt, movedX, movedZ) {
+    if (manualYaw.paused(performance.now() / 1000)) {
+      holdCamera();
+      easeCamera(dt, null);
+      return;
+    }
     easeCamera(dt, cameraTurnTarget(dt, movedX, movedZ));
   }
 
@@ -1579,6 +1594,17 @@ window.addEventListener("keydown", (event) => {
   if (menuIsOpen()) return;
   const audio = session.audio;
   if (audio && audio.state === "suspended") audio.resume().catch(() => {});
+  if (event.code === "KeyQ") {
+    if (manualYaw.press({
+      typing: isTypingTarget(event.target),
+      blocked: session.buildOpen?.() === true,
+    })) {
+      lastYawClientX = null;
+      cameraTurnRate = 0;
+      event.preventDefault();
+    }
+    return;
+  }
   if (event.code === "KeyE" && !event.repeat) {
     const tag = event.target && event.target.tagName;
     if (tag !== "INPUT" && tag !== "TEXTAREA") {
@@ -1629,9 +1655,29 @@ window.addEventListener("keydown", (event) => {
 
 window.addEventListener("keyup", (event) => {
   held.delete(event.code);
+  if (event.code === "KeyQ") {
+    manualYaw.release(performance.now() / 1000);
+    lastYawClientX = null;
+  }
 });
 
-window.addEventListener("blur", () => held.clear());
+window.addEventListener("blur", () => {
+  held.clear();
+  manualYaw.blur(performance.now() / 1000);
+  lastYawClientX = null;
+});
+
+window.addEventListener("mousemove", (event) => {
+  if (menuIsOpen() || !manualYaw.held) {
+    if (Number.isFinite(event.clientX)) lastYawClientX = event.clientX;
+    return;
+  }
+  const dx = pointerDelta(event.movementX, event.clientX, lastYawClientX);
+  if (Number.isFinite(event.clientX)) lastYawClientX = event.clientX;
+  if (dx === 0) return;
+  cameraYaw = manualYaw.applyMouse(cameraYaw, dx);
+  cameraTurnRate = 0;
+});
 
 mountTouchUi(held, ISLAND_JUMPS, stick);
 

@@ -2,19 +2,24 @@ export const TILE = 48;
 // 5% nearer than the first camera distance (2800). The framed ground shrinks by the same amount.
 const CAMERA_DISTANCE = 0.95;
 // Extra frame on top of CAMERA_DISTANCE. 1 is the view before these scales.
-export const FOOT_VIEW = 0.80;
+export const FOOT_VIEW = 0.90;
 export const CAR_VIEW = 1.20;
 // Seconds to ease between the foot and car frames, both ways.
 export const VIEW_EASE = 2;
 // Polar angle from straight up. 30 degrees toward south, so the south walls show.
 export const CAMERA_ANGLE = 30 * Math.PI / 180;
 // How fast the camera catches the way you walk or drive. Higher is faster.
-// 0.30 means a sudden quarter-turn is mostly caught in about 7 seconds. It eases.
-export const CAMERA_TURN_SPEED = 0.30;
+// 0.06 (5× slower than 0.30) means a sudden quarter-turn is mostly caught in about 33 seconds. It eases.
+export const CAMERA_TURN_SPEED = 0.06;
 // How softly the turn starts and stops. Lower is softer (about 1 / seconds to ramp).
 export const CAMERA_TURN_SOFT = 1.5;
-// Fastest the camera may turn, in radians per second (0.35 is about 20 degrees).
-export const CAMERA_TURN_MAX = 0.35;
+// Fastest the camera may auto-follow, in radians per second (0.07 is about 4 degrees).
+// 5× slower than 0.35 so auto-follow stays gentle and does not fight a manual aim.
+export const CAMERA_TURN_MAX = 0.07;
+// Radians per mouse pixel while Q is held. 0.005 is about 0.29 degrees per pixel.
+export const CAMERA_YAW_MOUSE = 0.005;
+// Seconds auto-follow stays paused after Q is released, so the camera holds the aim.
+export const CAMERA_YAW_PAUSE = 2;
 // On foot, the camera waits this long while you keep walking the same way.
 export const CAMERA_TURN_HOLD = 0.4;
 // On foot, a sharper change than this counts as a new way, and the wait starts again.

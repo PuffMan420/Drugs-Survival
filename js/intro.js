@@ -445,8 +445,8 @@ async function loadWomen() {
 }
 
 async function loadCar() {
-  const url = new URL("../assets/cars3d/weathered/sedan-L2.glb", import.meta.url).href;
-  const gltf = await loadGltf(url, "sedan-L2.glb");
+  const url = new URL("../assets/cars3d/sedan.glb", import.meta.url).href;
+  const gltf = await loadGltf(url, "sedan.glb");
   if (!gltf) return null;
   return prepareCar(gltf);
 }

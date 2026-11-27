@@ -200,8 +200,15 @@ const SERVICE = new Set([
 // Sports and upscale bodies only have an L2 bake, with light dust.
 // Every other file has L2 and L3.
 const SPORTS = new Set(["hatchback-sports", "sedan-sports", "race", "pack-sport", "pack-coupe", "pack-suv"]);
-// KayKit cars are one baked model. They are not rare and they are not police jobs.
-const PLAIN = new Set(["kaykit-hatch", "kaykit-sedan", "kaykit-wagon", "kaykit-taxi", "kaykit-police"]);
+// One baked PBR model, no colormap recolor and no L2/L3 wear bakes.
+// KayKit cars and Vera's upgraded Kenney cars keep their own materials.
+const PLAIN = new Set([
+  "kaykit-hatch", "kaykit-sedan", "kaykit-wagon", "kaykit-taxi", "kaykit-police",
+  "sedan", "hatchback-sports", "sedan-sports", "taxi", "police",
+  "suv", "suv-luxury", "van", "delivery", "race",
+  "truck", "delivery-flat", "ambulance", "firetruck", "garbage-truck",
+  "tractor", "tractor-shovel",
+]);
 const BUCKET = 96;
 // Tires sit just above the road.
 const GROUND_Y = 0.6;
@@ -1010,7 +1017,8 @@ function bakeLevel(scene, catalog, doorRig = null, bakeOpts = {}) {
     );
     const material = Array.isArray(obj.material) ? obj.material[0] : obj.material;
     if (material) material.toneMapped = false;
-    if (obj.name === "trash") shadeBedRocks(geometry, material);
+    // Only the old colormap trash mesh needs the 8-rock grey tint.
+    if (catalog && obj.name === "trash") shadeBedRocks(geometry, material);
     if (paintable) installPaintShader(material, averagePaintLuma(material, geometry));
     parts.push({
       name,
@@ -1369,13 +1377,15 @@ export async function createTraffic(scene, map, pieces = []) {
   const plainUrl = new Map(CARS.filter((car) => car.url).map((car) => [car.file, car.url]));
   const baked = new Map();
   await Promise.all(files.map(async (file) => {
-    if (plainUrl.has(file)) {
+    if (plainUrl.has(file) || PLAIN.has(file)) {
+      const rel = plainUrl.get(file) || `assets/cars3d/${file}.glb`;
       const model = await loadScene(
         loader,
-        new URL(`../${plainUrl.get(file)}`, import.meta.url).href,
-        plainUrl.get(file),
+        new URL(`../${rel}`, import.meta.url).href,
+        rel,
       );
       splitMaterials(model);
+      // catalog is null so paint masks and colormap recolor never run.
       const built = bakeLevel(model, null);
       releaseGeometries(model);
       baked.set(file, {

@@ -91,8 +91,9 @@ function loadTrash(path) {
 }
 
 test("the truck bed rocks are eight lumps and each is a different dark grey", () => {
+  // The live garbage-truck.glb is Vera's upgraded model with its own painted
+  // trash pile, so the eight-rock tint only still applies to the wear bakes.
   for (const file of [
-    "assets/cars3d/garbage-truck.glb",
     "assets/cars3d/weathered/garbage-truck-L2.glb",
     "assets/cars3d/weathered/garbage-truck-L3.glb",
   ]) {

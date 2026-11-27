@@ -111,6 +111,7 @@ import { consumePlayerPush, feelOn, sampleShake, setFeel, worldScale } from "./g
 import { createBuildMode, loadNamedMap } from "./build-mode.js";
 import { placeBlueZone } from "./blue-zone.js";
 import { placeSampleBuildings } from "./sample-buildings.js";
+import { parseDayNight, sampleDayNight, stepCycleHour } from "./day-night.js";
 import { parseLookPreview, previewRadius, sunDirection, LOOK_CORNER } from "./look-preview.js";
 import { markMenuFailed, markMenuReady, menuIsOpen } from "./start-menu.js";
 import { bindPistolTouch, cameraWish, displayFrame, isTouchScreen, mountTouchUi } from "./touch-ui.js";
@@ -138,8 +139,20 @@ const SUN_DISTANCE = 1800;
 const SHADOW_MARGIN = 120;
 const SHADOW_ROOF = 360;
 // Daytime stays the high northwest sun. ?light=afternoon lowers and warms it.
+// ?time= locks a clock hour, ?cycle=off freezes midday, otherwise a 12-minute day runs.
 const lookPreview = parseLookPreview(window.location.search);
-const SUN_DIR = sunDirection(lookPreview?.afternoon === true);
+const dayNightQuery = parseDayNight(window.location.search);
+const skyDir = sunDirection(lookPreview?.afternoon === true);
+const sky = sampleDayNight(dayNightQuery.mode === "legacy" ? (dayNightQuery.afternoon ? 16 : 12) : (dayNightQuery.hour ?? 11));
+let cycleHour = dayNightQuery.mode === "lock" ? dayNightQuery.hour : (dayNightQuery.hour ?? 11);
+const cycleRunning = dayNightQuery.mode === "cycle";
+const legacySky = dayNightQuery.mode === "legacy";
+if (!legacySky) {
+  sampleDayNight(cycleHour, sky);
+  skyDir[0] = sky.dirX;
+  skyDir[1] = sky.dirY;
+  skyDir[2] = sky.dirZ;
+}
 // ?fx=off skips the diorama stack so the plain picture can be compared.
 // ?nobloom=1, ?nossao=1 and ?novsm=1 isolate one fx=on feature at a time.
 const params = new URLSearchParams(window.location.search);
@@ -508,7 +521,26 @@ function createSun(scene, afternoon) {
   sun.shadow.camera.updateProjectionMatrix();
   scene.add(sun);
   scene.add(sun.target);
-  return sun;
+  return { sun, hemi };
+}
+
+function applySky(sample, sun, hemi, renderer, scene) {
+  sun.color.setRGB(sample.sunR, sample.sunG, sample.sunB, SRGBColorSpace);
+  sun.intensity = LAMBERT * sample.sunIntensity;
+  hemi.color.setRGB(sample.hemiSkyR, sample.hemiSkyG, sample.hemiSkyB, SRGBColorSpace);
+  hemi.groundColor.setRGB(sample.hemiGroundR, sample.hemiGroundG, sample.hemiGroundB, SRGBColorSpace);
+  hemi.intensity = LAMBERT * sample.hemiIntensity;
+  scene.fog.color.setRGB(sample.fogR, sample.fogG, sample.fogB, SRGBColorSpace);
+  scene.fog.near = sample.fogNear;
+  scene.fog.far = sample.fogFar;
+  renderer.setClearColor(scene.fog.color, 1);
+  if (fxOn) renderer.toneMappingExposure = sample.exposure;
+  if (sun.shadow.camera.far !== sample.shadowFar) {
+    sun.shadow.camera.far = sample.shadowFar;
+  }
+  skyDir[0] = sample.dirX;
+  skyDir[1] = sample.dirY;
+  skyDir[2] = sample.dirZ;
 }
 
 const shadowCorner = new Vector3();
@@ -524,9 +556,9 @@ function placeSun(sun, playerX, playerZ, viewX, viewZ, halfW, halfH) {
   const target = sun.target.position;
   target.set(playerX, 0, playerZ);
   sun.position.set(
-    playerX + SUN_DIR[0] * SUN_DISTANCE,
-    SUN_DIR[1] * SUN_DISTANCE,
-    playerZ + SUN_DIR[2] * SUN_DISTANCE,
+    playerX + skyDir[0] * SUN_DISTANCE,
+    skyDir[1] * SUN_DISTANCE,
+    playerZ + skyDir[2] * SUN_DISTANCE,
   );
   const cam = sun.shadow.camera;
   cam.position.copy(sun.position);
@@ -805,7 +837,11 @@ async function start() {
   if (traffic.usePeds) traffic.usePeds(pedestrians);
   window.traffic = traffic;
   const glow = createGlow(scene);
-  const sun = createSun(scene, lookPreview?.afternoon === true);
+  const { sun, hemi } = createSun(scene, lookPreview?.afternoon === true);
+  if (!legacySky) {
+    applySky(sky, sun, hemi, renderer, scene);
+    if (traffic.setLampGlow) traffic.setLampGlow(sky.lampEmissive);
+  }
   const minimap = createMinimap(map, ISLAND_JUMPS, savedLayout.pieces);
   const camera = new PerspectiveCamera(15, GROUND_W / GROUND_H, NEAR, FAR);
   // Screen up starts as north. Spherical phi is measured from +Y, so this up is
@@ -1434,7 +1470,13 @@ async function start() {
     rats.update(step, player.x, player.z, camX, camZ, reachX, reachZ);
     camX = frameCenter(snappedX, halfW, city.mapW);
     camZ = frameCenter(snappedZ, halfH, city.mapH);
-    glow.update(camX, camZ, traffic.lights(camX, camZ));
+    if (cycleRunning) cycleHour = stepCycleHour(cycleHour, realDt);
+    if (!legacySky) {
+      sampleDayNight(cycleHour, sky);
+      applySky(sky, sun, hemi, renderer, scene);
+      if (traffic.setLampGlow) traffic.setLampGlow(sky.lampEmissive);
+    }
+    glow.update(camX, camZ, traffic.lights(camX, camZ), legacySky ? 1 : sky.glowScale);
     driveFx.update(step, drive.driving ? drive.sample() : null, traffic.cars(), camX, camZ);
     placeCamera(camX, camZ);
     const shake = sampleShake(realDt);

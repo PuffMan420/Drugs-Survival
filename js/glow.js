@@ -65,25 +65,26 @@ export function createGlow(scene) {
   scene.add(heads, tails);
 
   const dummy = new Object3D();
-  const place = (mesh, index, x, y, z) => {
+  const place = (mesh, index, x, y, z, scale) => {
     dummy.position.set(x, y, z);
     dummy.rotation.set(0, 0, 0);
-    dummy.scale.set(1, 1, 1);
+    dummy.scale.set(scale, scale, scale);
     dummy.updateMatrix();
     mesh.setMatrixAt(index, dummy.matrix);
   };
 
   return {
-    update(_camX, _camZ, carLights) {
+    update(_camX, _camZ, carLights, glowScale = 1) {
+      const scale = Number.isFinite(glowScale) && glowScale > 0 ? glowScale : 0;
       let headCount = 0;
       let tailCount = 0;
       for (const light of carLights) {
         if (light.kind === "head") {
           if (headCount >= 64) continue;
-          place(heads, headCount, light.x, light.y == null ? 4.2 : light.y, light.z);
+          place(heads, headCount, light.x, light.y == null ? 4.2 : light.y, light.z, scale);
           headCount += 1;
         } else if (tailCount < 64) {
-          place(tails, tailCount, light.x, light.y == null ? 4.2 : light.y, light.z);
+          place(tails, tailCount, light.x, light.y == null ? 4.2 : light.y, light.z, scale);
           tailCount += 1;
         }
       }

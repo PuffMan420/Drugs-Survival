@@ -1514,6 +1514,8 @@ export async function createTraffic(scene, map, pieces = []) {
     list.push(body);
   }
 
+  const lampMaterials = [];
+  let lampGlow = 0.55;
   for (let modelIndex = 0; modelIndex < models.length; modelIndex += 1) {
     const model = models[modelIndex];
     for (const level of levelsFor(model.file)) {
@@ -1522,6 +1524,9 @@ export async function createTraffic(scene, map, pieces = []) {
       const capacity = parkedHere.length + 56;
       const partDraws = [];
       for (const part of model.levels[level]) {
+        if (part.name === "headlamps" && part.material && !lampMaterials.includes(part.material)) {
+          lampMaterials.push(part.material);
+        }
         const geometry = part.geometry.clone();
         let recolor = null;
         if (part.paintable) {
@@ -1675,6 +1680,12 @@ export async function createTraffic(scene, map, pieces = []) {
   }
 
   return {
+    setLampGlow(intensity) {
+      const value = Number.isFinite(intensity) ? intensity : 0.55;
+      if (value === lampGlow) return;
+      lampGlow = value;
+      for (const material of lampMaterials) material.emissiveIntensity = value;
+    },
     scare(x, z) {
       sim.scare(x, z);
     },

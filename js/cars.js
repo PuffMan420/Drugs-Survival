@@ -218,6 +218,8 @@ const DRAW_SCALE = 1.1;
 // (row start + 0.058 + 0.5 * 0.184). Civilians swap the baked paint hue for one
 // of these, then the roof-to-sill shade below still runs pale to bright.
 // Jobs keep the baked hue and only get that shade.
+// The three darkest charcoal swatches were lifted to medium slate/silver/blue-grey
+// so pack cars stay readable from the top-down camera (byte luma >= 120).
 const PALETTE_RGB = [
   [145, 181, 232],
   [121, 82, 202],
@@ -231,10 +233,10 @@ const PALETTE_RGB = [
   [226, 94, 73],
   [93, 110, 199],
   [203, 167, 147],
-  [74, 74, 92],
-  [60, 60, 66],
+  [128, 132, 152],
+  [168, 170, 180],
   [112, 114, 135],
-  [69, 71, 85],
+  [124, 144, 172],
   [149, 156, 187],
   [214, 214, 229],
   [202, 118, 82],
@@ -1016,7 +1018,16 @@ function bakeLevel(scene, catalog, doorRig = null, bakeOpts = {}) {
       doorRig && doorRig.samples,
     );
     const material = Array.isArray(obj.material) ? obj.material[0] : obj.material;
-    if (material) material.toneMapped = false;
+    if (material) {
+      material.toneMapped = false;
+      // worldGeometry() keeps only position/normal/uv, so COLOR_0 is dropped.
+      // City Pack weathered bodies still ship COLOR_0, and GLTFLoader leaves
+      // vertexColors=true. A missing color attribute reads as (0,0,0) and the
+      // body renders pitch black regardless of palette or instanceColor.
+      if (material.vertexColors && !geometry.getAttribute("color")) {
+        material.vertexColors = false;
+      }
+    }
     // Only the old colormap trash mesh needs the 8-rock grey tint.
     if (catalog && obj.name === "trash") shadeBedRocks(geometry, material);
     if (paintable) installPaintShader(material, averagePaintLuma(material, geometry));

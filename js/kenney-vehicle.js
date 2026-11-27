@@ -28,6 +28,7 @@
 // SOFTWARE.
 
 import { isBulkyCar } from "./car-kind.js";
+import { handlingClassFor, handlingFor } from "./car-handling.js";
 
 // The sphere settles near 11 m/s. This city's roads are tuned around 180 units/s.
 export const METERS_TO_WORLD = 180 / 11;
@@ -38,22 +39,9 @@ const SPHERE_INERTIA = 0.4 * SPHERE_MASS * SPHERE_RADIUS * SPHERE_RADIUS;
 const GRAVITY = 9.8 * 1.5;
 const FRICTION = 5;
 const IMPULSE_DENOM = 1 / SPHERE_MASS + (SPHERE_RADIUS * SPHERE_RADIUS) / SPHERE_INERTIA;
-// A full lock only breaks traction near cruise speed. Below that, and again
-// after a slide has scrubbed speed, velocity is pulled back onto the nose.
-const DRIFT_ON = 166;
-const DRIFT_OFF = 138;
-// Torque follows the throttle well behind it, so the pull-away has weight.
-// Top speed is the same once the spool catches the throttle.
-const DRIVE_SPOOL = 2.0;
-// A truck or van spools slower and sheds the throttle slower, so it pulls
-// away late and carries speed after the pedal lifts. Top speed stays put.
-const BULKY_SPOOL = 1.05;
-const BULKY_THROTTLE = 1.55;
-const BULKY_BRAKE = 2.4;
-const BULKY_OVERRUN = 1.35;
-const BULKY_STEER_CRAWL = 2.75;
-const BULKY_STEER_FAST = 2.4;
-const BULKY_STEER_FOLLOW = 0.85;
+// Per-class traction, spool, steer, and speed live in js/car-handling.js.
+// The live sedan row matches the numbers that used to sit here.
+const DRIVE_FORCE = 100;
 // Four gears across the cruise. Each upshift starts lower than the gear before
 // it peaked, then climbs again. The rates stay under 1 so the loop sounds deeper.
 const GEARS = [
@@ -125,16 +113,24 @@ function axes(controls) {
 }
 
 export function createArcadeVehicle(options = {}) {
-  const bulky = !!options.bulky;
+  const source = options.car ?? options.handling ?? options;
+  const handlingClass = handlingClassFor(source);
+  const handling = handlingFor(handlingClass);
+  const bulky = !!handling.BULKY;
   const gears = bulky ? BULKY_GEARS : GEARS;
-  const pullRate = bulky ? BULKY_SPOOL : DRIVE_SPOOL;
-  const throttleBlend = bulky ? BULKY_THROTTLE : 3.2;
-  const brakeBlend = bulky ? BULKY_BRAKE : 4.0;
-  const reverseBlend = bulky ? 0.8 : 1.2;
-  const overrun = bulky ? BULKY_OVERRUN : 4.2;
-  const steerCrawl = bulky ? BULKY_STEER_CRAWL : 3.2;
-  const steerFast = bulky ? BULKY_STEER_FAST : 2.8;
-  const steerFollow = bulky ? BULKY_STEER_FOLLOW : 1.15;
+  const pullRate = handling.SPOOL;
+  const throttleBlend = handling.THROTTLE_BLEND;
+  const brakeBlend = handling.BRAKE_BLEND;
+  const reverseBlend = handling.REVERSE_BLEND;
+  const overrun = handling.OVERRUN;
+  const steerCrawl = handling.STEER_CRAWL;
+  const steerFast = handling.STEER_FAST;
+  const steerFollow = handling.STEER_FOLLOW;
+  const driftOn = handling.DRIFT_ON;
+  const driftOff = handling.DRIFT_OFF;
+  const gripAlign = handling.GRIP_ALIGN;
+  const slideAlign = handling.SLIDE_ALIGN;
+  const driveForce = DRIVE_FORCE * handling.SPEED;
   let yaw = 0;
   let vx = 0;
   let vz = 0;
@@ -185,11 +181,10 @@ export function createArcadeVehicle(options = {}) {
     let direction = sign(linearSpeed);
     if (direction === 0) direction = Math.abs(inputZ) > 0.1 ? sign(inputZ) : 1;
     const worldBefore = Math.hypot(vx, vz) * METERS_TO_WORLD;
-    const steerBasis = Math.max(worldBefore, sliding ? DRIFT_ON : 0);
-    const steerScale = clamp(steerBasis / DRIFT_ON, 0.34, 1);
-    // 3.2 at a crawl, 2.8 once the lock is at full speed (about 12% slower).
-    // The wheel eases onto that rate, so a flick does not yaw the car at once.
-    // A bulky body uses 2.75 and 2.4, and the wheel follows later still.
+    const steerBasis = Math.max(worldBefore, sliding ? driftOn : 0);
+    const steerScale = clamp(steerBasis / driftOn, 0.34, 1);
+    // Steer rate eases from STEER_CRAWL to STEER_FAST as speed fills the lock.
+    // The wheel follows at STEER_FOLLOW, so a flick does not yaw the car at once.
     const steerRate = lerp(steerCrawl, steerFast, clamp((steerScale - 0.34) / 0.66, 0, 1));
     const targetAngular = -inputX * steerScale * steerRate * direction;
     angularSpeed = lerp(angularSpeed, targetAngular, dt * steerFollow);
@@ -209,8 +204,8 @@ export function createArcadeVehicle(options = {}) {
     // toward that nose (the kit adds spin on the model's right axis).
     const rightX = Math.cos(yaw);
     const rightZ = -Math.sin(yaw);
-    wx += -rightX * (drive * 100) * dt;
-    wz += -rightZ * (drive * 100) * dt;
+    wx += -rightX * (drive * driveForce) * dt;
+    wz += -rightZ * (drive * driveForce) * dt;
 
     const angularDamp = Math.max(1 - 4 * dt, 0);
     const linearDamp = Math.max(1 - 0.1 * dt, 0);
@@ -237,9 +232,9 @@ export function createArcadeVehicle(options = {}) {
 
     const worldSpeed = Math.hypot(vx, vz) * METERS_TO_WORLD;
     const sharp = Math.abs(inputX) > 0.5;
-    if (sharp && worldSpeed > DRIFT_ON && Math.abs(drive) > 0.5) sliding = true;
-    if (!sharp || worldSpeed < DRIFT_OFF || Math.abs(drive) < 0.2) sliding = false;
-    const align = 1 - Math.exp(-(sliding ? 0.8 : 18) * dt);
+    if (sharp && worldSpeed > driftOn && Math.abs(drive) > 0.5) sliding = true;
+    if (!sharp || worldSpeed < driftOff || Math.abs(drive) < 0.2) sliding = false;
+    const align = 1 - Math.exp(-(sliding ? slideAlign : gripAlign) * dt);
     const planar = Math.hypot(vx, vz);
     if (planar > 0.05) {
       const noseX = -Math.sin(yaw);
@@ -299,6 +294,7 @@ export function createArcadeVehicle(options = {}) {
       drift,
       emit,
       bulky,
+      handling: handlingClass,
       lowpass: bulky ? BULKY_LOWPASS : ENGINE_LOWPASS,
       engineGain: dbToGain(engineDb),
       enginePitch,

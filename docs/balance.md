@@ -234,7 +234,7 @@ Cops jog at the player's jog speed, so you can outrun them by sprinting (`PLAYER
 
 Player gaits in `js/player.js` are multipliers of `PLAYER_SPEED`. Pedestrian gaits in `js/pedestrians.js` store the same speeds already multiplied. Both give walk **42**, jog **84**, sprint **117.6**.
 
-The car you drive has **no named top-speed constant**. The arcade code is scaled by `METERS_TO_WORLD` so a typical cruise is about **180** units/s (a bit under four tiles per second). Traffic cruise is slower: `CRUISE_MIN` plus 0–39, so **108–147** units/s.
+The car you drive uses a handling class from `js/car-handling.js`. **Sedan** is the live baseline: `SPEED` 1.0 cruises near **180** units/s (a bit under four tiles per second). Sports is faster, heavy is slower but still useful. Traffic cruise is unchanged: `CRUISE_MIN` plus 0–39, so **108–147** units/s.
 
 | Name | Value | File | What it does |
 |---|---|---|---|
@@ -246,13 +246,19 @@ The car you drive has **no named top-speed constant**. The arcade code is scaled
 | TURN_TAU | 0.055 | js/player.js | How quickly you turn to face the move direction, in seconds. |
 | STICK_DEAD | 0.28 | js/touch-ui.js | Phone stick must be pushed past this (0–1) before it counts as a move. |
 | STICK_JOG | 0.65 | js/touch-ui.js | Phone stick past this becomes a jog; a lighter push stays a walk. |
-| METERS_TO_WORLD | 180 / 11 (≈ 16.36) | js/kenney-vehicle.js | Scales the driven-car physics into world units. Raising this makes the car faster. |
-| DRIFT_ON | 166 | js/kenney-vehicle.js | Speed (units/s) at which a full steering lock can break traction. |
-| DRIFT_OFF | 138 | js/kenney-vehicle.js | Speed (units/s) below which a slide ends and the car grips again. |
-| DRIVE_SPOOL | 2.0 | js/kenney-vehicle.js | How quickly a normal car's throttle catches up (higher is snappier). |
-| BULKY_SPOOL | 1.05 | js/kenney-vehicle.js | Same for a truck or van: slower spool, so it pulls away later. |
-| BULKY_THROTTLE | 1.55 | js/kenney-vehicle.js | How slowly a bulky car answers the throttle (normal cars use 3.2, not a named constant). |
-| BULKY_BRAKE | 2.4 | js/kenney-vehicle.js | How slowly a bulky car brakes (normal cars use 4.0, not a named constant). |
+| METERS_TO_WORLD | 180 / 11 (≈ 16.36) | js/kenney-vehicle.js | Scales the driven-car physics into world units. Raising this makes every class faster. |
+| SPEED | sedan 1.0 | js/car-handling.js | Drive-force multiplier. 1.0 is the live sedan cruise (near 180 units/s). Sports 1.16, police 1.08, compact and SUV 0.94, van 0.90, heavy 0.86. |
+| THROTTLE_BLEND | sedan 3.2 | js/car-handling.js | How quickly the throttle answers. Higher is snappier. Heavy uses 1.55 (the old bulky value). |
+| BRAKE_BLEND | sedan 4.0 | js/car-handling.js | How quickly the car brakes to a stop before reverse. Police uses 4.6, heavy 2.4. |
+| REVERSE_BLEND | sedan 1.2 | js/car-handling.js | How quickly reverse builds after the brake finishes. |
+| SPOOL | sedan 2.0 | js/car-handling.js | How quickly torque catches the throttle. Heavy uses 1.05 (the old bulky spool). |
+| OVERRUN | sedan 4.2 | js/car-handling.js | How quickly torque falls when you lift. Lower means the car coasts farther. |
+| STEER_CRAWL / STEER_FAST | sedan 3.2 / 2.8 | js/car-handling.js | Yaw rate at a crawl and at a full-speed lock. Sports is 3.6 / 3.1, heavy 2.75 / 2.4. |
+| STEER_FOLLOW | sedan 1.15 | js/car-handling.js | How quickly the wheels ease onto that steer rate. |
+| DRIFT_ON | sedan 166 | js/car-handling.js | Speed (units/s) at which a full steering lock can break traction. |
+| DRIFT_OFF | sedan 138 | js/car-handling.js | Speed (units/s) below which a slide ends and the car grips again. |
+| GRIP_ALIGN / SLIDE_ALIGN | sedan 18 / 0.8 | js/car-handling.js | How hard velocity is pulled back onto the nose, planted vs sliding. |
+| MASS | sedan 90 | js/car-handling.js | Rapier chassis mass when you drive the car (ramming feel). Sports 76, heavy 126. |
 | CRUISE_MIN | 108 | js/routes.js | Slowest traffic cruise, in units/s. Each driver rolls 108–147. |
 | CORNER_SPEED | 46 | js/routes.js | Speed traffic uses through a corner, in units/s. |
 | ACCEL | 90 | js/routes.js | How fast traffic speeds up, in units per second squared. |
@@ -264,7 +270,7 @@ The car you drive has **no named top-speed constant**. The arcade code is scaled
 
 ## City Pack
 
-New cars use the same driving as the car they match. Change one footprint if a City Pack car looks the wrong size. `CITYPACK_STEER_MAX` is how far the front wheels pivot. `CITYPACK_STEER_SIGN` and `CITYPACK_ROLL_SIGN` are `-1` or `1` if the wheels steer or roll the wrong way. Van and bus have no separate wheels, so those signs do nothing for them.
+New cars use the handling class of the body they match (`js/car-handling.js`). Change one footprint if a City Pack car looks the wrong size. `CITYPACK_STEER_MAX` is how far the front wheels pivot. `CITYPACK_STEER_SIGN` and `CITYPACK_ROLL_SIGN` are `-1` or `1` if the wheels steer or roll the wrong way. Van and bus have no separate wheels, so those signs do nothing for them.
 
 Props in build mode use `CITYPACK_METER` when the file is in meters. Billboard and the hydrant are not meters.
 

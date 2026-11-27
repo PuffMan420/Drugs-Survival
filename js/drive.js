@@ -7,13 +7,13 @@
 // and while a pedestrian ragdoll is still simulating.
 
 import { applyCarDamage, crashDamageFromLostSpeed, playCarSmokeSound } from "./car-damage.js";
+import { handlingFor } from "./car-handling.js";
 import { createArcadeVehicle } from "./kenney-vehicle.js";
 import { carShell } from "./model-shell.js";
 import { GROUP, groups, yawQuat } from "./physics.js";
 import { hopTarget, localPoint } from "./drive-seat.js";
 export { hopTarget, localPoint, HOP_FORWARD, HOP_LIFT, HOP_SIDE } from "./drive-seat.js";
 
-const MASS = 90;
 const REST = 2;
 const RADIUS = 3.2;
 const WHEEL_Y = -1;
@@ -198,13 +198,14 @@ export function createDrive(physics, scene) {
         chassis,
       );
       // A little lower and a little toward the nose (local -Z) than the chassis box.
+      const handling = handlingFor(best);
       chassis.setAdditionalMassProperties(
-        MASS,
+        handling.MASS,
         { x: 0, y: -2.8, z: -3.2 },
         {
-          x: (MASS * (hy * hy + hz * hz)) / 3,
-          y: (MASS * (hx * hx + hz * hz)) / 3,
-          z: (MASS * (hx * hx + hy * hy)) / 3,
+          x: (handling.MASS * (hy * hy + hz * hz)) / 3,
+          y: (handling.MASS * (hx * hx + hz * hz)) / 3,
+          z: (handling.MASS * (hx * hx + hy * hy)) / 3,
         },
         { x: 0, y: 0, z: 0, w: 1 },
         true,
@@ -242,7 +243,7 @@ export function createDrive(physics, scene) {
         vehicle.setWheelSideFrictionStiffness(i, 0);
       }
       input = IDLE;
-      arcade = createArcadeVehicle({ bulky: !!best.bulky });
+      arcade = createArcadeVehicle({ car: best });
       arcade.syncYaw(yawOf(quat));
       commanded = { x: 0, z: 0 };
       tracked = physics.track(chassis);

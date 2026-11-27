@@ -5,6 +5,7 @@
 
 import { Color, InstancedMesh, Matrix4, Object3D } from "three";
 import { groundTint } from "./ground-pieces.js";
+import { groundWorldCenter } from "./ground-scale.js";
 import { CHUNK, GROUND_H, GROUND_W, TILE } from "./constants.js";
 import {
   assignGroundLayers,
@@ -33,7 +34,10 @@ export function pieceYaw(record) {
 
 function pieceMatrix(record, target, y = ROAD_Y) {
   const size = (record.unit > 0 ? record.unit : UNIT) * (record.scale ?? 1);
-  target.position.set((record.x + 0.5) * TILE, y, (record.z + 0.5) * TILE);
+  const pos = isGroundRecord(record)
+    ? groundWorldCenter(record.x, record.z, record.scale ?? 1)
+    : { x: (record.x + 0.5) * TILE, z: (record.z + 0.5) * TILE };
+  target.position.set(pos.x, y, pos.z);
   target.rotation.set(0, pieceYaw(record), 0);
   target.scale.set(record.mirror ? -size : size, size, size);
   target.updateMatrix();

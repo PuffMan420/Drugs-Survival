@@ -21,6 +21,7 @@ import { KITS } from "./kenney-city-catalog.js";
 import { FENCE_KIT } from "./fence-pieces.js";
 import { CITYPACK_KIT } from "./citypack-pieces.js";
 import { createGroundTemplate, GROUND_KIT, groundQuarter, isGroundFile } from "./ground-pieces.js";
+import { groundWorldCenter, nextWholeScale } from "./ground-scale.js";
 import { PARTS_KIT } from "./part-pieces.js";
 import { isBuildingFile, setModelBounds } from "./model-shell.js";
 import { layoutFrom, roadKey, roadRecord } from "./kenney-roads.js";
@@ -106,9 +107,12 @@ function canFree(file) {
 // On window, capture and bubble listeners share one target, so this has to
 // run first and stop the event. S stays free so it can walk south.
 // Swedish layout: the + key grows the piece and 0 shrinks it.
+// Shift plus those same keys jumps a ground tile to the next whole size.
+// On a Swedish keyboard Shift+the + key types ?, so also match that key's code.
 function brushScale(event) {
   if (event.ctrlKey || event.metaKey || event.altKey) return 0;
   if (event.key === "+" || event.code === "NumpadAdd") return 1;
+  if (event.shiftKey && event.code === "Minus" && event.key === "?") return 1;
   if (event.key === "0" || event.code === "Digit0" || event.code === "Numpad0") return -1;
   return 0;
 }
@@ -164,7 +168,7 @@ window.addEventListener("keydown", (event) => {
   if (event.code === "KeyR") keys.onR();
   else if (event.code === "KeyX") keys.onX();
   else if (event.code === "KeyF") keys.onF();
-  else keys.onScale(direction);
+  else keys.onScale(direction, event.shiftKey);
 }, true);
 window.addEventListener("keyup", (event) => {
   if (event.code === "ShiftLeft") leftShift = false;
@@ -1223,6 +1227,11 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     root.scale.set(flipped ? -size : size, size, size);
   }
 
+  function worldXZ(x, z, file, pieceScale) {
+    if (isGroundFile(file)) return groundWorldCenter(x, z, pieceScale);
+    return { x: (x + 0.5) * TILE, z: (z + 0.5) * TILE };
+  }
+
   function pieceY(spec, x, z) {
     const file = typeof spec === "string" ? spec : spec?.file;
     if (isSignalFile(file)) return ROAD_Y - SIGNAL_SINK;
@@ -1238,7 +1247,8 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     const unit = spec.unit ?? unitFor(spec.kit, spec.file);
     root.userData.unit = unit;
     applyScale(root, spec.scale ?? 1, spec.mirror === true, unit);
-    root.position.set((spec.x + 0.5) * TILE, pieceY(spec), (spec.z + 0.5) * TILE);
+    const at = worldXZ(spec.x, spec.z, spec.file, spec.scale ?? 1);
+    root.position.set(at.x, pieceY(spec), at.z);
     root.rotation.y = pieceYaw(spec);
     return root;
   }
@@ -1497,7 +1507,8 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
   }
 
   function poseRoot(root, record) {
-    root.position.set((record.x + 0.5) * TILE, pieceY(record), (record.z + 0.5) * TILE);
+    const at = worldXZ(record.x, record.z, record.file, record.scale ?? 1);
+    root.position.set(at.x, pieceY(record), at.z);
     root.rotation.y = pieceYaw(record);
   }
 
@@ -1716,7 +1727,8 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
       turn = snappedTurn({ turn, yaw });
       yaw = null;
     }
-    preview.position.set((cell.x + 0.5) * TILE, pieceY(file, cell.x, cell.z), (cell.z + 0.5) * TILE);
+    const at = worldXZ(cell.x, cell.z, file, scale);
+    preview.position.set(at.x, pieceY(file, cell.x, cell.z), at.z);
     preview.rotation.y = shownTurn(file, cell.x, cell.z, turn) * Math.PI / 2;
   }
 
@@ -1875,7 +1887,15 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     return Math.min(SCALE_MAX, Math.max(SCALE_MIN, Math.round((current + direction * SCALE_STEP) * 100) / 100));
   }
 
-  function stepScale(direction) {
+  function isGroundBrush() {
+    const file = carrying?.record?.file ?? selection?.file;
+    return Boolean(file) && isGroundFile(file);
+  }
+
+  function stepScale(direction, whole = false) {
+    const scaleOf = (current) => (whole && isGroundBrush() && !carrying?.zone
+      ? nextWholeScale(current, direction, SCALE_MIN, SCALE_MAX)
+      : nextScale(current, direction));
     if (carrying?.zone) {
       const zone = carrying.record;
       const next = nextScale(zone.nudge ?? 1, direction);
@@ -1890,18 +1910,20 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     }
     if (carrying) {
       const record = carrying.record;
-      const next = nextScale(record.scale ?? 1, direction);
+      const next = scaleOf(record.scale ?? 1);
       if (next === record.scale) return;
       record.scale = next;
       applyScale(carrying.root, record.scale, record.mirror === true, record.unit ?? UNIT);
+      poseRoot(carrying.root, record);
       changed();
       status(direction > 0 ? "Bigger." : "Smaller.");
       return;
     }
-    const next = nextScale(scale, direction);
+    const next = scaleOf(scale);
     if (next === scale) return;
     scale = next;
     if (preview) applyScale(preview, scale, mirror, preview.userData.unit ?? UNIT);
+    if (preview && hover) movePreview(hover);
     status(direction > 0 ? "Bigger." : "Smaller.");
   }
 
@@ -1994,7 +2016,7 @@ export async function createBuildMode({ scene, camera, canvas, renderer, map, sa
     if (!pointerAt) return;
     removeAt(pointerAt);
   };
-  keys.onScale = (direction) => stepScale(direction);
+  keys.onScale = (direction, whole = false) => stepScale(direction, whole);
 
   // A lifted finger leaves the canvas, which used to forget the point, so the
   // on-screen X key had nothing to remove. Touch keeps the last point. A mouse

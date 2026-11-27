@@ -1,6 +1,7 @@
 // Visual Y for city lots, yard stamps, and roads. Physics, sidewalk feet,
 // car tires, and building shells still use ROAD_Y as the piece origin.
 import { TILE } from "./constants.js";
+import { groundSnapOffset } from "./ground-scale.js";
 
 const UNIT = 4 * TILE;
 export const ROAD_Y = 0.2;
@@ -35,8 +36,9 @@ function sizeInTiles(record) {
 
 function footprint(record) {
   const half = sizeInTiles(record) / 2;
-  const x = Number(record.x) + 0.5;
-  const z = Number(record.z) + 0.5;
+  const snap = isGroundRecord(record) ? groundSnapOffset(record.scale ?? 1) : 0;
+  const x = Number(record.x) + 0.5 + snap;
+  const z = Number(record.z) + 0.5 + snap;
   return { x0: x - half, z0: z - half, x1: x + half, z1: z + half };
 }
 

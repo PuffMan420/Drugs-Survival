@@ -965,6 +965,7 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
   }
 
   function runOver(cars, driven) {
+    const hits = [];
     let count = 0;
     if (cars) {
       for (let i = 0; i < cars.length; i += 1) {
@@ -1008,9 +1009,15 @@ export async function createPedestrians(scene, map, pieces = [], feetAt = null, 
         const kickX = contact.nx * slot.motion.speed + slot.motion.vx;
         const kickZ = contact.nz * slot.motion.speed + slot.motion.vz;
         if (!startRagdoll(ped, kickX, kickZ)) hurt(ped, kickX, kickZ);
+        // Once per ped, even if two cars hit in the same pass.
+        if (!ped.runOverCounted) {
+          ped.runOverCounted = true;
+          hits.push({ ped, car });
+        }
       }
     }
     rememberStrike(cars);
+    return hits;
   }
 
   return {

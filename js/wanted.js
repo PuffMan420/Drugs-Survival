@@ -5,21 +5,29 @@
 // Distances are in world units, not meters. One map tile is 48 units.
 
 export const MAX_WANTED = 5;
-export const WANTED_DEAL_SEEN = 0.5;
-export const WANTED_HIT = 1;
-export const WANTED_SHOT = 1;
+export const WANTED_DEAL_SEEN = 0.25;
+export const WANTED_HIT = 0.34;
+export const WANTED_SHOT = 0.25;
+// A shot only adds heat if this many seconds have passed since the last counted shot.
+export const WANTED_SHOT_COOLDOWN = 2;
 // A kill counts this instead of the hit.
-export const WANTED_KILL = 2;
+export const WANTED_KILL = 1;
 // Hitting a cop is worse than hitting a pedestrian. A kill replaces the hit.
-export const WANTED_HIT_COP = 1.5;
-export const WANTED_KILL_COP = 3;
-// A deal only counts when a pedestrian stands this close (4 tiles).
-export const WITNESS_RANGE = 192;
+export const WANTED_HIT_COP = 0.75;
+export const WANTED_KILL_COP = 2;
+// A deal or car theft only counts when a pedestrian stands this close (2 tiles).
+export const WITNESS_RANGE = 96;
 // Seconds without a new crime before one star drops.
 export const WANTED_DECAY_DELAY = 20;
+// Running someone over in the player's driven car. A cop counts more.
+export const WANTED_RUNOVER = 0.5;
+export const WANTED_RUNOVER_COP = 1;
+// Stealing a car, only when a living witness is nearby. A cop in sight counts more.
+export const WANTED_CAR_THEFT = 0.25;
+export const WANTED_CAR_THEFT_COP = 1;
 
 export function createWanted() {
-  return { level: 0, quiet: 0 };
+  return { level: 0, quiet: 0, lastShotAt: Number.NEGATIVE_INFINITY };
 }
 
 export function addCrime(state, amount) {
@@ -28,6 +36,17 @@ export function addCrime(state, amount) {
   state.level = Math.min(MAX_WANTED, state.level + raw);
   state.quiet = 0;
   return state.level;
+}
+
+// Adds WANTED_SHOT if at least WANTED_SHOT_COOLDOWN seconds have passed since
+// the last counted shot. `now` is a clock in seconds (same unit as stepWanted).
+export function addShot(state, now) {
+  const t = Number(now);
+  if (!Number.isFinite(t)) return state.level;
+  const last = Number(state.lastShotAt);
+  if (Number.isFinite(last) && t - last < WANTED_SHOT_COOLDOWN) return state.level;
+  state.lastShotAt = t;
+  return addCrime(state, WANTED_SHOT);
 }
 
 // One star (1.0) drops every WANTED_DECAY_DELAY quiet seconds.
@@ -53,6 +72,7 @@ export function stepWanted(state, dt, watched = false) {
 export function resetWanted(state) {
   state.level = 0;
   state.quiet = 0;
+  state.lastShotAt = Number.NEGATIVE_INFINITY;
 }
 
 // Whole stars shown on the HUD.
@@ -74,4 +94,26 @@ export function dealSeen(x, z, peds, buyer = null) {
 export function hitCrime(killed, isCop = false) {
   if (isCop) return killed ? WANTED_KILL_COP : WANTED_HIT_COP;
   return killed ? WANTED_KILL : WANTED_HIT;
+}
+
+// Heat for running someone over in the player's driven car.
+export function runOverCrime(isCop = false) {
+  return isCop ? WANTED_RUNOVER_COP : WANTED_RUNOVER;
+}
+
+// Heat for stealing a car. A living cop within copSight counts more than a
+// living pedestrian within WITNESS_RANGE. Nobody is excluded. No witness means no heat.
+export function theftCrime(x, z, peds, copSight) {
+  const sight = Number(copSight);
+  let copWitness = false;
+  let pedWitness = false;
+  for (const ped of peds || []) {
+    if (ped.dead) continue;
+    const dist = Math.hypot(ped.x - x, ped.z - z);
+    if (ped.cop && Number.isFinite(sight) && dist <= sight) copWitness = true;
+    else if (dist <= WITNESS_RANGE) pedWitness = true;
+  }
+  if (copWitness) return WANTED_CAR_THEFT_COP;
+  if (pedWitness) return WANTED_CAR_THEFT;
+  return 0;
 }

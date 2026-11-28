@@ -194,13 +194,18 @@ Stars go from 0 to 5. A kill replaces the hit (it is not added on top). Decay on
 | Name | Value | File | What it does |
 |---|---|---|---|
 | MAX_WANTED | 5 | js/wanted.js | Highest wanted level. The HUD shows whole stars, so 1.5 looks like 1 star. |
-| WANTED_DEAL_SEEN | 0.5 | js/wanted.js | Stars added when you sell and another pedestrian is within `WITNESS_RANGE`. |
-| WANTED_HIT | 1 | js/wanted.js | Stars added for hitting a pedestrian. |
-| WANTED_SHOT | 1 | js/wanted.js | Stars added for firing a shot that counts as a crime. |
-| WANTED_KILL | 2 | js/wanted.js | Stars added for killing a pedestrian, instead of the hit. |
-| WANTED_HIT_COP | 1.5 | js/wanted.js | Stars added for hitting a cop. |
-| WANTED_KILL_COP | 3 | js/wanted.js | Stars added for killing a cop, instead of the hit. |
-| WITNESS_RANGE | 192 | js/wanted.js | How close a pedestrian must be to witness a deal (four tiles). |
+| WANTED_DEAL_SEEN | 0.25 | js/wanted.js | Stars added when you sell and another pedestrian is within `WITNESS_RANGE`. |
+| WANTED_HIT | 0.34 | js/wanted.js | Stars added for hitting a pedestrian. About three hits make one star. |
+| WANTED_SHOT | 0.25 | js/wanted.js | Stars added for a counted shot. |
+| WANTED_SHOT_COOLDOWN | 2 | js/wanted.js | Seconds after a counted shot before another shot can add heat. Nonstop fire is about one star per 8 s. |
+| WANTED_KILL | 1 | js/wanted.js | Stars added for killing a pedestrian, instead of the hit. |
+| WANTED_HIT_COP | 0.75 | js/wanted.js | Stars added for hitting a cop. |
+| WANTED_KILL_COP | 2 | js/wanted.js | Stars added for killing a cop, instead of the hit. |
+| WANTED_RUNOVER | 0.5 | js/wanted.js | Stars added for running over a pedestrian in the player's driven car. |
+| WANTED_RUNOVER_COP | 1 | js/wanted.js | Stars added for running over a cop in the player's driven car. |
+| WANTED_CAR_THEFT | 0.25 | js/wanted.js | Stars added for entering a car when a living pedestrian is within `WITNESS_RANGE`. Re-entering a car already marked stolen does not count. |
+| WANTED_CAR_THEFT_COP | 1 | js/wanted.js | Stars added instead when a living cop is within `COP_SIGHT` as you enter a car. |
+| WITNESS_RANGE | 96 | js/wanted.js | How close a pedestrian must be to witness a deal or a car theft (two tiles). |
 | WANTED_DECAY_DELAY | 20 | js/wanted.js | Quiet seconds with no cop in sight before one whole star drops. |
 
 ---

@@ -94,16 +94,18 @@ import {
 } from "./economy.js";
 import { createSupplierMarker } from "./supplier-marker.js";
 import { createDrugBags } from "./drug-bags.js";
-import { createPolice } from "./police.js";
+import { COP_SIGHT, createPolice } from "./police.js";
 import {
   WANTED_DEAL_SEEN,
-  WANTED_SHOT,
   addCrime,
+  addShot,
   createWanted,
   dealSeen,
   hitCrime,
   resetWanted,
+  runOverCrime,
   stepWanted,
+  theftCrime,
   wantedStars,
 } from "./wanted.js";
 import { createPlayer } from "./player.js";
@@ -884,7 +886,7 @@ async function start() {
     traffic,
     blocked: () => buildMode.isOpen() || drive.driving || vitals.dead,
     stick,
-    onShot: () => addCrime(wanted, WANTED_SHOT),
+    onShot: () => addShot(wanted, performance.now() / 1000),
   });
   bindPistolTouch(pistol);
   const origin = lookPreview ? lookStand(map) : tileCenter(map.spawn.x, map.spawn.z);
@@ -907,7 +909,8 @@ async function start() {
   player.maxStock = MAX_STOCK;
   session.economy = economy;
   // Wanted stars. Every hit through pedestrians.hurt (punch, bat, bottle,
-  // pistol) counts; a kill counts more. Car run-overs are not counted yet.
+  // pistol) counts; a kill counts more. Running someone over in the player's
+  // driven car also counts. Traffic hitting a pedestrian does not.
   const wanted = createWanted();
   Object.defineProperty(player, "wanted", { get: () => wantedStars(wanted), enumerable: true });
   session.wanted = wanted;
@@ -1226,6 +1229,11 @@ async function start() {
     if (!drive.enter(traffic.cars(), player.x, player.z)) return;
     session.driving = true;
     const car = drive.occupied;
+    if (car && !car.stolen) {
+      const heat = theftCrime(fromX, fromZ, pedestrians.targets(), COP_SIGHT);
+      if (heat > 0) addCrime(wanted, heat);
+      car.stolen = true;
+    }
     const waitForDoor = traffic.hasSwingDoor(car);
     if (waitForDoor) traffic.openDoor(car);
     enterHop = { fromX, fromZ, fromY, age: 0, started: !waitForDoor, car };
@@ -1467,7 +1475,12 @@ async function start() {
     // Aim and shots read this pose, so the cursor stays exact while the view turns.
     placeCamera(camX, camZ);
     pistol.update(step);
-    pedestrians.runOver(traffic.cars(), drive.driving ? drive.sample() : null);
+    const runOverHits = pedestrians.runOver(traffic.cars(), drive.driving ? drive.sample() : null) || [];
+    for (const hit of runOverHits) {
+      if (hit.car !== drive.occupied) continue;
+      addCrime(wanted, runOverCrime(hit.ped.cop === true));
+    }
+
     hitPlayerWithCars(traffic.cars(), drive.driving ? drive.sample() : null, previousX, previousZ);
     drugs.update(realDt, player, vitals, { driving: drive.driving, dead: vitals.dead });
     const vitalStep = stepPlayerVitals(vitals, realDt);

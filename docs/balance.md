@@ -235,22 +235,25 @@ Cops jog at the player's jog speed, so you can outrun them by sprinting (`PLAYER
 
 ### Cop cars and roadblocks (owner: Loke)
 
-From 3 whole stars, cop cars join the chase and ram you. When one stops within `COP_CAR_EXIT_RANGE`, its crew gets out as foot cops (they count toward `MAX_COPS`). At 5 stars a roadblock of parked cop cars appears across your road ahead. They use the police cars that already drive in traffic. Test flags: `?stars=N`, `?copcars=N`, `?fps=1`.
+From 3 whole stars, cop cars join the chase and ram you. When one stops within `COP_CAR_EXIT_RANGE`, its crew gets out as foot cops. While any chasing cop car is out, the total cop cap is `MAX_COPS_WITH_CARS` (crew does not trigger the "farthest extra cop leaves" rule). When the cars are gone the cap returns to `MAX_COPS`. On foot, rams do no damage below `BUST_HEALTH` so the cops can arrest you; in a car, rams still damage the car. At 5 stars a roadblock of parked cop cars appears across your road ahead, at the larger of `ROADBLOCK_AHEAD` and the visible half-diagonal + `OFFSCREEN_MARGIN`, with a `ROADBLOCK_CAR_GAP` gap between the cars (the gap shrinks if needed so they stay on the road). Chasing cars and the roadblock use the models in `COP_CAR_MODEL` (Ted picked `city_police`). Normal traffic is unchanged. Test flags: `?stars=N`, `?copcars=N` (uses N cars whenever stars are at least `COP_CAR_MIN_STARS`, ignoring the per-star count), `?fps=1`.
 
 | Name | Value | File | What it does |
 |---|---|---|---|
 | COP_CAR_MIN_STARS | 3 | js/cop-cars.js | Whole stars before cop cars join. |
 | COP_CARS_PER_STAR | 1 | js/cop-cars.js | Extra cop cars per star from 3 stars (3 stars = 1, 4 stars = 2). |
-| MAX_COP_CARS | 2 | js/cop-cars.js | Most chasing cop cars at once. `?copcars=N` overrides it for testing. |
+| MAX_COP_CARS | 2 | js/cop-cars.js | Most chasing cop cars at once in normal play. |
 | COP_CAR_SPEED | 1.05 | js/cop-cars.js | Top speed as a multiple of the sedan (about 189 units/s). Sports (1.16) can escape. |
-| COP_CAR_RAM_DAMAGE | 15 | js/cop-cars.js | Damage per ram: to you on foot, to your car while driving. |
+| COP_CAR_RAM_DAMAGE | 15 | js/cop-cars.js | Damage per ram: to you on foot, to your car while driving. On foot, no damage below `BUST_HEALTH` (arrest instead). |
 | COP_CAR_RAM_COOLDOWN | 1.5 | js/cop-cars.js | Seconds between rams from the same car. |
 | COP_CAR_EXIT_RANGE | 120 | js/cop-cars.js | A stopped cop car this close lets its crew out. |
-| COP_CAR_CREW | 2 | js/cop-cars.js | Cops that get out of each car (only as many as fit under `MAX_COPS`). |
+| COP_CAR_CREW | 2 | js/cop-cars.js | Cops that get out of each car. They add to foot cops under `MAX_COPS_WITH_CARS` while cars are out. |
+| MAX_COPS_WITH_CARS | 6 | js/cop-cars.js | Total cop cap while any chasing cop car is out. Back to `MAX_COPS` when the cars are gone. |
 | COP_CAR_SPAWN_GAP | 4 | js/cop-cars.js | Seconds between cop car spawns. |
+| COP_CAR_MODEL | city_police | js/cop-cars.js | Models used for chasing cop cars and the roadblock. A list; normal traffic is unchanged. |
 | ROADBLOCK_MIN_STARS | 5 | js/cop-cars.js | Whole stars before a roadblock appears. |
 | ROADBLOCK_CARS | 2 | js/cop-cars.js | Parked cop cars in one roadblock. |
-| ROADBLOCK_AHEAD | 400 | js/cop-cars.js | Distance ahead of you on your road where the roadblock goes. |
+| ROADBLOCK_AHEAD | 500 | js/cop-cars.js | Minimum distance ahead of you on your road. Actual spawn is `max` of this and the visible half-diagonal + `OFFSCREEN_MARGIN`, so the block never pops in. |
+| ROADBLOCK_CAR_GAP | 18 | js/cop-cars.js | Visible gap between parked roadblock cars. Shrinks if needed so both stay on the road, still spread evenly. |
 | ROADBLOCK_COOLDOWN | 30 | js/cop-cars.js | Seconds after one roadblock is gone before the next can appear. |
 
 ---

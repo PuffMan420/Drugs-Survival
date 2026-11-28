@@ -9,21 +9,25 @@ export const MAX_COP_CARS = 2;
 // Top speed as a multiplier of the sedan (sports is 1.16, so a fast car can escape).
 export const COP_CAR_SPEED = 1.05;
 // Damage to the player on foot per ram. In a car, the ram damages the player's car instead.
+// On foot, rams stop doing damage below BUST_HEALTH so the cops arrest you instead.
 export const COP_CAR_RAM_DAMAGE = 15;
 // Seconds between rams from the same car.
 export const COP_CAR_RAM_COOLDOWN = 1.5;
 // When a cop car stops this close to the player, cops get out.
 export const COP_CAR_EXIT_RANGE = 120;
-// Cops that get out of each car. They count toward MAX_COPS.
+// Cops that get out of each car. They ADD to the foot cops: while cop cars are out,
+// the total cop cap is MAX_COPS_WITH_CARS instead of MAX_COPS (4).
 export const COP_CAR_CREW = 2;
+export const MAX_COPS_WITH_CARS = 6;
 // Seconds between cop car spawns.
 export const COP_CAR_SPAWN_GAP = 4;
 
 // One roadblock of 2 parked cop cars across the player's road.
 export const ROADBLOCK_MIN_STARS = 5;
 export const ROADBLOCK_CARS = 2;
-// Distance ahead of the player along the road.
-export const ROADBLOCK_AHEAD = 400;
+// Minimum distance ahead of the player along the road. Use the larger of this
+// and the visible half-diagonal + OFFSCREEN_MARGIN so it never pops in on screen.
+export const ROADBLOCK_AHEAD = 500;
 // Seconds before a new roadblock may spawn after the last one is removed.
 export const ROADBLOCK_COOLDOWN = 30;
 
@@ -43,7 +47,28 @@ export function desiredCopCars(stars) {
 // new Rapier bodies, no change to world.timestep.
 // The pure rules below run in node (tests/cop-cars.test.mjs).
 
-import { MAX_COPS, OFFSCREEN_MARGIN } from "./police.js";
+import { BUST_HEALTH, MAX_COPS, OFFSCREEN_MARGIN } from "./police.js";
+
+// Ted picked city_police (car 3 on the police-cars sheet, 2026-11-28).
+// A single name or a list. Cop cars and the roadblock use only these.
+// Normal traffic is unchanged.
+export const COP_CAR_MODEL = ["city_police"];
+// Visible gap between parked roadblock cars, in world units. The cars stay
+// on the road and are spread evenly; the gap shrinks if the road is narrow.
+export const ROADBLOCK_CAR_GAP = 18;
+
+export function resolveCopCarModels(model = COP_CAR_MODEL, available = null) {
+  const list = model == null || model === "" ? [] : (Array.isArray(model) ? model : [model]);
+  if (!available) return list.slice();
+  const allow = new Set(available);
+  return list.filter((name) => allow.has(name));
+}
+
+// Total foot-cop cap: 6 while any chasing cop car is out, 4 when they are gone.
+export function copCapForCars(carsOut) {
+  return carsOut ? MAX_COPS_WITH_CARS : MAX_COPS;
+}
+
 
 // Measured: the sedan arcade car at full throttle settles at about 179.7
 // units/s (police 194, sports 208). COP_CAR_SPEED multiplies this.
@@ -84,12 +109,13 @@ const COP_LOST_FACTOR = 2.4;
 // Debug cap for ?copcars=N.
 export const COP_CARS_FLAG_MAX = 8;
 
-// Same rule as desiredCopCars, with a different cap (the ?copcars=N test flag).
-export function copCarsFor(stars, max = MAX_COP_CARS) {
+// How many chasing cop cars to have. Normal play uses desiredCopCars.
+// When the ?copcars=N flag is set, return N whenever stars are high enough.
+export function copCarsFor(stars, flag = null) {
   const whole = Math.max(0, Math.floor(Number(stars) || 0));
-  if (max === MAX_COP_CARS) return desiredCopCars(whole);
+  if (flag == null) return desiredCopCars(whole);
   if (whole < COP_CAR_MIN_STARS) return 0;
-  return Math.max(0, Math.min(max, (whole - COP_CAR_MIN_STARS + 1) * COP_CARS_PER_STAR));
+  return Math.max(0, Math.min(COP_CARS_FLAG_MAX, flag | 0));
 }
 
 // URL flags. All off by default.
@@ -131,8 +157,12 @@ export function canRam(cooldown, speed) {
   return !(cooldown > 0) && Math.abs(Number(speed) || 0) >= COP_RAM_MIN_SPEED;
 }
 
-// On foot the player takes the damage; in a car the player's car does.
-export function ramEffect(playerInCar) {
+// On foot the player takes the damage, except below BUST_HEALTH (arrest instead).
+// In a car the ram always damages the player's car.
+export function ramEffect(playerInCar, health = Infinity) {
+  if (!playerInCar && health < BUST_HEALTH) {
+    return { target: "none", damage: 0, cooldown: COP_CAR_RAM_COOLDOWN };
+  }
   return { target: playerInCar ? "car" : "player", damage: COP_CAR_RAM_DAMAGE, cooldown: COP_CAR_RAM_COOLDOWN };
 }
 
@@ -142,14 +172,36 @@ export function crewShouldExit(dist, speed, crewOut, range = COP_CAR_EXIT_RANGE)
   return dist <= range && Math.abs(Number(speed) || 0) <= COP_EXIT_STOP_SPEED;
 }
 
-// How many of the crew fit under MAX_COPS.
-export function crewRoom(aliveCops, crew = COP_CAR_CREW, maxCops = MAX_COPS) {
+// How many of the crew fit under the cap (MAX_COPS_WITH_CARS while cars are out).
+export function crewRoom(aliveCops, crew = COP_CAR_CREW, maxCops = MAX_COPS_WITH_CARS) {
   return Math.max(0, Math.min(crew, maxCops - Math.max(0, aliveCops | 0)));
 }
 
 // Spawn and despawn radius: past the visible half-diagonal, like foot cops.
 export function spawnRadius(halfW, halfH, margin = OFFSCREEN_MARGIN) {
   return Math.hypot(halfW, halfH) + margin;
+}
+
+// Roadblock spawn distance: never closer than the off-screen spawn radius.
+export function roadblockDistance(halfW, halfH, ahead = ROADBLOCK_AHEAD, margin = OFFSCREEN_MARGIN) {
+  return Math.max(ahead, spawnRadius(halfW, halfH, margin));
+}
+
+// Centre offsets for roadblock cars across a road of `roadWidth`, with `gap`
+// between them. If they would not fit, the gap shrinks so they stay on the road.
+export function roadblockSpread(count, carH, roadWidth, gap = ROADBLOCK_CAR_GAP) {
+  const n = Math.max(1, count | 0);
+  const length = carH * n;
+  const gaps = Math.max(0, n - 1);
+  let useGap = gap;
+  if (roadWidth > 0 && length + gaps * gap > roadWidth) {
+    useGap = gaps > 0 ? Math.max(0, (roadWidth - length) / gaps) : 0;
+  }
+  const total = length + useGap * gaps;
+  const start = -total / 2 + carH / 2;
+  const offsets = [];
+  for (let i = 0; i < n; i += 1) offsets.push(start + i * (carH + useGap));
+  return { gap: useGap, total, offsets };
 }
 
 // Heading convention of the game: angle 0 faces -Z, forward is (-sin, -cos).
@@ -233,6 +285,7 @@ export function roadblockSpot(px, pz, angle, isRoad, options = {}) {
   const count = options.count ?? ROADBLOCK_CARS;
   const carW = options.carW ?? 35;
   const carH = options.carH ?? 69;
+  const gap = options.gap ?? ROADBLOCK_CAR_GAP;
   const heading = snapHeading(angle);
   const fx = -Math.sin(heading);
   const fz = -Math.cos(heading);
@@ -253,14 +306,15 @@ export function roadblockSpot(px, pz, angle, isRoad, options = {}) {
     const shift = (right - left) / 2;
     const x = cx + rx * shift;
     const z = cz + rz * shift;
-    const span = carH + 4;
+    const width = left + right;
+    const spread = roadblockSpread(count, carH, width, gap);
     const across = wrapAngle(heading + Math.PI / 2);
     const cars = [];
     for (let i = 0; i < count; i += 1) {
-      const off = (i - (count - 1) / 2) * span;
+      const off = spread.offsets[i];
       cars.push({ x: x + rx * off, z: z + rz * off, angle: across, w: carW, h: carH });
     }
-    return { x, z, heading, along, width: left + right, cars };
+    return { x, z, heading, along, width, gap: spread.gap, cars };
   }
   return null;
 }
@@ -545,13 +599,14 @@ export function createCopCars({ traffic, police, player, wanted, drive, onRamPla
     if (!canRam(entry.ramCooldown, car.speed)) return false;
     const hit = inCarBox ? carsOverlap(car, inCarBox, 3) : circleHitsCar(car, player.x, player.z);
     if (!hit) return false;
-    const effect = ramEffect(Boolean(inCarBox));
+    const effect = ramEffect(Boolean(inCarBox), player.health);
+    entry.ramCooldown = effect.cooldown;
+    if (!(effect.damage > 0)) return false;
     if (effect.target === "car") {
       if (onRamCar) onRamCar(effect.damage, car);
     } else if (onRamPlayer) {
       onRamPlayer(effect.damage, car);
     }
-    entry.ramCooldown = effect.cooldown;
     entry.rams += 1;
     entry.mode = "brake";
     entry.brakeTime = COP_RAM_BACKOFF;
@@ -607,6 +662,7 @@ export function createCopCars({ traffic, police, player, wanted, drive, onRamPla
       y: traffic.roadHeight(choice.x, choice.z, 0.6),
       angle: headingOf(choice.step.x - choice.x, choice.step.z - choice.z),
       speed: COP_CAR_TOP_SPEED * 0.6,
+      models: resolveCopCarModels(),
     });
     if (!car) return null;
     const entry = {
@@ -625,30 +681,33 @@ export function createCopCars({ traffic, police, player, wanted, drive, onRamPla
     return entry;
   }
 
-  function placeBlock(radius) {
-    const spot = roadblockSpot(player.x, player.z, heading, isRoad);
+  function placeBlock(halfW, halfH) {
+    const ahead = roadblockDistance(halfW, halfH);
+    const names = resolveCopCarModels();
+    const spot = roadblockSpot(player.x, player.z, heading, isRoad, { ahead, gap: ROADBLOCK_CAR_GAP });
     if (!spot) return false;
     const list = [];
     for (const at of spot.cars) {
-      const car = traffic.addCopCar({ x: at.x, z: at.z, y: traffic.roadHeight(at.x, at.z, 0.6), angle: at.angle, speed: 0 });
+      const car = traffic.addCopCar({
+        x: at.x, z: at.z, y: traffic.roadHeight(at.x, at.z, 0.6), angle: at.angle, speed: 0, models: names,
+      });
       if (car) list.push(car);
     }
     if (list.length === 0) return false;
-    // Re-space with the real model lengths, centred on the spot.
+    // Re-space with the real model lengths, centred on the spot, gap kept on the road.
     const fx = -Math.sin(spot.heading);
     const fz = -Math.cos(spot.heading);
     const rx = -fz;
     const rz = fx;
-    const total = list.reduce((sum, car) => sum + car.h + 4, -4);
-    let off = -total / 2;
-    for (const car of list) {
-      off += car.h / 2;
+    const carH = list.reduce((sum, car) => sum + car.h, 0) / list.length;
+    const spread = roadblockSpread(list.length, carH, spot.width, ROADBLOCK_CAR_GAP);
+    list.forEach((car, i) => {
+      const off = spread.offsets[i];
       car.x = spot.x + rx * off;
       car.z = spot.z + rz * off;
-      off += car.h / 2 + 4;
       car.copBlock = true;
-    }
-    block = { x: spot.x, z: spot.z, heading: spot.heading, cars: list, radius };
+    });
+    block = { x: spot.x, z: spot.z, heading: spot.heading, cars: list, ahead, gap: spread.gap };
     return true;
   }
 
@@ -673,7 +732,7 @@ export function createCopCars({ traffic, police, player, wanted, drive, onRamPla
     const radius = spawnRadius(halfW, halfH);
     lastRadius = radius;
     const stars = Math.min(5, Math.floor(wanted.level || 0));
-    const want = copCarsFor(stars, cap);
+    const want = copCarsFor(stars, maxCars);
     const inCarBox = playerBox();
     // Player heading: the car's facing, or the way the player last moved.
     if (inCarBox) heading = inCarBox.angle;
@@ -765,7 +824,7 @@ export function createCopCars({ traffic, police, player, wanted, drive, onRamPla
       blockWait = ROADBLOCK_COOLDOWN;
     }
     if (!block && blockWait === 0 && stars >= ROADBLOCK_MIN_STARS && !player.dead) {
-      if (!placeBlock(radius)) blockWait = 1;
+      if (!placeBlock(halfW, halfH)) blockWait = 1;
     }
   }
 

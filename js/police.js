@@ -76,7 +76,7 @@ export function applyBust(economy) {
   return { lost, stockLost };
 }
 
-export function createPolice({ pedestrians, player, wanted, economy, onBusted }) {
+export function createPolice({ pedestrians, player, wanted, economy, onBusted, copCap } = {}) {
   const cops = [];
   let spawnWait = 0;
   let bustTimer = 0;
@@ -99,15 +99,28 @@ export function createPolice({ pedestrians, player, wanted, economy, onBusted })
     if (ped) cops.push({ ped, cooldown: 0, leaving: false, lastPunch: "" });
   }
 
+  function cap() {
+    // While chasing cop cars are out, the cap rises to MAX_COPS_WITH_CARS (via copCap).
+    const n = copCap ? Number(copCap()) : MAX_COPS;
+    return Math.max(MAX_COPS, Number.isFinite(n) ? n : MAX_COPS);
+  }
+
   function update(dt, halfW, halfH) {
     const radius = Math.hypot(halfW, halfH) + OFFSCREEN_MARGIN;
     const level = wanted.level;
     const want = level >= 1 ? desiredCops(level) : 0;
+    const limit = cap();
+    const carsOut = limit > MAX_COPS;
     let active = 0;
-    for (const cop of cops) if (!cop.ped.dead && !cop.leaving) active += 1;
-    // Fewer stars than cops: the farthest extra ones give up.
+    for (const cop of cops) {
+      if (cop.ped.dead || cop.leaving) continue;
+      // Crew cops do not trigger the "farthest extra cop leaves" rule while cars are out.
+      if (carsOut && cop.fromCar) continue;
+      active += 1;
+    }
+    // Fewer stars than (walker) cops: the farthest extra ones give up.
     if (active > want) {
-      const chasing = cops.filter((c) => !c.ped.dead && !c.leaving);
+      const chasing = cops.filter((c) => !c.ped.dead && !c.leaving && !(carsOut && c.fromCar));
       chasing.sort((a, b) => Math.hypot(b.ped.x - player.x, b.ped.z - player.z)
         - Math.hypot(a.ped.x - player.x, a.ped.z - player.z));
       for (let i = 0; i < active - want; i += 1) chasing[i].leaving = true;
@@ -115,7 +128,7 @@ export function createPolice({ pedestrians, player, wanted, economy, onBusted })
     }
     spawnWait = Math.max(0, spawnWait - dt);
     const alive = cops.filter((c) => !c.ped.dead).length;
-    if (active < want && alive < MAX_COPS && spawnWait === 0) {
+    if (active < want && alive < limit && spawnWait === 0) {
       spawn(radius);
       spawnWait = COP_SPAWN_GAP;
     }
@@ -201,15 +214,18 @@ export function createPolice({ pedestrians, player, wanted, economy, onBusted })
 
   // Cops getting out of a cop car (js/cop-cars.js), one per spot. Added on
   // top of the foot cop rules above, which then steer them like any other
-  // cop; they count toward MAX_COPS. Returns how many spawned.
+  // cop. They add to the foot cops (cap is MAX_COPS_WITH_CARS while cars are
+  // out) and are marked fromCar so they are not sent away as "extra" walkers.
+  // Returns how many spawned.
   function spawnAt(spots) {
     let made = 0;
+    const limit = cap();
     for (const spot of spots || []) {
       const alive = cops.filter((c) => !c.ped.dead).length;
-      if (alive >= MAX_COPS) break;
+      if (alive >= limit) break;
       const ped = pedestrians.spawnCop(spot.x, spot.z, COP_HP, pickCopVariant());
       if (!ped) continue;
-      cops.push({ ped, cooldown: 0, leaving: false, lastPunch: "" });
+      cops.push({ ped, cooldown: 0, leaving: false, lastPunch: "", fromCar: true });
       made += 1;
     }
     return made;
@@ -223,6 +239,9 @@ export function createPolice({ pedestrians, player, wanted, economy, onBusted })
     inSight: () => copInSight(cops.map((c) => c.ped), player.x, player.z),
     get bustTimer() {
       return bustTimer;
+    },
+    snapshot() {
+      return cops.map((c) => ({ leaving: !!c.leaving, fromCar: !!c.fromCar, dead: !!c.ped.dead }));
     },
   };
 }

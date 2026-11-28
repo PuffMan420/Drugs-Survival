@@ -1,15 +1,16 @@
 // Pure rules for cop cars (js/cop-cars.js). Runs in node, no three.js.
 import assert from "node:assert/strict";
-import { MAX_COPS, OFFSCREEN_MARGIN } from "../js/police.js";
+import { MAX_COPS, OFFSCREEN_MARGIN, BUST_HEALTH } from "../js/police.js";
 import {
   desiredCopCars, copCarsFor, parseCopCarsFlag, parseStarsFlag, parseFpsFlag,
   stepCooldown, canRam, ramEffect, crewShouldExit, crewRoom, crewSpots, spawnRadius,
   circleHitsCar, carsOverlap, snapHeading, roadblockSpot, roadblockGone, headingOf,
+  copCapForCars, roadblockDistance, roadblockSpread, resolveCopCarModels,
   COP_CAR_MIN_STARS, COP_CARS_PER_STAR, MAX_COP_CARS, COP_CAR_SPEED, COP_CAR_RAM_DAMAGE,
-  COP_CAR_RAM_COOLDOWN, COP_CAR_EXIT_RANGE, COP_CAR_CREW, COP_CAR_SPAWN_GAP,
-  ROADBLOCK_MIN_STARS, ROADBLOCK_CARS, ROADBLOCK_AHEAD, ROADBLOCK_COOLDOWN,
-  COP_CAR_TOP_SPEED, SEDAN_TOP_SPEED, COP_RAM_MIN_SPEED, COP_EXIT_STOP_SPEED, COP_CARS_FLAG_MAX,
-  roadField, turnSpeedCap, ROAD_CELL,
+  COP_CAR_RAM_COOLDOWN, COP_CAR_EXIT_RANGE, COP_CAR_CREW, COP_CAR_SPAWN_GAP, MAX_COPS_WITH_CARS,
+  ROADBLOCK_MIN_STARS, ROADBLOCK_CARS, ROADBLOCK_AHEAD, ROADBLOCK_COOLDOWN, ROADBLOCK_CAR_GAP,
+  COP_CAR_MODEL, COP_CAR_TOP_SPEED, SEDAN_TOP_SPEED, COP_RAM_MIN_SPEED, COP_EXIT_STOP_SPEED,
+  COP_CARS_FLAG_MAX, roadField, turnSpeedCap, ROAD_CELL,
 } from "../js/cop-cars.js";
 
 // Loke's numbers, as he wrote them.
@@ -24,7 +25,10 @@ assert.equal(COP_CAR_CREW, 2);
 assert.equal(COP_CAR_SPAWN_GAP, 4);
 assert.equal(ROADBLOCK_MIN_STARS, 5);
 assert.equal(ROADBLOCK_CARS, 2);
-assert.equal(ROADBLOCK_AHEAD, 400);
+assert.equal(ROADBLOCK_AHEAD, 500);
+assert.equal(MAX_COPS_WITH_CARS, 6);
+assert.equal(ROADBLOCK_CAR_GAP, 18);
+assert.deepEqual(COP_CAR_MODEL, ["city_police"]);
 assert.equal(ROADBLOCK_COOLDOWN, 30);
 
 // Cars per star: 0,0,0,1,2,2 for 0..5 stars.
@@ -33,10 +37,16 @@ assert.deepEqual([0, 1, 2, 3, 4, 5].map(desiredCopCars), [0, 0, 0, 1, 2, 2]);
 assert.deepEqual([0, 1, 2, 3, 4, 5].map((s) => copCarsFor(s)), [0, 0, 0, 1, 2, 2]);
 assert.equal(copCarsFor(3.5), 1);
 assert.equal(copCarsFor(2.99), 0);
-// ?copcars=N override: same steps, new cap.
+// ?copcars=N ignores the per-star rule: N cars whenever stars >= COP_CAR_MIN_STARS.
 assert.deepEqual([0, 1, 2, 3, 4, 5].map((s) => copCarsFor(s, 0)), [0, 0, 0, 0, 0, 0]);
 assert.deepEqual([0, 1, 2, 3, 4, 5].map((s) => copCarsFor(s, 1)), [0, 0, 0, 1, 1, 1]);
-assert.deepEqual([0, 1, 2, 3, 4, 5].map((s) => copCarsFor(s, 8)), [0, 0, 0, 1, 2, 3]);
+assert.deepEqual([0, 1, 2, 3, 4, 5].map((s) => copCarsFor(s, 4)), [0, 0, 0, 4, 4, 4]);
+assert.equal(copCarsFor(3, 4), 4);
+assert.equal(copCarsFor(2, 4), 0);
+assert.equal(copCarsFor(3, 8), 8);
+assert.equal(copCarsFor(5, 0), 0);
+assert.deepEqual(resolveCopCarModels(), ["city_police"]);
+assert.deepEqual(resolveCopCarModels(["city_police", "missing"], ["city_police", "police"]), ["city_police"]);
 
 // Speed: 1.05 x sedan; a sports car (1.16 x) can escape.
 assert.equal(COP_CAR_TOP_SPEED, SEDAN_TOP_SPEED * 1.05);
@@ -67,21 +77,30 @@ for (let i = 0; i < 89; i += 1) cd = stepCooldown(cd, 1 / 60);
 assert.equal(canRam(cd, 100), false); // 89 frames < 1.5 s
 cd = stepCooldown(cd, 1 / 60 + 1e-9);
 assert.equal(canRam(cd, 100), true);
-// On foot the player takes it, in a car the car takes it.
+// On foot the player takes it, except below BUST_HEALTH (arrest instead).
+// In a car the ram still damages the car, even at low health.
 assert.deepEqual(ramEffect(false), { target: "player", damage: 15, cooldown: 1.5 });
 assert.deepEqual(ramEffect(true), { target: "car", damage: 15, cooldown: 1.5 });
+assert.deepEqual(ramEffect(false, BUST_HEALTH - 1), { target: "none", damage: 0, cooldown: 1.5 });
+assert.deepEqual(ramEffect(false, BUST_HEALTH), { target: "player", damage: 15, cooldown: 1.5 });
+assert.deepEqual(ramEffect(true, 10), { target: "car", damage: 15, cooldown: 1.5 });
 
 // Crew exit: stopped, in range, once.
 assert.equal(crewShouldExit(COP_CAR_EXIT_RANGE, 0, false), true);
 assert.equal(crewShouldExit(COP_CAR_EXIT_RANGE + 1, 0, false), false);
 assert.equal(crewShouldExit(50, COP_EXIT_STOP_SPEED + 1, false), false);
 assert.equal(crewShouldExit(50, 0, true), false);
-// Crew counts toward MAX_COPS.
+// Crew adds under MAX_COPS_WITH_CARS while cars are out; cap is 4 when they are gone.
 assert.equal(MAX_COPS, 4);
+assert.equal(copCapForCars(true), MAX_COPS_WITH_CARS);
+assert.equal(copCapForCars(false), MAX_COPS);
 assert.equal(crewRoom(0), 2);
-assert.equal(crewRoom(3), 1);
-assert.equal(crewRoom(4), 0);
+assert.equal(crewRoom(4), 2);
+assert.equal(crewRoom(5), 1);
+assert.equal(crewRoom(6), 0);
 assert.equal(crewRoom(9), 0);
+assert.equal(crewRoom(3, 2, MAX_COPS), 1);
+assert.equal(crewRoom(4, 2, MAX_COPS), 0);
 const spots = crewSpots({ x: 100, z: 100, angle: 0, w: 36, h: 70 });
 assert.equal(spots.length, COP_CAR_CREW);
 // Angle 0 faces -Z, so the doors are on the x sides.
@@ -90,6 +109,35 @@ assert.ok(Math.abs(Math.abs(spots[0].x - 100) - 32) < 1e-9);
 
 // Spawn radius: half-diagonal plus OFFSCREEN_MARGIN.
 assert.equal(spawnRadius(300, 400), 500 + OFFSCREEN_MARGIN);
+
+// Roadblock distance: never closer than the off-screen spawn radius.
+assert.equal(roadblockDistance(300, 400), Math.max(ROADBLOCK_AHEAD, 500 + OFFSCREEN_MARGIN));
+assert.equal(roadblockDistance(100, 100), ROADBLOCK_AHEAD);
+
+// Spread: full gap on a wide road, shrink to stay on a tight road, stay even.
+const wide = roadblockSpread(2, 69, 192, 18);
+assert.equal(wide.gap, 18);
+assert.equal(wide.offsets.length, 2);
+assert.ok(Math.abs(wide.offsets[1] - wide.offsets[0] - (69 + 18)) < 1e-9);
+assert.ok(Math.abs(wide.offsets[0] + wide.offsets[1]) < 1e-9);
+assert.ok(wide.total <= 192 + 1e-9);
+const tight = roadblockSpread(2, 69, 150, 18);
+assert.ok(Math.abs(tight.gap - 12) < 1e-9);
+assert.ok(Math.abs(tight.total - 150) < 1e-9);
+assert.ok(Math.abs(tight.offsets[0] + tight.offsets[1]) < 1e-9);
+const narrow = roadblockSpread(2, 69, 96, 18);
+assert.equal(narrow.gap, 0);
+
+// Roadblock on a 4-lane road (192): visible 18-unit gap, both cars on the road.
+const isWide = (x, z) => x >= 0 && x <= 192 && z > -2000 && z < 2000;
+const wideSpot = roadblockSpot(80, 0, 0, isWide);
+assert.ok(wideSpot);
+assert.equal(wideSpot.gap, ROADBLOCK_CAR_GAP);
+assert.equal(wideSpot.cars.length, ROADBLOCK_CARS);
+for (const c of wideSpot.cars) {
+  assert.ok(c.x - c.h / 2 >= -1e-6 && c.x + c.h / 2 <= 192 + 1e-6);
+}
+assert.ok(Math.abs(Math.abs(wideSpot.cars[0].x - wideSpot.cars[1].x) - (69 + ROADBLOCK_CAR_GAP)) < 1e-6);
 
 // Contacts.
 const car = { x: 0, z: 0, angle: 0, w: 36, h: 70 };
@@ -110,14 +158,14 @@ assert.ok(Math.abs(snapHeading(1.3) - Math.PI / 2) < 1e-9);
 const isRoad = (x, z) => x >= 0 && x <= 96 && z > -2000 && z < 2000;
 const spot = roadblockSpot(40, 0, 0.1, isRoad);
 assert.ok(spot);
-assert.ok(Math.abs(spot.z + ROADBLOCK_AHEAD) < 1e-9); // 400 ahead
+assert.ok(Math.abs(spot.z + ROADBLOCK_AHEAD) < 1e-9); // 500 ahead
 assert.ok(Math.abs(spot.x - 48) <= 4); // centred on the road
 assert.equal(spot.cars.length, ROADBLOCK_CARS);
 for (const c of spot.cars) assert.ok(Math.abs(Math.abs(c.angle) - Math.PI / 2) < 1e-9); // across the road
-// Road ends 350 ahead: the closest road spot is used, not behind 300.
-const shortRoad = (x, z) => x >= 0 && x <= 96 && z > -350 && z < 2000;
+// Road ends 450 ahead: the closest road spot is used, not behind the search window.
+const shortRoad = (x, z) => x >= 0 && x <= 96 && z > -450 && z < 2000;
 const near = roadblockSpot(40, 0, 0, shortRoad);
-assert.ok(near && near.along <= 350 && near.along >= 300);
+assert.ok(near && near.along <= 450 && near.along >= ROADBLOCK_AHEAD - ROADBLOCK_AHEAD * 0.25);
 // No road ahead at all: no roadblock.
 assert.equal(roadblockSpot(40, 0, 0, (x, z) => z > -10), null);
 // Gone once off-screen behind; stays while ahead or on screen.

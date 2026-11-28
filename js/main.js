@@ -94,8 +94,8 @@ import {
 } from "./economy.js";
 import { createSupplierMarker } from "./supplier-marker.js";
 import { createDrugBags } from "./drug-bags.js";
-import { COP_SIGHT, createPolice } from "./police.js";
-import { createCopCars, parseCopCarsFlag, parseFpsFlag, parseStarsFlag } from "./cop-cars.js";
+import { COP_SIGHT, createPolice, MAX_COPS } from "./police.js";
+import { createCopCars, parseCopCarsFlag, parseFpsFlag, parseStarsFlag, MAX_COPS_WITH_CARS } from "./cop-cars.js";
 import {
   WANTED_DEAL_SEEN,
   addCrime,
@@ -921,6 +921,7 @@ async function start() {
   const wanted = createWanted();
   Object.defineProperty(player, "wanted", { get: () => wantedStars(wanted), enumerable: true });
   session.wanted = wanted;
+  let copCars = null;
   const police = createPolice({
     pedestrians,
     player,
@@ -929,11 +930,13 @@ async function start() {
     onBusted: (loss) => {
       hud.message(`BUSTED  -$${loss.lost}${loss.stockLost ? `, lost ${loss.stockLost} weed` : ""}`, 3.5);
     },
+    copCap: () => (copCars && copCars.cars.length > 0) ? MAX_COPS_WITH_CARS : MAX_COPS,
   });
   session.police = police;
   // Cop cars from 3 stars, roadblock at 5 (js/cop-cars.js). Rams hurt the
-  // player on foot, or the player's car while driving.
-  const copCars = createCopCars({
+  // player on foot, or the player's car while driving. Crew adds to foot cops
+  // while any chasing cop car is out (cap 6).
+  copCars = createCopCars({
     traffic,
     police,
     player,

@@ -1704,9 +1704,15 @@ export async function createTraffic(scene, map, pieces = []) {
   const copFree = [];
   let copSerial = 1000000;
 
-  function addCopCar({ x, z, y = null, angle = 0, speed = 0 }) {
-    if (copModels.length === 0) return null;
-    const modelIndex = copModels[Math.floor(Math.random() * copModels.length)];
+  function addCopCar({ x, z, y = null, angle = 0, speed = 0, name = null, models: wanted = null }) {
+    let pool = copModels;
+    const names = wanted && wanted.length ? wanted : (name ? [name] : null);
+    if (names && names.length) {
+      const allow = new Set(names);
+      pool = copModels.filter((index) => allow.has(models[index].name));
+    }
+    if (pool.length === 0) return null;
+    const modelIndex = pool[Math.floor(Math.random() * pool.length)];
     const model = models[modelIndex];
     copSerial += 1;
     const car = copFree.pop() || {};
@@ -1761,6 +1767,8 @@ export async function createTraffic(scene, map, pieces = []) {
     addCopCar,
     removeCopCar,
     copModelCount: copModels.length,
+    copModelNames: () => copModels.map((i) => models[i].name),
+    modelInfo: (index) => models[index] ? { name: models[index].name, file: models[index].file, w: models[index].w, h: models[index].h } : null,
     // Asphalt test for cop cars and roadblocks (same test the lanes use).
     roadGraph: {
       roadAt: plan.roadAt,

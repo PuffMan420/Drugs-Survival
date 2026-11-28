@@ -115,6 +115,13 @@ canvas {
   display: none;
 }
 
+/* ?fps=1 (test flag) shows the FPS counter in game. Off by default. */
+body.show-fps:not(.is-menu) #fps {
+  display: block;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 #map-overlay {
   position: fixed;
   inset: 0;

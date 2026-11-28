@@ -199,9 +199,26 @@ export function createPolice({ pedestrians, player, wanted, economy, onBusted })
     return false;
   }
 
+  // Cops getting out of a cop car (js/cop-cars.js), one per spot. Added on
+  // top of the foot cop rules above, which then steer them like any other
+  // cop; they count toward MAX_COPS. Returns how many spawned.
+  function spawnAt(spots) {
+    let made = 0;
+    for (const spot of spots || []) {
+      const alive = cops.filter((c) => !c.ped.dead).length;
+      if (alive >= MAX_COPS) break;
+      const ped = pedestrians.spawnCop(spot.x, spot.z, COP_HP, pickCopVariant());
+      if (!ped) continue;
+      cops.push({ ped, cooldown: 0, leaving: false, lastPunch: "" });
+      made += 1;
+    }
+    return made;
+  }
+
   return {
     update,
     clear,
+    spawnAt,
     cops: () => cops.map((c) => c.ped),
     inSight: () => copInSight(cops.map((c) => c.ped), player.x, player.z),
     get bustTimer() {

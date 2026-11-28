@@ -95,6 +95,7 @@ import {
 import { createSupplierMarker } from "./supplier-marker.js";
 import { createDrugBags } from "./drug-bags.js";
 import { COP_SIGHT, createPolice } from "./police.js";
+import { createCopCars, parseCopCarsFlag, parseFpsFlag, parseStarsFlag } from "./cop-cars.js";
 import {
   WANTED_DEAL_SEEN,
   addCrime,
@@ -163,6 +164,12 @@ const fxOn = params.get("fx") !== "off";
 const bloomOn = fxOn && params.get("nobloom") !== "1";
 const ssaoOn = fxOn && params.get("nossao") !== "1";
 const vsmOn = fxOn && params.get("novsm") !== "1";
+// Test flags for Ted's PC, all off by default: ?fps=1 shows the FPS counter,
+// ?copcars=N overrides MAX_COP_CARS, ?stars=N starts with that wanted level.
+const fpsFlag = parseFpsFlag(params);
+const copCarsFlag = parseCopCarsFlag(params);
+const starsFlag = parseStarsFlag(params);
+if (fpsFlag) document.body.classList.add("show-fps");
 // Composer targets are multisampled. 4 samples plus the SMAA pass keep edges
 // smooth; 8 doubled the cost of every scene pixel for little visible gain.
 const MSAA_SAMPLES = 4;
@@ -924,6 +931,37 @@ async function start() {
     },
   });
   session.police = police;
+  // Cop cars from 3 stars, roadblock at 5 (js/cop-cars.js). Rams hurt the
+  // player on foot, or the player's car while driving.
+  const copCars = createCopCars({
+    traffic,
+    police,
+    player,
+    wanted,
+    drive,
+    maxCars: copCarsFlag,
+    onRamPlayer: (amount) => {
+      const hit = player.takeDamage(amount, "car");
+      if (hit && hit.applied > 0 && !hit.justDied) playerSprite.playKnockback();
+    },
+    onRamCar: (amount) => {
+      if (drive.occupied) traffic.hit(drive.occupied, amount, "crash");
+    },
+  });
+  session.copCars = copCars;
+  if (starsFlag != null) {
+    wanted.level = starsFlag;
+    wanted.quiet = 0;
+  }
+  // Car strikes on the player and run-overs skip cop cars: their ram has its
+  // own damage and cooldown, and a cop car hitting someone is not the player's crime.
+  const civilList = [];
+  const civilCars = () => {
+    const all = traffic.cars();
+    civilList.length = 0;
+    for (let i = 0; i < all.length; i += 1) if (!all[i].cop) civilList.push(all[i]);
+    return civilList;
+  };
   const hurtPed = pedestrians.hurt;
   pedestrians.hurt = (ped, ...rest) => {
     const impact = hurtPed(ped, ...rest);
@@ -1036,6 +1074,9 @@ async function start() {
     get police() {
       return police;
     },
+    get copCars() {
+      return copCars;
+    },
     get feel() {
       return feelOn();
     },
@@ -1143,6 +1184,7 @@ async function start() {
     respawnPlayer(vitals);
     drugs.clear(vitals);
     resetWanted(wanted);
+    copCars.clear();
     const loss = loseOnDeath(economy);
     if (loss.lost > 0 || loss.stockLost > 0) hud.message(`-$${loss.lost}${loss.stockLost ? `, lost ${loss.stockLost} weed` : ""}`, 3);
     if (drive.driving) session.use();
@@ -1414,6 +1456,7 @@ async function start() {
     let coverH = spanH;
     let camX = frameCenter(snappedX, halfW, city.mapW);
     let camZ = frameCenter(snappedZ, halfH, city.mapH);
+    copCars.update(step, halfW, halfH);
     traffic.update(step, camX, camZ, player.x, player.z);
     // A moving car can roll over the square after the step above.
     if (!drive.driving) {
@@ -1475,13 +1518,12 @@ async function start() {
     // Aim and shots read this pose, so the cursor stays exact while the view turns.
     placeCamera(camX, camZ);
     pistol.update(step);
-    const runOverHits = pedestrians.runOver(traffic.cars(), drive.driving ? drive.sample() : null) || [];
+    const runOverHits = pedestrians.runOver(civilCars(), drive.driving ? drive.sample() : null) || [];
     for (const hit of runOverHits) {
       if (hit.car !== drive.occupied) continue;
       addCrime(wanted, runOverCrime(hit.ped.cop === true));
     }
-
-    hitPlayerWithCars(traffic.cars(), drive.driving ? drive.sample() : null, previousX, previousZ);
+    hitPlayerWithCars(civilCars(), drive.driving ? drive.sample() : null, previousX, previousZ);
     drugs.update(realDt, player, vitals, { driving: drive.driving, dead: vitals.dead });
     const vitalStep = stepPlayerVitals(vitals, realDt);
     if (vitalStep.justDied) {
@@ -1490,7 +1532,7 @@ async function start() {
     }
     if (vitalStep.readyToRespawn) respawnAtSpawn();
     stepWanted(wanted, realDt, police.inSight());
-    police.update(step, halfW, halfH);
+    if (police.update(step, halfW, halfH)) copCars.clear();
     pedestrians.update(step, player.x, player.z, coverW, coverH);
     stepEconomy(economy, realDt);
     supplier.update(realDt);
@@ -1527,7 +1569,9 @@ async function start() {
     hud.sync(session);
     const instant = 1 / Math.max(realDt, 1 / 240);
     fps = fps === 0 ? instant : fps + (instant - fps) * 0.1;
-    fpsEl.textContent = `FPS ${Math.round(fps)}`;
+    fpsEl.textContent = fpsFlag
+      ? `FPS ${Math.round(fps)} | cop cars ${copCars.cars.length}/${copCars.cap}`
+      : `FPS ${Math.round(fps)}`;
     requestAnimationFrame(frame);
   }
 

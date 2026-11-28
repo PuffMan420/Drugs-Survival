@@ -574,6 +574,7 @@ export function planCars(map, pieces = []) {
     at,
     isRoad,
     poseFits,
+    roadAt,
     heightAt: built.heightAt,
     junctions: detectJunctions(pieces),
   };
@@ -978,6 +979,8 @@ export function createSim(plan, models, pick) {
           if (shouldCullWreck(driver, playerX, playerZ)) drivers.splice(i, 1);
           continue;
         }
+        // Cop cars (js/cop-cars.js) steer and despawn themselves.
+        if (driver.cop) continue;
         const dist = Math.hypot(driver.x - camX, driver.z - camZ);
         const onScreen = Math.abs(driver.x - camX) < 560 && driver.z > camZ - 420 && driver.z < camZ + 560;
         if (driver.stray) {
@@ -991,7 +994,7 @@ export function createSim(plan, models, pick) {
       let guard = 0;
       let live = 0;
       for (const driver of drivers) {
-        if (!driver.wrecked) live += 1;
+        if (!driver.wrecked && !driver.cop) live += 1;
       }
       while (live < MAX_DRIVERS && guard < 12) {
         guard += 1;
@@ -1003,7 +1006,7 @@ export function createSim(plan, models, pick) {
 
       const player = { x: playerX, z: playerZ, y: 0.6, angle: 0, w: 32, h: 32, speed: 0 };
       for (const driver of drivers) {
-        if (driver.held || driver.stray || driver.wrecked) continue;
+        if (driver.held || driver.stray || driver.wrecked || driver.cop) continue;
         if (driver.flee > 0) driver.flee = Math.max(0, driver.flee - dt);
         let limit = driver.flee > 0 ? driver.cruise * 1.65 : driver.cruise;
         let blocked = false;
@@ -1021,7 +1024,7 @@ export function createSim(plan, models, pick) {
           if (other === driver || !sharesRoad(driver, other)) continue;
           // The player's car, or one left off its lane, is only an obstacle:
           // stop for it, but never yield to it, back away from it, or vanish.
-          if (other.held || other.stray) {
+          if (other.held || other.stray || other.cop) {
             const gap = gapOf(driver, other);
             if (gap < STOP_GAP) {
               limit = 0;

@@ -48,6 +48,7 @@ import { rockVertexColors } from "./bed-rocks.js";
 import { foldHeadlightGeometry } from "./headlights.js";
 import { pushOutOfCars } from "./car-push.js";
 import { createSim, headingAngle, planCars, settleParked } from "./routes.js";
+import { handlingClassFor } from "./car-handling.js";
 import { signalNow } from "./signals.js";
 
 // Footprints in the same car units as the CARS list below.
@@ -1691,6 +1692,62 @@ export async function createTraffic(scene, map, pieces = []) {
     blastPeds(car, peds);
   }
 
+  // Cop cars for js/cop-cars.js: the police models that already drive in
+  // traffic (handling class "police"). They join the driver list, so they are
+  // drawn, lit, heard, shot and wrecked like any other car; the sim skips
+  // them (driver.cop) and cop-cars.js steers them. Removed cars that are not
+  // wrecked go back to a small free list and are reused.
+  const copModels = [];
+  for (let index = 0; index < models.length; index += 1) {
+    if (handlingClassFor(models[index]) === "police") copModels.push(index);
+  }
+  const copFree = [];
+  let copSerial = 1000000;
+
+  function addCopCar({ x, z, y = null, angle = 0, speed = 0 }) {
+    if (copModels.length === 0) return null;
+    const modelIndex = copModels[Math.floor(Math.random() * copModels.length)];
+    const model = models[modelIndex];
+    copSerial += 1;
+    const car = copFree.pop() || {};
+    for (const key of Object.keys(car)) delete car[key];
+    Object.assign(car, {
+      id: copSerial,
+      model: modelIndex,
+      w: model.w,
+      h: model.h,
+      bodyH: model.bodyH,
+      bodyLift: model.bodyLift,
+      bulky: !!model.bulky,
+      x,
+      z,
+      y,
+      angle,
+      speed,
+      cruise: 0,
+      node: 0,
+      exit: 0,
+      dist: 0,
+      wait: 0,
+      alive: true,
+      blocked: false,
+      arc: null,
+      commit: null,
+      cop: true,
+    });
+    initCarHealth(car);
+    attachDoor(car, model);
+    sim.drivers.push(car);
+    return car;
+  }
+
+  function removeCopCar(car) {
+    const at = sim.drivers.indexOf(car);
+    if (at >= 0) sim.drivers.splice(at, 1);
+    car.cop = false;
+    if (!car.wrecked && !car.held && copFree.length < 8) copFree.push(car);
+  }
+
   function pushLight(kind, x, y, z) {
     const slot = lightPool[lightList.length];
     slot.kind = kind;
@@ -1701,6 +1758,13 @@ export async function createTraffic(scene, map, pieces = []) {
   }
 
   return {
+    addCopCar,
+    removeCopCar,
+    copModelCount: copModels.length,
+    // Asphalt test for cop cars and roadblocks (same test the lanes use).
+    roadGraph: {
+      roadAt: plan.roadAt,
+    },
     setLampGlow(intensity) {
       const value = Number.isFinite(intensity) ? intensity : 0.55;
       if (value === lampGlow) return;

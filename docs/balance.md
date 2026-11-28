@@ -233,6 +233,26 @@ Cops jog at the player's jog speed, so you can outrun them by sprinting (`PLAYER
 | OFFSCREEN_MARGIN | 80 | js/police.js | Extra distance past the visible area where cops spawn and despawn, in units. |
 | COP_COWBOY_CHANCE | 0.15 | js/police.js | Share of cops that spawn as the cowboy-hat cop (`cop_v2f_vera1`). The rest are the normal helmet cop (`cop_v1d_vera1`). 0 = never, 1 = always. Both bodies are in `COP_MODELS` in js/characters.js and keep their own colors. |
 
+### Cop cars and roadblocks (owner: Loke)
+
+From 3 whole stars, cop cars join the chase and ram you. When one stops within `COP_CAR_EXIT_RANGE`, its crew gets out as foot cops (they count toward `MAX_COPS`). At 5 stars a roadblock of parked cop cars appears across your road ahead. They use the police cars that already drive in traffic. Test flags: `?stars=N`, `?copcars=N`, `?fps=1`.
+
+| Name | Value | File | What it does |
+|---|---|---|---|
+| COP_CAR_MIN_STARS | 3 | js/cop-cars.js | Whole stars before cop cars join. |
+| COP_CARS_PER_STAR | 1 | js/cop-cars.js | Extra cop cars per star from 3 stars (3 stars = 1, 4 stars = 2). |
+| MAX_COP_CARS | 2 | js/cop-cars.js | Most chasing cop cars at once. `?copcars=N` overrides it for testing. |
+| COP_CAR_SPEED | 1.05 | js/cop-cars.js | Top speed as a multiple of the sedan (about 189 units/s). Sports (1.16) can escape. |
+| COP_CAR_RAM_DAMAGE | 15 | js/cop-cars.js | Damage per ram: to you on foot, to your car while driving. |
+| COP_CAR_RAM_COOLDOWN | 1.5 | js/cop-cars.js | Seconds between rams from the same car. |
+| COP_CAR_EXIT_RANGE | 120 | js/cop-cars.js | A stopped cop car this close lets its crew out. |
+| COP_CAR_CREW | 2 | js/cop-cars.js | Cops that get out of each car (only as many as fit under `MAX_COPS`). |
+| COP_CAR_SPAWN_GAP | 4 | js/cop-cars.js | Seconds between cop car spawns. |
+| ROADBLOCK_MIN_STARS | 5 | js/cop-cars.js | Whole stars before a roadblock appears. |
+| ROADBLOCK_CARS | 2 | js/cop-cars.js | Parked cop cars in one roadblock. |
+| ROADBLOCK_AHEAD | 400 | js/cop-cars.js | Distance ahead of you on your road where the roadblock goes. |
+| ROADBLOCK_COOLDOWN | 30 | js/cop-cars.js | Seconds after one roadblock is gone before the next can appear. |
+
 ---
 
 ## Speeds (player, pedestrians, cops, cars)
